@@ -1,8 +1,15 @@
 # SafeRoute: Hệ thống định tuyến né ngập dựa trên AI và dữ liệu thời sự
 **Design Specification**
-*Ngày lập: 27/09/2026*
+*Phiên bản hiện tại: v1.1*
+*Ngày cập nhật: 28/09/2026*
 *Tác giả: SafeRoute Team*
 *Trạng thái: Approved*
+
+### Lịch sử phiên bản (Revision History)
+| Phiên bản | Ngày cập nhật | Người thực hiện | Nội dung thay đổi chi tiết |
+| :--- | :--- | :--- | :--- |
+| **v1.0** | 27/09/2026 | SafeRoute Team | Khởi tạo tài liệu đặc tả thiết kế kiến trúc, mô hình dữ liệu PostGIS, thuật toán định tuyến và UI/UX ban đầu. |
+| **v1.1** | 28/09/2026 | SafeRoute Team | • **Mục 1.3**: Bổ sung phân tích so sánh định vị sản phẩm trực diện với UDI Maps & Google Maps.<br>• **Mục 4.1**: Nâng cấp công thức dự đoán triều cường sang mô hình Sóng điều hòa (Half-Sine Harmonic Tide Model) trơn tru và sát thực tế hải văn hơn hàm tam giác.<br>• **Mục 4.2**: Tách biệt độ sâu vật lý và mô hình suy giảm độ tin cậy thông tin không - thời gian kết hợp điểm đồng thuận cộng đồng (Confidence Aging & Social Consensus).<br>• **Mục 10**: Bổ sung quy trình kiểm chứng thực nghiệm đối chứng với trạm thủy văn Phú An/Nhà Bè & UDI Maps, cùng bộ chỉ số đánh giá (Precision, Recall, F1, sai số thời gian đỉnh triều). |
 
 ---
 
@@ -21,6 +28,17 @@ Xây dựng **SafeRoute** — một nền tảng định tuyến thông minh h�
 3. **Định tuyến né ngập theo loại phương tiện**:
    * Phân biệt xe máy (ngưỡng an toàn thấp, dễ chết máy) và ô tô (ngưỡng chịu nước cao hơn).
    * Đưa ra 2 tuyến đường song song để người dùng so sánh: **Tuyến an toàn né ngập (Safe Route)** và **Tuyến nhanh nhất (Fastest Route)** kèm cảnh báo chi tiết vị trí/độ sâu ngập.
+
+### 1.3. Định vị sản phẩm & So sánh trực diện với UDI Maps
+
+| Tiêu chí | UDI Maps (Thoát nước TP.HCM) | Google Maps | SafeRoute (Hệ thống đề xuất) |
+| :--- | :--- | :--- | :--- |
+| **Bản chất cốt lõi** | Bản đồ giám sát / Tra cứu thụ động | Dẫn đường tối ưu thời gian/kẹt xe | **Dẫn đường né ngập thông minh (Navigation)** |
+| **Tính năng chỉ đường (Routing)** | ❌ Không có (người dùng tự nhìn icon ngập rồi tự mở app khác tìm đường) | ❌ Không tính toán vùng ngập lụt hay triều cường | ✅ **Tự động vẽ tuyến né ngập an toàn**, so sánh song song với tuyến nhanh nhất |
+| **Dự đoán theo thời gian ($T$)** | ❌ Chỉ xem hiện trạng tại thời điểm mở app | ❌ Không có | ✅ **Dự đoán trước theo mốc giờ di chuyển trong tương lai** ($T$) dựa trên sóng triều/mưa |
+| **Phân loại phương tiện** | ❌ Cảnh báo chung chung | ⚠️ Chỉ phân biệt ô tô/xe máy theo vận tốc, không theo độ sâu nước | ✅ **Tùy biến ngưỡng an toàn ngập**: Xe máy ($\le 15\text{cm}$, cấm $> 20\text{cm}$), Ô tô ($\le 25\text{cm}$, cấm $> 35\text{cm}$) |
+| **Nguồn dữ liệu** | Giới hạn ở trạm quan trắc/camera cố định của UDI | Tốc độ GPS người dùng | **Đa nguồn**: AI Gemini cào tin tức báo chí, bản tin thủy văn + Báo cáo cộng đồng (Crowdsourcing) |
+| **Nền tảng** | App di động độc quyền, giao diện cũ | App thương mại đóng mã nguồn | **Web App hiện đại (React + Leaflet + PostGIS)**, nhẹ, chạy mượt trên mọi thiết bị |
 
 ---
 
@@ -130,37 +148,68 @@ Lưu trữ các đoạn đường ngập được AI trích xuất hoặc Admin 
 
 ## 4. Mô hình suy diễn & Dự đoán ngập theo thời gian (Temporal Prediction Model)
 
-Khi người dùng chỉ định điểm xuất phát, đích đến và mốc thời gian $T$:
+Khi người dùng chỉ định điểm xuất phát, đích đến, phương tiện và mốc thời gian di chuyển trong tương lai $T$:
 
-### 4.1. Hàm biến thiên độ sâu ngập theo thời gian $T$ đối với sự kiện tin tức
-Đối với mỗi bản ghi trong `flood_events`:
-* Nếu $T < start\_time$ hoặc $T > end\_time + 30\text{ phút}$:
-  $$Depth_{event}(T) = 0$$
-* Nếu $start\_time \le T \le end\_time$: Áp dụng hàm chuông đối xứng quanh `peak_time`:
-  $$Depth_{event}(T) = Depth_{peak} \times \left(1 - \frac{|T - peak\_time|}{\Delta t_{half}}\right)$$
-  *(Trong đó $\Delta t_{half} = \frac{end\_time - start\_time}{2}$. Độ sâu đạt cực đại đúng lúc đỉnh triều/mưa).*
+### 4.1. Hàm biến thiên độ sâu do Triều cường (Mô hình Sóng điều hòa - Half-Sine Harmonic Model)
+Hạ lưu sông Sài Gòn chịu chế độ bán nhật triều không đều từ Biển Đông (ghi nhận tại trạm Phú An và Nhà Bè). Mực nước dâng và rút theo dạng sóng điều hòa trơn tru, đứng triều ở đỉnh và giảm dần. Đối với sự kiện ngập do triều cường (`cause = 'high_tide'`), độ sâu tại thời điểm $T$ được mô hình hóa bởi:
 
-### 4.2. Hàm suy giảm theo thời gian đối với báo cáo cộng đồng
-Báo cáo người dùng phản ánh hiện trạng tại $T_{report}$. Mức độ ảnh hưởng suy giảm theo thời gian (Decay):
-* Độ sâu quy đổi ban đầu:
-  * `ankle`: 15 cm
-  * `wheel`: 30 cm
-  * `knee`: 50 cm
-  * `deep`: 70 cm
-* Hàm suy giảm:
-  $$\text{EffectiveDepth}_{report}(T) = Depth_{initial} \times \exp\left(-\lambda \cdot (T - T_{report})\right)$$
-  *(Với $\lambda \approx 0.015$ tương ứng nửa chu kỳ rút nước khoảng 90 phút).*
+$$Depth_{tide}(T) = \begin{cases} 
+D_{peak} \cdot \sin^2\left(\frac{\pi \cdot (T - t_{start})}{t_{end} - t_{start}}\right) & \text{khi } t_{start} \le T \le t_{end} \\
+0 & \text{khi } T < t_{start} \text{ hoặc } T > t_{end}
+\end{cases}$$
 
-### 4.3. Tổng hợp vùng nguy hiểm tại thời điểm $T$
-Backend thực hiện truy vấn hợp không gian:
+* **Ưu điểm vật lý**: 
+  * Tính liên tục vi phân ($C^1$ continuity): Đạo hàm tại hai thời điểm biên ($t_{start}, t_{end}$) bằng 0, mô tả hiện tượng nước bắt đầu mấp mé và rút êm.
+  * Đạo hàm tại đỉnh $t_{peak} = \frac{t_{start} + t_{end}}{2}$ bằng 0: Tái hiện đúng hiện tượng **đứng triều** (slack water) trong 20-30 phút thực tế.
+
+### 4.2. Hàm biến thiên độ sâu do Mưa lớn (Mô hình Thủy văn Tam giác - Synthetic Triangular Hydrograph)
+Đối với ngập do mưa rào cục bộ (`cause = 'heavy_rain'`), nước dâng nhanh theo cường độ mưa và rút dần theo công suất cống thoát nước:
+
+$$Depth_{rain}(T) = \begin{cases} 
+D_{peak} \cdot \left(\frac{T - t_{start}}{t_{peak} - t_{start}}\right) & \text{khi } t_{start} \le T \le t_{peak} \\
+D_{peak} \cdot \left(\frac{t_{end} - T}{t_{end} - t_{peak}}\right) & \text{khi } t_{peak} < T \le t_{end} \\
+0 & \text{ngoài khoảng thời gian trên}
+\end{cases}$$
+
+### 4.3. Báo cáo cộng đồng: Tách biệt Độ sâu vật lý và Hệ số tin cậy (Confidence Aging & Consensus)
+Để đảm bảo tính đúng đắn vật lý, hệ thống không làm suy giảm độ sâu thực tế của vũng nước mà làm suy giảm **Độ tin cậy của thông tin (Information Freshness & Reliability)**:
+
+1. **Độ sâu ngập vật lý ($Depth_{reported}$)**: Giữ nguyên theo mức quan sát thực tế (`ankle`: 15cm, `wheel`: 30cm, `knee`: 50cm, `deep`: 70cm).
+2. **Hệ số tin cậy không - thời gian $Confidence(T) \in [0, 1]$**:
+   $$Confidence(T) = \exp\left(-\frac{T - T_{report}}{\tau}\right) \times \frac{1}{1 + \exp\left(-(w_{up} \cdot \text{upvotes} - w_{down} \cdot \text{downvotes})\right)}$$
+   * $\tau \approx 60\text{ phút}$: Hằng số thời gian tiêu thoát nước đặc trưng của đô thị. Sau 60 phút không có người cập nhật, độ tin cậy tự nhiên giảm đi $1/e \approx 63\%$.
+   * $w_{up} = 0.5, w_{down} = 1.2$: Trọng số xác nhận cộng đồng (lượt báo "nước đã rút" sẽ làm độ tin cậy tụt nhanh hơn).
+3. **Quy tắc kích hoạt né đường**: Điểm báo cáo người dùng chỉ được đưa vào tập cản trở định tuyến nếu:
+   $$Confidence(T) \ge 0.4 \quad \text{và} \quad Depth_{reported} \ge \text{Ngưỡng an toàn của xe}$$
+
+### 4.4. Hợp nhất vùng nguy hiểm không gian (Spatial Hazard MultiPolygon) tại thời điểm $T$
+Backend truy vấn kết hợp PostGIS:
 ```sql
-SELECT ST_Union(buffer_geom) AS hazard_polygon
-FROM flood_events
-WHERE start_time <= :target_time 
-  AND end_time >= :target_time
-  AND (estimated_depth_cm * (1 - ABS(EXTRACT(EPOCH FROM (:target_time - peak_time))) / (EXTRACT(EPOCH FROM (end_time - start_time))/2))) >= :vehicle_threshold
+WITH active_events AS (
+  SELECT buffer_geom,
+    CASE 
+      WHEN cause = 'high_tide' THEN 
+        estimated_depth_cm * POWER(SIN(PI() * EXTRACT(EPOCH FROM (:target_time - start_time)) / EXTRACT(EPOCH FROM (end_time - start_time))), 2)
+      ELSE 
+        estimated_depth_cm * (1.0 - ABS(EXTRACT(EPOCH FROM (:target_time - peak_time))) / (EXTRACT(EPOCH FROM (end_time - start_time))/2.0))
+    END AS current_depth
+  FROM flood_events
+  WHERE start_time <= :target_time AND end_time >= :target_time
+),
+active_reports AS (
+  SELECT ST_Buffer(ST_Transform(location_geom, 3857), 30) AS buffer_geom,
+         depth_cm AS current_depth
+  FROM user_reports
+  WHERE (EXP(-EXTRACT(EPOCH FROM (:target_time - reported_at)) / 3600.0) * (1.0 / (1.0 + EXP(-(0.5*upvotes - 1.2*downvotes))))) >= 0.4
+)
+SELECT ST_Union(ST_Transform(buffer_geom, 4326)) AS hazard_polygon
+FROM (
+  SELECT buffer_geom FROM active_events WHERE current_depth >= :vehicle_threshold
+  UNION ALL
+  SELECT buffer_geom FROM active_reports WHERE current_depth >= :vehicle_threshold
+) combined_hazards;
 ```
-Kết quả là một tập hợp các đa giác (MultiPolygon) đại diện cho các vùng cấm tại thời điểm $T$.
+Kết quả trả về là một `MultiPolygon` duy nhất đại diện cho tất cả các vùng cấm tại thời điểm $T$ phù hợp với loại xe đã chọn.
 
 ---
 
@@ -350,14 +399,32 @@ const floodExtractionSchema = {
 
 ## 10. Kế hoạch kiểm thử & Đánh giá (Testing & Verification Plan)
 
+### 10.1. Kiểm thử phần mềm (Software Testing)
 1. **Unit & Integration Test (Backend)**:
-   * Kiểm thử hàm tính toán độ sâu theo thời gian $Depth(T)$ (Đảm bảo giá trị đỉnh tại peak_time và = 0 ngoài khoảng).
-   * Kiểm thử tính toán giao cắt không gian giữa Polyline lộ trình và Polygon vùng ngập bằng Turf.js.
-   * Kiểm thử thuật toán sinh Waypoint né ngập.
-   * Kiểm thử trích xuất JSON của Gemini AI với các mẫu bài báo thời sự thực tế từ báo Tuổi Trẻ / VnExpress.
+   * Kiểm thử hàm sóng điều hòa $Depth_{tide}(T)$ và hàm tam giác $Depth_{rain}(T)$ (đảm bảo đạo hàm êm tại biên và giá trị cực đại tại đỉnh).
+   * Kiểm thử hàm suy giảm độ tin cậy $Confidence(T)$ theo thời gian và trọng số tương tác upvote/downvote.
+   * Kiểm thử tính toán giao cắt không gian giữa Polyline lộ trình và MultiPolygon vùng ngập bằng Turf.js / PostGIS.
+   * Kiểm thử thuật toán sinh Waypoint né ngập khi mọi tuyến mặc định đều ngập.
+   * Kiểm thử trích xuất JSON của Gemini AI với các bài báo thực tế từ báo Tuổi Trẻ, VnExpress.
 2. **Frontend UI Test**:
-   * Kiểm thử tương tác chọn điểm trên bản đồ, đổi phương tiện và đổi mốc thời gian xem bản đồ cập nhật thời gian thực.
-   * Kiểm thử luồng gửi báo cáo điểm ngập.
+   * Kiểm thử tương tác chọn điểm trên bản đồ, chuyển đổi phương tiện (Xe máy / Ô tô) và chọn mốc giờ tương lai.
+   * Kiểm thử luồng gửi báo cáo điểm ngập từ bản đồ.
 3. **End-to-End Scenario Test**:
    * Kịch bản: Người dùng đi từ Quận 1 sang Quận 7 lúc 18:00 (đỉnh triều đường Trần Xuân Soạn ngập 40cm).
    * Kỳ vọng: Tuyến ngắn nhất qua Trần Xuân Soạn bị cảnh báo đỏ, hệ thống tự động sinh Tuyến an toàn đi vòng qua cầu Him Lam / Nguyễn Hữu Thọ hoàn toàn khô ráo.
+
+### 10.2. Phương pháp Đối chứng & Kiểm chứng Thực tế (Ground Truth Verification)
+Để đánh giá độ chính xác của mô hình dự đoán và thuật toán né ngập trong thực tế:
+1. **Nguồn dữ liệu đối chứng (Ground Truth Data)**:
+   * **Dữ liệu ngập thực tế**: Đối chiếu danh sách tuyến đường ngập và thời gian ngập với ứng dụng **UDI Maps** (Công ty TNHH MTV Thoát nước Đô thị TP.HCM) và thông báo khẩn cấp của Ban Chỉ huy Phòng chống thiên tai & Tìm kiếm cứu nạn TP.HCM.
+   * **Dữ liệu triều thực tế**: Đối chiếu mốc giờ đỉnh triều $t_{peak}$ và độ cao đỉnh triều với số liệu đo đạc thực tế tại **Trạm thủy văn Phú An (sông Sài Gòn)** và **Trạm Nhà Bè (sông Đồng Điền)** do Đài Khí tượng Thủy văn khu vực Nam Bộ phát hành.
+2. **Bộ chỉ số đo lường hiệu năng (Evaluation Metrics)**:
+   * **Độ chính xác phân loại đường ngập**:
+     $$\text{Precision} = \frac{TP}{TP + FP} \quad (\text{Tỷ lệ đoạn đường báo ngập mà thực tế có ngập thật - tránh đi vòng oan})$$
+     $$\text{Recall} = \frac{TP}{TP + FN} \quad (\text{Tỷ lệ đoạn ngập thực tế được phát hiện - mục tiêu: } \ge 90\% \text{ để tránh chết máy})$$
+     $$\text{F1-Score} = 2 \times \frac{\text{Precision} \times \text{Recall}}{\text{Precision} + \text{Recall}}$$
+   * **Sai số thời gian đỉnh ngập**:
+     $$\Delta t = |t_{peak\_predicted} - t_{peak\_actual}| \quad (\text{Mục tiêu: } \Delta t \le 15 \text{ phút})$$
+   * **Hiệu quả né ngập của lộ trình (Route Safety Gain)**:
+     Đo lường mức giảm chiều dài ngập lụt: $\Delta L = L_{flooded\_fastest} - L_{flooded\_safe}$. Tuyến an toàn phải đạt $L_{flooded\_safe} = 0$ đối với các điểm ngập vượt ngưỡng an toàn của xe.
+
