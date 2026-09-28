@@ -1,0 +1,15 @@
+{
+  "name": "saferoute-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev:server": "npm --workspace=server run dev",
+    "dev:client": "npm --workspace=client run dev",
+    "test:server": "npm --workspace=server test",
+    "build": "npm --workspace=server run build && npm --workspace=client run build"
+  }
+}
