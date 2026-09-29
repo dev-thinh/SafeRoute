@@ -2,7 +2,8 @@ import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { extractFloodEventsWithGemini } from './geminiExtractor';
 import { geocodeStreet } from './geocodingService';
-import { inMemoryFloodEvents } from '../routes/routesRouter';
+import { inMemoryFloodEvents, saveFloodEvent } from '../db/floodsRepo';
+import { saveArticle } from '../db/newsRepo';
 
 export interface ScrapedArticleLocation {
   streetName: string;
@@ -245,13 +246,12 @@ export async function crawlLatestFloodNews(): Promise<{
               lng: coord?.lng,
             });
 
-            // Add directly into active in-memory flood events
             if (coord) {
               newFloodsCount++;
-              inMemoryFloodEvents.unshift({
+              const floodEv = {
                 id: `crawled-${Date.now()}-${Math.random()}`,
-                title: `${article.title} (${src.name})`,
-                sourceType: 'news_crawler',
+                title: `${article.title} • ${src.name}`,
+                sourceType: 'news_crawler' as const,
                 cause: aiResult.cause,
                 streetName: loc.street_name,
                 district: loc.district,
@@ -262,7 +262,9 @@ export async function crawlLatestFloodNews(): Promise<{
                 estimatedDepthCm: loc.estimated_depth_cm,
                 confidenceScore: loc.confidence || 0.9,
                 geometry: { type: 'Point', coordinates: [coord.lng, coord.lat] },
-              });
+              };
+              inMemoryFloodEvents.unshift(floodEv);
+              saveFloodEvent(floodEv).catch(() => {});
             }
           }
 
@@ -280,6 +282,7 @@ export async function crawlLatestFloodNews(): Promise<{
           };
 
           crawledArticlesStore.unshift(newScrapedItem);
+          saveArticle(newScrapedItem).catch(() => {});
           newArticlesFound++;
         } catch (err: any) {
           console.warn(`Error processing crawled article ${item.link}:`, err.message);

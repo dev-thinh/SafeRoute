@@ -379,6 +379,9 @@ export async function findCleanDetourRoutes(
           break; // Found a valid through-road for this direction
         }
       }
+      if (candidateRoutes.length >= 2) {
+        break; // Sufficient alternative detours found
+      }
     } catch (e) {
       // Continue searching next offset
     }

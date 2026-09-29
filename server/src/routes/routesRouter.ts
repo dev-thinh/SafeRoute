@@ -192,8 +192,9 @@ export function getActiveFloodEventsForTargetTime(targetDate: Date): FloodEvent[
   ];
 }
 
-// In-memory dynamic flood events cache (holds AI-ingested news events and manual events)
-export const inMemoryFloodEvents: FloodEvent[] = [];
+import { inMemoryFloodEvents, getDynamicFloodEvents } from '../db/floodsRepo';
+import { getActiveReports } from '../db/reportsRepo';
+export { inMemoryFloodEvents };
 
 routesRouter.post('/navigate', async (req, res) => {
   try {
@@ -209,10 +210,11 @@ routesRouter.post('/navigate', async (req, res) => {
     const baselineEvents = getActiveFloodEventsForTargetTime(targetDate);
 
     // 2. Events ingested via AI Gemini news crawler / admin panel
-    const dynamicAdminEvents = inMemoryFloodEvents;
+    const dynamicAdminEvents = await getDynamicFloodEvents();
 
     // 3. Live crowdsourced user reports converted to flood hazard obstacles
-    const crowdsourcedEvents: FloodEvent[] = inMemoryReports
+    const activeReports = await getActiveReports();
+    const crowdsourcedEvents: FloodEvent[] = activeReports
       .filter((r) => r.status === 'active')
       .map((r) => ({
         id: r.id,

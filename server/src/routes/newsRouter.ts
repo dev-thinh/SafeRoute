@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { crawledArticlesStore, crawlLatestFloodNews } from '../services/newsCrawler';
+import { getArticles } from '../db/newsRepo';
 
 export const newsRouter = Router();
 
@@ -7,11 +8,19 @@ export const newsRouter = Router();
  * GET /api/news
  * Returns all scraped news articles with extracted flood locations & AI summaries.
  */
-newsRouter.get('/', (req, res) => {
-  return res.json({
-    total: crawledArticlesStore.length,
-    articles: crawledArticlesStore,
-  });
+newsRouter.get('/', async (_req, res) => {
+  try {
+    const articles = await getArticles(crawledArticlesStore);
+    return res.json({
+      total: articles.length,
+      articles,
+    });
+  } catch (err: any) {
+    return res.json({
+      total: crawledArticlesStore.length,
+      articles: crawledArticlesStore,
+    });
+  }
 });
 
 /**
@@ -19,7 +28,7 @@ newsRouter.get('/', (req, res) => {
  * Triggers an immediate manual crawl from RSS feeds (VnExpress, Tuổi Trẻ, Thanh Niên)
  * and runs AI extraction on newly found articles.
  */
-newsRouter.post('/crawl-now', async (req, res) => {
+newsRouter.post('/crawl-now', async (_req, res) => {
   try {
     const result = await crawlLatestFloodNews();
     return res.json({
