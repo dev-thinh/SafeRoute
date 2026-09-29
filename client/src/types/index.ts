@@ -5,6 +5,13 @@ export interface Coordinate {
   lng: number;
 }
 
+export interface FloodedSegment {
+  coordinates: [number, number][]; // [[lng, lat], ...]
+  depthCm: number;
+  severity: 'low' | 'medium' | 'high' | 'prohibited'; // low: yellow, medium: orange, high: red, prohibited: dark red
+  streetName?: string;
+}
+
 export interface RouteResult {
   distanceMeters: number;
   durationSeconds: number;
@@ -12,6 +19,7 @@ export interface RouteResult {
   maxFloodDepthCm: number;
   floodedDistanceMeters: number;
   geometry: GeoJSON.LineString;
+  floodedSegments?: FloodedSegment[];
 }
 
 export interface NavigateResponse {

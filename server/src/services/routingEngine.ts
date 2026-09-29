@@ -3,6 +3,14 @@ import * as turf from '@turf/turf';
 import { Coordinate, VehicleType, FloodEvent } from '../types';
 import { ENV } from '../config/env';
 import { buildHazardMultiPolygonFromEvents } from './spatialService';
+import { calculateTidalDepth, calculateRainDepth } from './predictionEngine';
+
+export interface FloodedSegment {
+  coordinates: [number, number][]; // [[lng, lat], ...]
+  depthCm: number;
+  severity: 'low' | 'medium' | 'high' | 'prohibited'; // low: yellow, medium: orange, high: red, prohibited: dark red
+  streetName?: string;
+}
 
 export interface RouteResult {
   distanceMeters: number;
@@ -11,6 +19,7 @@ export interface RouteResult {
   maxFloodDepthCm: number;
   floodedDistanceMeters: number;
   geometry: GeoJSON.LineString;
+  floodedSegments?: FloodedSegment[];
 }
 
 /**
@@ -53,6 +62,93 @@ export function evaluateRouteFloodExposure(
   return {
     isFlooded: true,
     floodedDistanceMeters: floodedDistance > 0 ? Math.round(floodedDistance) : 300,
+  };
+}
+
+/**
+ * Identifies and extracts precise flooded segments along a route line with their depth & severity levels.
+ * Severity levels (Yellow -> Orange -> Red -> Dark Red / Prohibited):
+ * - low (<= 15cm): Yellow
+ * - medium (16 - 25cm): Orange
+ * - high (26 - 35cm): Red
+ * - prohibited (> 35cm): Dark Red
+ */
+export function extractRouteFloodedSegments(
+  routeGeometry: GeoJSON.LineString,
+  events: FloodEvent[],
+  targetTime: Date
+): {
+  isFlooded: boolean;
+  maxFloodDepthCm: number;
+  floodedDistanceMeters: number;
+  floodedSegments: FloodedSegment[];
+} {
+  const lineCoords = routeGeometry.coordinates;
+  if (!lineCoords || lineCoords.length < 2) {
+    return { isFlooded: false, maxFloodDepthCm: 0, floodedDistanceMeters: 0, floodedSegments: [] };
+  }
+
+  const floodedSegments: FloodedSegment[] = [];
+  let maxDepth = 0;
+  let totalDistance = 0;
+
+  for (const event of events) {
+    const depth = Math.round(
+      event.cause === 'high_tide'
+        ? calculateTidalDepth(event, targetTime)
+        : calculateRainDepth(event, targetTime)
+    );
+
+    if (depth < 5) continue; // Minimal water, negligible impact
+
+    const eventPt = turf.point(event.geometry.coordinates);
+    // 150m buffer radius around the flood point
+    const hazardBuf = turf.buffer(eventPt, 0.15, { units: 'kilometers' });
+    if (!hazardBuf) continue;
+
+    for (let i = 0; i < lineCoords.length - 1; i++) {
+      const p1 = lineCoords[i] as [number, number];
+      const p2 = lineCoords[i + 1] as [number, number];
+      const segLine = turf.lineString([p1, p2]);
+
+      if (turf.booleanIntersects(segLine, hazardBuf)) {
+        maxDepth = Math.max(maxDepth, depth);
+        const segDist = turf.length(segLine, { units: 'meters' });
+        totalDistance += segDist;
+
+        let severity: 'low' | 'medium' | 'high' | 'prohibited' = 'low';
+        if (depth <= 15) severity = 'low';
+        else if (depth <= 25) severity = 'medium';
+        else if (depth <= 35) severity = 'high';
+        else severity = 'prohibited';
+
+        // Merge contiguous segments of matching severity
+        const last = floodedSegments[floodedSegments.length - 1];
+        if (
+          last &&
+          last.severity === severity &&
+          last.coordinates.length > 0 &&
+          last.coordinates[last.coordinates.length - 1][0] === p1[0] &&
+          last.coordinates[last.coordinates.length - 1][1] === p1[1]
+        ) {
+          last.coordinates.push(p2);
+        } else {
+          floodedSegments.push({
+            coordinates: [p1, p2],
+            depthCm: depth,
+            severity,
+            streetName: event.streetName,
+          });
+        }
+      }
+    }
+  }
+
+  return {
+    isFlooded: floodedSegments.length > 0,
+    maxFloodDepthCm: maxDepth,
+    floodedDistanceMeters: Math.round(totalDistance),
+    floodedSegments,
   };
 }
 
@@ -128,16 +224,24 @@ export async function navigateSafeRoute(
   const baseRoutes = await fetchOsrmRoute([origin, destination]);
 
   let fastestRoute = { ...baseRoutes[0] };
-  const fastestExposure = evaluateRouteFloodExposure(fastestRoute.geometry, hazardPolygon);
-  fastestRoute.isFlooded = fastestExposure.isFlooded;
-  fastestRoute.floodedDistanceMeters = fastestExposure.floodedDistanceMeters;
+  const fastestAnalysis = extractRouteFloodedSegments(fastestRoute.geometry, events, targetTime);
+  fastestRoute.isFlooded = fastestAnalysis.isFlooded;
+  fastestRoute.maxFloodDepthCm = fastestAnalysis.maxFloodDepthCm;
+  fastestRoute.floodedDistanceMeters = fastestAnalysis.floodedDistanceMeters;
+  fastestRoute.floodedSegments = fastestAnalysis.floodedSegments;
 
   // Search if any alternative route is dry
   let safeRoute: RouteResult | null = null;
   for (const candidate of baseRoutes) {
-    const exposure = evaluateRouteFloodExposure(candidate.geometry, hazardPolygon);
-    if (!exposure.isFlooded) {
-      safeRoute = { ...candidate, isFlooded: false, floodedDistanceMeters: 0 };
+    const analysis = extractRouteFloodedSegments(candidate.geometry, events, targetTime);
+    if (!analysis.isFlooded) {
+      safeRoute = {
+        ...candidate,
+        isFlooded: false,
+        maxFloodDepthCm: 0,
+        floodedDistanceMeters: 0,
+        floodedSegments: [],
+      };
       break;
     }
   }
@@ -147,16 +251,26 @@ export async function navigateSafeRoute(
     const detourWaypoints = generateDetourWaypoints(origin, destination, hazardPolygon);
     for (const waypoint of detourWaypoints) {
       const detourRoutes = await fetchOsrmRoute([origin, waypoint, destination]);
-      const detourExposure = evaluateRouteFloodExposure(detourRoutes[0].geometry, hazardPolygon);
-      if (!detourExposure.isFlooded) {
-        safeRoute = { ...detourRoutes[0], isFlooded: false, floodedDistanceMeters: 0 };
+      const detourAnalysis = extractRouteFloodedSegments(detourRoutes[0].geometry, events, targetTime);
+      if (!detourAnalysis.isFlooded) {
+        safeRoute = {
+          ...detourRoutes[0],
+          isFlooded: false,
+          maxFloodDepthCm: 0,
+          floodedDistanceMeters: 0,
+          floodedSegments: [],
+        };
         break;
       }
     }
   }
 
+  if (!safeRoute) {
+    safeRoute = fastestRoute;
+  }
+
   return {
-    safeRoute: safeRoute || fastestRoute,
+    safeRoute,
     fastestRoute,
   };
 }

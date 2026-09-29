@@ -6,6 +6,7 @@ interface RouteCardProps {
   distanceMeters: number;
   durationSeconds: number;
   isFlooded: boolean;
+  maxFloodDepthCm?: number;
   floodedDistanceMeters: number;
   isSelected: boolean;
   onSelect: () => void;
@@ -16,6 +17,7 @@ export const RouteComparisonCard: React.FC<RouteCardProps> = ({
   distanceMeters,
   durationSeconds,
   isFlooded,
+  maxFloodDepthCm,
   floodedDistanceMeters,
   isSelected,
   onSelect,
@@ -64,9 +66,14 @@ export const RouteComparisonCard: React.FC<RouteCardProps> = ({
         {type === 'safe' ? (
           <span className="text-sky-700 font-semibold">✓ Khô ráo, né toàn bộ điểm ngập</span>
         ) : isFlooded ? (
-          <span className="text-amber-700 font-semibold">
-            ⚠️ Chú ý: Cắt qua đoạn ngập ~{floodedDistanceMeters}m
-          </span>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-red-700 font-bold">
+              ⚠️ Cắt qua đoạn ngập: {maxFloodDepthCm ? `${maxFloodDepthCm}cm` : ''} (~{floodedDistanceMeters}m)
+            </span>
+            <span className="text-[10px] text-gray-500 italic">
+              Đoạn ngập được tô màu Vàng ➔ Đỏ tương ứng mức độ trên bản đồ
+            </span>
+          </div>
         ) : (
           <span className="text-gray-600 font-medium">Đường khô ráo</span>
         )}

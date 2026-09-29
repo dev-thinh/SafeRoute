@@ -20,26 +20,30 @@ const toLocalInputString = (date: Date): string => {
 export const TimeSelector: React.FC<TimeSelectorProps> = ({ selectedTime, onChange }) => {
   const dateObj = selectedTime ? new Date(selectedTime) : new Date();
 
-  const setRelativeHours = (hours: number) => {
-    const d = new Date();
-    d.setHours(d.getHours() + hours);
+  // Reset to current time today
+  const setNow = () => {
+    onChange(new Date().toISOString());
+  };
+
+  // Add 1 hour relative to the ALREADY SELECTED date/time
+  const addOneHour = () => {
+    const base = selectedTime ? new Date(selectedTime) : new Date();
+    const d = new Date(base.getTime());
+    d.setHours(d.getHours() + 1);
     onChange(d.toISOString());
   };
 
-  const setRushHourToday = () => {
-    const d = new Date();
-    d.setHours(17, 30, 0, 0); // 17:30 PM (common rush hour & tide peak in HCMC)
-    // If 17:30 today has already passed by more than 2 hours, jump to tomorrow 17:30
-    if (Date.now() > d.getTime() + 2 * 3600000) {
-      d.setDate(d.getDate() + 1);
-    }
+  // Set to 17:30 of the ALREADY SELECTED date (preserving selected day, month, year)
+  const setRushHourSelectedDate = () => {
+    const base = selectedTime ? new Date(selectedTime) : new Date();
+    const d = new Date(base.getTime());
+    d.setHours(17, 30, 0, 0);
     onChange(d.toISOString());
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const localVal = e.target.value;
     if (localVal) {
-      // Local input value "YYYY-MM-DDTHH:mm" parsed by new Date(localVal) uses local timezone
       const parsed = new Date(localVal);
       if (!isNaN(parsed.getTime())) {
         onChange(parsed.toISOString());
@@ -58,35 +62,29 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({ selectedTime, onChan
         </span>
       </div>
 
-      <div className="grid grid-cols-4 gap-1.5 text-xs">
+      <div className="grid grid-cols-3 gap-1.5 text-xs">
         <button
           type="button"
-          onClick={() => onChange(new Date().toISOString())}
-          className="py-1.5 px-1 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 font-medium text-gray-700 shadow-sm transition text-center"
+          onClick={setNow}
+          className="py-1.5 px-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 font-medium text-gray-700 shadow-sm transition text-center"
         >
           Bây giờ
         </button>
         <button
           type="button"
-          onClick={() => setRelativeHours(1)}
-          className="py-1.5 px-1 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 font-medium text-gray-700 shadow-sm transition text-center"
+          onClick={addOneHour}
+          className="py-1.5 px-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 font-medium text-gray-700 shadow-sm transition text-center"
+          title="Tăng thêm 1 tiếng dựa trên ngày giờ đang chọn"
         >
           +1 tiếng
         </button>
         <button
           type="button"
-          onClick={() => setRelativeHours(2)}
-          className="py-1.5 px-1 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 font-medium text-gray-700 shadow-sm transition text-center"
+          onClick={setRushHourSelectedDate}
+          className="py-1.5 px-2 bg-indigo-50 border border-indigo-200 text-indigo-800 rounded-lg hover:bg-indigo-100 font-semibold shadow-sm transition text-center"
+          title="Chuyển đến 17:30 của ngày đang được chọn"
         >
-          +2 tiếng
-        </button>
-        <button
-          type="button"
-          onClick={setRushHourToday}
-          className="py-1.5 px-1 bg-indigo-50 border border-indigo-200 text-indigo-800 rounded-lg hover:bg-indigo-100 font-semibold shadow-sm transition text-center"
-          title="Chọn khung giờ tan tầm 17:30 (thời điểm triều cường và mưa dễ gây ngập úng)"
-        >
-          17:30
+          17:30 (Tan tầm)
         </button>
       </div>
 

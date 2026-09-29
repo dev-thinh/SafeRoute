@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { MapView } from './components/Map/MapView';
 import { FloodLayer } from './components/Map/FloodLayer';
 import { RoutePolyline } from './components/Map/RoutePolyline';
+import { FloodDepthLegend } from './components/Map/FloodDepthLegend';
 import { ReportMarker } from './components/Map/ReportMarker';
 import { RoutePlannerPanel, LocationItem } from './components/Navigation/RoutePlannerPanel';
 import { ReportFloodModal } from './components/Reporting/ReportFloodModal';
@@ -127,10 +128,15 @@ export const App: React.FC = () => {
           <RoutePolyline
             safeGeometry={routes.safe_route?.geometry}
             fastestGeometry={routes.fastest_route?.geometry}
+            safeFloodedSegments={routes.safe_route?.floodedSegments}
+            fastestFloodedSegments={routes.fastest_route?.floodedSegments}
             selectedRoute={selectedRouteType}
           />
         )}
       </MapView>
+
+      {/* Floating Flood Depth Legend Bar (Yellow -> Orange -> Red -> Prohibited) */}
+      <FloodDepthLegend />
 
       {/* Floating Action Buttons */}
       <div className="absolute bottom-6 right-6 z-[1000] flex flex-col gap-2.5">
