@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { navigateSafeRoute } from '../services/routingEngine';
 import { VehicleType, FloodEvent } from '../types';
+import { inMemoryReports } from './reportsRouter';
 
 export const routesRouter = Router();
 
@@ -191,8 +192,8 @@ export function getActiveFloodEventsForTargetTime(targetDate: Date): FloodEvent[
   ];
 }
 
-// In-memory flood events cache for fast route processing
-export const inMemoryFloodEvents: FloodEvent[] = getActiveFloodEventsForTargetTime(new Date());
+// In-memory dynamic flood events cache (holds AI-ingested news events and manual events)
+export const inMemoryFloodEvents: FloodEvent[] = [];
 
 routesRouter.post('/navigate', async (req, res) => {
   try {
@@ -204,10 +205,34 @@ routesRouter.post('/navigate', async (req, res) => {
     const targetDate = target_time ? new Date(target_time) : new Date();
     const vehicle: VehicleType = vehicle_type === 'car' ? 'car' : 'motorbike';
 
-    // Dynamically retrieve active flood events for the user-selected date/time
-    const eventsForTime = getActiveFloodEventsForTargetTime(targetDate);
+    // 1. Dynamic baseline HCMC hotspots aligned to user's selected date/time
+    const baselineEvents = getActiveFloodEventsForTargetTime(targetDate);
 
-    const result = await navigateSafeRoute(origin, destination, targetDate, vehicle, eventsForTime);
+    // 2. Events ingested via AI Gemini news crawler / admin panel
+    const dynamicAdminEvents = inMemoryFloodEvents;
+
+    // 3. Live crowdsourced user reports converted to flood hazard obstacles
+    const crowdsourcedEvents: FloodEvent[] = inMemoryReports
+      .filter((r) => r.status === 'active')
+      .map((r) => ({
+        id: r.id,
+        title: `Cộng đồng báo ngập: ${r.description || 'Hiện trường'}`,
+        sourceType: 'admin_manual',
+        cause: 'combined',
+        streetName: 'Vị trí báo cáo cộng đồng',
+        district: 'TP.HCM',
+        city: 'TP. Hồ Chí Minh',
+        startTime: new Date(r.reportedAt.getTime() - 1800000),
+        peakTime: r.reportedAt,
+        endTime: new Date(r.reportedAt.getTime() + 7200000), // active for 2 hours
+        estimatedDepthCm: r.depthCm,
+        confidenceScore: Math.min(1.0, 0.6 + 0.1 * r.upvotes - 0.2 * r.downvotes),
+        geometry: { type: 'Point', coordinates: [r.coordinate.lng, r.coordinate.lat] },
+      }));
+
+    const combinedEvents = [...baselineEvents, ...dynamicAdminEvents, ...crowdsourcedEvents];
+
+    const result = await navigateSafeRoute(origin, destination, targetDate, vehicle, combinedEvents);
 
     return res.json({
       safe_route: result.safeRoute,
