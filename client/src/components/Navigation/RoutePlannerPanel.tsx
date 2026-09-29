@@ -112,7 +112,7 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
             const { latitude, longitude } = pos.coords;
             const rev = await reverseGeocode(latitude, longitude);
             onChangeOrigin({
-               label: `Vị trí của tôi (${rev.label})`,
+               label: rev.label || 'Vị trí hiện tại của tôi',
                lat: latitude,
                lng: longitude,
             });

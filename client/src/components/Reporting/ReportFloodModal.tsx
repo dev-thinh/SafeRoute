@@ -58,28 +58,28 @@ export const ReportFloodModal: React.FC<{
                 onClick={() => setDepthLevel('ankle')}
                 className={`p-3 rounded-xl border text-left transition ${depthLevel === 'ankle' ? 'border-yellow-500 bg-yellow-50 font-bold' : 'border-gray-200'}`}
               >
-                🟢 Mắt cá chân (&lt;20cm)
+                🟢 Mắt cá chân • dưới 20 cm
               </button>
               <button
                 type="button"
                 onClick={() => setDepthLevel('wheel')}
                 className={`p-3 rounded-xl border text-left transition ${depthLevel === 'wheel' ? 'border-amber-500 bg-amber-50 font-bold' : 'border-gray-200'}`}
               >
-                🟡 Nửa bánh xe (20-40cm)
+                🟡 Nửa bánh xe • 20 - 40 cm
               </button>
               <button
                 type="button"
                 onClick={() => setDepthLevel('knee')}
                 className={`p-3 rounded-xl border text-left transition ${depthLevel === 'knee' ? 'border-orange-500 bg-orange-50 font-bold' : 'border-gray-200'}`}
               >
-                🟠 Đầu gối / Lút bô (40-60cm)
+                🟠 Đầu gối hoặc ngập pô • 40 - 60 cm
               </button>
               <button
                 type="button"
                 onClick={() => setDepthLevel('deep')}
                 className={`p-3 rounded-xl border text-left transition ${depthLevel === 'deep' ? 'border-red-500 bg-red-50 font-bold' : 'border-gray-200'}`}
               >
-                🔴 Ngập sâu (&gt;60cm)
+                🔴 Ngập sâu • trên 60 cm
               </button>
             </div>
           </div>

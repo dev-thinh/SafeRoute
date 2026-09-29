@@ -24,7 +24,7 @@ export const ReportMarker: React.FC<{ reports: UserReport[] }> = ({ reports }) =
               <span className="inline-block px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded font-semibold text-[10px]">
                 Báo cáo cộng đồng
               </span>
-              <p className="mt-1 font-bold">Mức ngập: {report.depthLevel} (~{report.depthCm} cm)</p>
+              <p className="mt-1 font-bold">Mức ngập: {report.depthLevel} • {report.depthCm} cm</p>
               <p className="text-gray-600">{report.description || 'Không có mô tả chi tiết'}</p>
               <p className="text-gray-400 text-[10px] mt-1">👍 {report.upvotes} người xác nhận</p>
             </div>

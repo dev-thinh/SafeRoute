@@ -1,7 +1,7 @@
 import axios from 'axios';
 import * as turf from '@turf/turf';
 import { Coordinate, VehicleType, FloodEvent } from '../types';
-import { ENV } from '../config/env';
+import { ENV, VEHICLE_THRESHOLDS } from '../config/env';
 import { buildHazardMultiPolygonFromEvents } from './spatialService';
 import { calculateTidalDepth, calculateRainDepth, calculateEventDepth } from './predictionEngine';
 
@@ -20,6 +20,16 @@ export interface RouteResult {
   floodedDistanceMeters: number;
   geometry: GeoJSON.LineString;
   floodedSegments?: FloodedSegment[];
+}
+
+/**
+ * Calculates realistic travel duration in urban Vietnam.
+ * Motorbikes: ~32 km/h (8.89 m/s) navigating traffic and filtering through lanes.
+ * Cars: ~20 km/h (5.56 m/s) due to urban congestion, traffic light phases, and lane restrictions.
+ */
+export function calculateVehicleDuration(distanceMeters: number, vehicleType: VehicleType = 'motorbike'): number {
+  const speedMps = vehicleType === 'motorbike' ? (32 * 1000) / 3600 : (20 * 1000) / 3600;
+  return Math.max(60, Math.round(distanceMeters / speedMps));
 }
 
 /**
@@ -67,16 +77,23 @@ export function evaluateRouteFloodExposure(
 
 /**
  * Identifies and extracts precise flooded segments along a route line with their depth & severity levels.
- * Severity levels (Yellow -> Orange -> Red -> Dark Red / Prohibited):
+ * Severity levels adjust according to vehicle type clearance:
+ * Motorbike:
  * - low (<= 15cm): Yellow
- * - medium (16 - 25cm): Orange
- * - high (26 - 35cm): Red
- * - prohibited (> 35cm): Dark Red
+ * - medium (16 - 20cm): Orange (warning threshold)
+ * - high (21 - 30cm): Red (exceeds avoid threshold)
+ * - prohibited (> 30cm): Dark Red
+ * Car:
+ * - low (<= 20cm): Yellow
+ * - medium (21 - 30cm): Orange
+ * - high (31 - 40cm): Red (warning & avoid threshold)
+ * - prohibited (> 40cm): Dark Red
  */
 export function extractRouteFloodedSegments(
   routeGeometry: GeoJSON.LineString,
   events: FloodEvent[],
-  targetTime: Date
+  targetTime: Date,
+  vehicleType: VehicleType = 'motorbike'
 ): {
   isFlooded: boolean;
   maxFloodDepthCm: number;
@@ -91,6 +108,7 @@ export function extractRouteFloodedSegments(
   const floodedSegments: FloodedSegment[] = [];
   let maxDepth = 0;
   let totalDistance = 0;
+  const threshold = VEHICLE_THRESHOLDS[vehicleType] || VEHICLE_THRESHOLDS.motorbike;
 
   for (const event of events) {
     const depth = Math.round(calculateEventDepth(event, targetTime));
@@ -113,10 +131,18 @@ export function extractRouteFloodedSegments(
         totalDistance += segDist;
 
         let severity: 'low' | 'medium' | 'high' | 'prohibited' = 'low';
-        if (depth <= 15) severity = 'low';
-        else if (depth <= 25) severity = 'medium';
-        else if (depth <= 35) severity = 'high';
-        else severity = 'prohibited';
+        if (vehicleType === 'motorbike') {
+          if (depth <= 15) severity = 'low';
+          else if (depth <= 20) severity = 'medium';
+          else if (depth <= 30) severity = 'high';
+          else severity = 'prohibited';
+        } else {
+          // Car
+          if (depth <= 20) severity = 'low';
+          else if (depth <= 30) severity = 'medium';
+          else if (depth <= 40) severity = 'high';
+          else severity = 'prohibited';
+        }
 
         // Merge contiguous segments of matching severity
         const last = floodedSegments[floodedSegments.length - 1];
@@ -140,8 +166,11 @@ export function extractRouteFloodedSegments(
     }
   }
 
+  // A route is hazardous for the chosen vehicle if water depth meets or exceeds vehicle avoid threshold
+  const hasVehicleHazard = maxDepth >= threshold.avoid;
+
   return {
-    isFlooded: floodedSegments.length > 0,
+    isFlooded: hasVehicleHazard,
     maxFloodDepthCm: maxDepth,
     floodedDistanceMeters: Math.round(totalDistance),
     floodedSegments,
@@ -150,17 +179,20 @@ export function extractRouteFloodedSegments(
 
 /**
  * Generates 4 tangential detour waypoints around the bounding box of a specific hazard polygon.
- * Offsets into parallel avenues (~1.5 km).
+ * Offsets into parallel avenues tailored to the vehicle profile:
+ * - Motorbike: ~500m (0.005 deg) for tight local parallel street bypasses
+ * - Car: ~1.6km (0.016 deg) for wide arterial boulevards and dual carriageways
  */
 export function generateDetourWaypoints(
   origin: Coordinate,
   destination: Coordinate,
-  hazardPolygon: GeoJSON.Polygon | GeoJSON.MultiPolygon
+  hazardPolygon: GeoJSON.Polygon | GeoJSON.MultiPolygon,
+  vehicleType: VehicleType = 'motorbike'
 ): Coordinate[] {
   const bbox = turf.bbox(hazardPolygon); // [minLng, minLat, maxLng, maxLat]
   const center = turf.center(turf.feature(hazardPolygon)).geometry.coordinates;
 
-  const offsetDistance = 0.015; // ~1.5km offset (parallel arterial avenues)
+  const offsetDistance = vehicleType === 'motorbike' ? 0.005 : 0.016;
   return [
     { lat: center[1], lng: bbox[0] - offsetDistance }, // West detour
     { lat: center[1], lng: bbox[2] + offsetDistance }, // East detour
@@ -170,9 +202,12 @@ export function generateDetourWaypoints(
 }
 
 /**
- * Calls OSRM API to fetch directions between coordinates.
+ * Calls OSRM API to fetch directions between coordinates with vehicle-specific speed calculation.
  */
-export async function fetchOsrmRoute(coordinates: Coordinate[]): Promise<RouteResult[]> {
+export async function fetchOsrmRoute(
+  coordinates: Coordinate[],
+  vehicleType: VehicleType = 'motorbike'
+): Promise<RouteResult[]> {
   const coordString = coordinates.map((c) => `${c.lng},${c.lat}`).join(';');
   const url = `${ENV.OSRM_URL}/route/v1/driving/${coordString}?alternatives=true&geometries=geojson&overview=full`;
 
@@ -184,7 +219,7 @@ export async function fetchOsrmRoute(coordinates: Coordinate[]): Promise<RouteRe
 
     return response.data.routes.map((r: any) => ({
       distanceMeters: Math.round(r.distance),
-      durationSeconds: Math.round(r.duration),
+      durationSeconds: calculateVehicleDuration(r.distance, vehicleType),
       isFlooded: false,
       maxFloodDepthCm: 0,
       floodedDistanceMeters: 0,
@@ -199,7 +234,7 @@ export async function fetchOsrmRoute(coordinates: Coordinate[]): Promise<RouteRe
     return [
       {
         distanceMeters: 5000,
-        durationSeconds: 600,
+        durationSeconds: calculateVehicleDuration(5000, vehicleType),
         isFlooded: false,
         maxFloodDepthCm: 0,
         floodedDistanceMeters: 0,
@@ -210,7 +245,8 @@ export async function fetchOsrmRoute(coordinates: Coordinate[]): Promise<RouteRe
 }
 
 /**
- * Computes both the safe route and the fastest route avoiding active flood zones.
+ * Computes both the safe route and the fastest route avoiding active flood zones,
+ * taking into account vehicle type (motorbike vs car) for speed, corridors, and clearance.
  */
 export async function navigateSafeRoute(
   origin: Coordinate,
@@ -219,37 +255,72 @@ export async function navigateSafeRoute(
   vehicleType: VehicleType,
   events: FloodEvent[]
 ): Promise<{ safeRoute: RouteResult; fastestRoute: RouteResult }> {
-  const baseRoutes = await fetchOsrmRoute([origin, destination]);
+  // 1. Fetch base routes from OSRM
+  const baseRoutes = await fetchOsrmRoute([origin, destination], vehicleType);
+  const candidatePool: RouteResult[] = [...baseRoutes];
 
-  let fastestRoute = { ...baseRoutes[0] };
-  const fastestAnalysis = extractRouteFloodedSegments(fastestRoute.geometry, events, targetTime);
-  fastestRoute.isFlooded = fastestAnalysis.isFlooded;
-  fastestRoute.maxFloodDepthCm = fastestAnalysis.maxFloodDepthCm;
-  fastestRoute.floodedDistanceMeters = fastestAnalysis.floodedDistanceMeters;
-  fastestRoute.floodedSegments = fastestAnalysis.floodedSegments;
+  // 2. Discover vehicle-tailored corridor alternatives
+  // Motorbikes can exploit local urban shortcuts; cars prioritize arterial boulevards.
+  const p1 = turf.point([origin.lng, origin.lat]);
+  const p2 = turf.point([destination.lng, destination.lat]);
+  const directDistKm = turf.distance(p1, p2, { units: 'kilometers' });
 
-  // Search if any alternative route from baseRoutes is completely dry
-  let safeRoute: RouteResult | null = null;
-  for (const candidate of baseRoutes) {
-    const analysis = extractRouteFloodedSegments(candidate.geometry, events, targetTime);
-    if (!analysis.isFlooded) {
-      safeRoute = {
-        ...candidate,
-        isFlooded: false,
-        maxFloodDepthCm: 0,
-        floodedDistanceMeters: 0,
-        floodedSegments: [],
-      };
-      break;
+  if (directDistKm >= 1.2) {
+    const mid = turf.midpoint(p1, p2);
+    const bearing = turf.bearing(p1, p2);
+    const corridorOffsetKm = vehicleType === 'motorbike' ? 0.6 : 1.6;
+
+    const leftPt = turf.destination(mid, corridorOffsetKm, bearing - 90, { units: 'kilometers' }).geometry.coordinates;
+    const rightPt = turf.destination(mid, corridorOffsetKm, bearing + 90, { units: 'kilometers' }).geometry.coordinates;
+
+    const corridorWaypoints: Coordinate[] = [
+      { lng: leftPt[0], lat: leftPt[1] },
+      { lng: rightPt[0], lat: rightPt[1] },
+    ];
+
+    for (const way of corridorWaypoints) {
+      try {
+        const extraRoutes = await fetchOsrmRoute([origin, way, destination], vehicleType);
+        if (extraRoutes.length > 0) {
+          candidatePool.push(extraRoutes[0]);
+        }
+      } catch (e) {
+        // Skip inaccessible corridor waypoint
+      }
     }
   }
 
-  // If the fastest route is flooded, identify which specific flood events intersect it
-  // and compute targeted local detour bypasses around those obstacles!
+  // 3. Evaluate each candidate against flood events using vehicle clearance thresholds
+  const evaluatedCandidates = candidatePool.map((c) => {
+    const analysis = extractRouteFloodedSegments(c.geometry, events, targetTime, vehicleType);
+    return {
+      route: {
+        ...c,
+        isFlooded: analysis.isFlooded,
+        maxFloodDepthCm: analysis.maxFloodDepthCm,
+        floodedDistanceMeters: analysis.floodedDistanceMeters,
+        floodedSegments: analysis.floodedSegments,
+      },
+      analysis,
+    };
+  });
+
+  // Fastest route is the one with the lowest travel duration
+  evaluatedCandidates.sort((a, b) => a.route.durationSeconds - b.route.durationSeconds);
+  const fastestCandidate = evaluatedCandidates[0];
+  const fastestRoute: RouteResult = { ...fastestCandidate.route };
+
+  // 4. Safe route determination:
+  // First, check if any candidate in the pool is completely dry for this vehicle
+  const dryCandidates = evaluatedCandidates.filter((c) => !c.analysis.isFlooded);
+
+  let safeRoute: RouteResult | null = null;
+
+  // If the fastest route is flooded for this vehicle, compute targeted detour bypasses around the obstacles
   if (fastestRoute.isFlooded) {
     const hitEvents = events.filter((ev) => {
       const depth = Math.round(calculateEventDepth(ev, targetTime));
-      if (depth < 10) return false;
+      if (depth < (VEHICLE_THRESHOLDS[vehicleType]?.avoid || 20)) return false;
       const pt = turf.point(ev.geometry.coordinates);
       const buf = turf.buffer(pt, 0.25, { units: 'kilometers' });
       return buf && turf.booleanIntersects(turf.lineString(fastestRoute.geometry.coordinates), buf);
@@ -262,13 +333,22 @@ export async function navigateSafeRoute(
       const localHazard = turf.buffer(pt, 0.25, { units: 'kilometers' });
       if (!localHazard) continue;
 
-      const detourWaypoints = generateDetourWaypoints(origin, destination, localHazard.geometry);
+      const detourWaypoints = generateDetourWaypoints(origin, destination, localHazard.geometry, vehicleType);
       for (const waypoint of detourWaypoints) {
         try {
-          const detourRoutes = await fetchOsrmRoute([origin, waypoint, destination]);
+          const detourRoutes = await fetchOsrmRoute([origin, waypoint, destination], vehicleType);
           if (detourRoutes && detourRoutes.length > 0) {
-            const detourAnalysis = extractRouteFloodedSegments(detourRoutes[0].geometry, events, targetTime);
-            candidateDetours.push({ route: detourRoutes[0], analysis: detourAnalysis });
+            const detourAnalysis = extractRouteFloodedSegments(detourRoutes[0].geometry, events, targetTime, vehicleType);
+            candidateDetours.push({
+              route: {
+                ...detourRoutes[0],
+                isFlooded: detourAnalysis.isFlooded,
+                maxFloodDepthCm: detourAnalysis.maxFloodDepthCm,
+                floodedDistanceMeters: detourAnalysis.floodedDistanceMeters,
+                floodedSegments: detourAnalysis.floodedSegments,
+              },
+              analysis: detourAnalysis,
+            });
           }
         } catch (e) {
           // Skip failed waypoint
@@ -282,28 +362,30 @@ export async function navigateSafeRoute(
       .sort((a, b) => a.route.distanceMeters - b.route.distanceMeters);
 
     if (completelyDry.length > 0) {
-      safeRoute = {
-        ...completelyDry[0].route,
-        isFlooded: false,
-        maxFloodDepthCm: 0,
-        floodedDistanceMeters: 0,
-        floodedSegments: [],
-      };
+      safeRoute = completelyDry[0].route;
+    } else if (dryCandidates.length > 0) {
+      // 2nd Priority: Pick from dry corridor candidates
+      dryCandidates.sort((a, b) => a.route.durationSeconds - b.route.durationSeconds);
+      safeRoute = dryCandidates[0].route;
     } else if (candidateDetours.length > 0) {
-      // 2nd Priority: Pick the detour with minimal flood exposure
+      // 3rd Priority: Pick the detour with minimal flood exposure
       candidateDetours.sort(
         (a, b) =>
           a.analysis.maxFloodDepthCm - b.analysis.maxFloodDepthCm ||
           a.analysis.floodedDistanceMeters - b.analysis.floodedDistanceMeters
       );
-      const best = candidateDetours[0];
-      safeRoute = {
-        ...best.route,
-        isFlooded: best.analysis.isFlooded,
-        maxFloodDepthCm: best.analysis.maxFloodDepthCm,
-        floodedDistanceMeters: best.analysis.floodedDistanceMeters,
-        floodedSegments: best.analysis.floodedSegments,
-      };
+      safeRoute = candidateDetours[0].route;
+    }
+  } else {
+    // Fastest route is not flooded.
+    // If there is an alternative dry corridor with different geometry, use it as the secondary route option
+    if (dryCandidates.length > 1) {
+      const alternative = dryCandidates.find(
+        (c) => Math.abs(c.route.distanceMeters - fastestRoute.distanceMeters) > 80
+      );
+      if (alternative) {
+        safeRoute = alternative.route;
+      }
     }
   }
 

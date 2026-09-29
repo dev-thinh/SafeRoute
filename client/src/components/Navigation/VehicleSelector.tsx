@@ -17,7 +17,7 @@ export const VehicleSelector: React.FC<VehicleSelectorProps> = ({ vehicle, onCha
         }`}
       >
         <Bike className="w-4 h-4" />
-        Xe máy (&le;20cm)
+        Xe máy
       </button>
       <button
         type="button"
@@ -27,7 +27,7 @@ export const VehicleSelector: React.FC<VehicleSelectorProps> = ({ vehicle, onCha
         }`}
       >
         <Car className="w-4 h-4" />
-        Ô tô (&le;35cm)
+        Ô tô
       </button>
     </div>
   );
