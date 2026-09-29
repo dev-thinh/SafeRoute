@@ -20,29 +20,35 @@ export const HCMC_PRESETS = [
 ];
 
 export const searchLocation = async (query: string): Promise<{ label: string; lat: number; lng: number }[]> => {
-  const trimmed = query.trim().toLowerCase();
+  const trimmed = query.trim();
   if (!trimmed) return HCMC_PRESETS.slice(0, 5);
 
-  const matchedPresets = HCMC_PRESETS.filter((p) => p.label.toLowerCase().includes(trimmed));
-  if (matchedPresets.length > 0) return matchedPresets;
-
   try {
-    const res = await axios.get(
-      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query + ', Ho Chi Minh City, Vietnam')}&format=json&limit=5`,
-      { headers: { 'Accept-Language': 'vi' }, timeout: 4000 }
-    );
-    if (res.data && res.data.length > 0) {
-      return res.data.map((item: any) => ({
-        label: item.display_name.split(',').slice(0, 3).join(','),
-        lat: parseFloat(item.lat),
-        lng: parseFloat(item.lon),
-      }));
+    const res = await api.get('/geocoding/search', { params: { q: trimmed } });
+    if (res.data && res.data.results && res.data.results.length > 0) {
+      return res.data.results;
     }
   } catch (err) {
-    console.warn('Geocoding search failed, returning presets', err);
+    console.warn('Geocoding search via backend proxy failed, fallback to presets', err);
   }
 
-  return HCMC_PRESETS.slice(0, 5);
+  return HCMC_PRESETS.filter((p) => p.label.toLowerCase().includes(trimmed.toLowerCase()));
+};
+
+export const reverseGeocode = async (lat: number, lng: number): Promise<{ label: string; lat: number; lng: number }> => {
+  try {
+    const res = await api.get('/geocoding/reverse', { params: { lat, lng } });
+    if (res.data) {
+      return res.data;
+    }
+  } catch (err) {
+    console.warn('Reverse geocoding error', err);
+  }
+  return {
+    label: `Tọa độ: ${lat.toFixed(4)}, ${lng.toFixed(4)}`,
+    lat,
+    lng,
+  };
 };
 
 export const getActiveFloods = (targetTime?: string) =>

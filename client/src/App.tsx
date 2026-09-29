@@ -3,10 +3,10 @@ import { MapView } from './components/Map/MapView';
 import { FloodLayer } from './components/Map/FloodLayer';
 import { RoutePolyline } from './components/Map/RoutePolyline';
 import { ReportMarker } from './components/Map/ReportMarker';
-import { RoutePlannerPanel } from './components/Navigation/RoutePlannerPanel';
+import { RoutePlannerPanel, LocationItem } from './components/Navigation/RoutePlannerPanel';
 import { ReportFloodModal } from './components/Reporting/ReportFloodModal';
 import { AdminArticleIngestion } from './components/Admin/AdminArticleIngestion';
-import { getActiveFloods } from './services/api';
+import { getActiveFloods, reverseGeocode } from './services/api';
 import { Droplet, Newspaper } from 'lucide-react';
 import { NavigateResponse, FloodEvent, UserReport } from './types';
 
@@ -17,6 +17,21 @@ export const App: React.FC = () => {
   const [reports, setReports] = useState<UserReport[]>([]);
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
+
+  // Origin & Destination state
+  const [origin, setOrigin] = useState<LocationItem>({
+    label: 'ĐH Khoa Học Tự Nhiên (227 Nguyễn Văn Cừ, Q5)',
+    lat: 10.7626,
+    lng: 106.6823,
+  });
+  const [destination, setDestination] = useState<LocationItem>({
+    label: 'KĐT Phú Mỹ Hưng (Quận 7)',
+    lat: 10.7303,
+    lng: 106.7075,
+  });
+
+  // Pick on map state: 'origin' | 'dest' | null
+  const [pickingField, setPickingField] = useState<'origin' | 'dest' | null>(null);
 
   const loadFloods = async () => {
     try {
@@ -32,15 +47,52 @@ export const App: React.FC = () => {
     loadFloods();
   }, []);
 
+  const handleMapClick = async (lat: number, lng: number) => {
+    if (!pickingField) return;
+
+    try {
+      const rev = await reverseGeocode(lat, lng);
+      if (pickingField === 'origin') {
+        setOrigin({
+          label: rev.label,
+          lat,
+          lng,
+        });
+      } else if (pickingField === 'dest') {
+        setDestination({
+          label: rev.label,
+          lat,
+          lng,
+        });
+      }
+    } catch (err) {
+      console.error('Failed to reverse geocode clicked point', err);
+    } finally {
+      setPickingField(null);
+    }
+  };
+
   return (
     <div className="relative w-screen h-screen overflow-hidden font-sans">
       <RoutePlannerPanel
+        origin={origin}
+        destination={destination}
+        onChangeOrigin={setOrigin}
+        onChangeDestination={setDestination}
         onRoutesCalculated={setRoutes}
         selectedRouteType={selectedRouteType}
         onSelectRouteType={setSelectedRouteType}
+        pickingField={pickingField}
+        onStartPickOnMap={setPickingField}
+        onCancelPickOnMap={() => setPickingField(null)}
       />
 
-      <MapView>
+      <MapView
+        origin={origin}
+        destination={destination}
+        onMapClick={handleMapClick}
+        isPickingLocation={pickingField !== null}
+      >
         <FloodLayer events={floodEvents} />
         <ReportMarker reports={reports} />
         {routes && (
