@@ -472,8 +472,9 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                   type="safe"
                   distanceMeters={routeData.safe_route.distanceMeters}
                   durationSeconds={routeData.safe_route.durationSeconds}
-                  isFlooded={false}
-                  floodedDistanceMeters={0}
+                  isFlooded={routeData.safe_route.isFlooded}
+                  floodedDistanceMeters={routeData.safe_route.floodedDistanceMeters}
+                  hasAvoidedFlood={routeData.fastest_route.isFlooded && !routeData.safe_route.isFlooded}
                   isSelected={selectedRouteType === 'safe'}
                   onSelect={() => onSelectRouteType('safe')}
                />

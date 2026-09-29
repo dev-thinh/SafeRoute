@@ -8,6 +8,7 @@ interface RouteCardProps {
   isFlooded: boolean;
   maxFloodDepthCm?: number;
   floodedDistanceMeters: number;
+  hasAvoidedFlood?: boolean;
   isSelected: boolean;
   onSelect: () => void;
 }
@@ -19,6 +20,7 @@ export const RouteComparisonCard: React.FC<RouteCardProps> = ({
   isFlooded,
   maxFloodDepthCm,
   floodedDistanceMeters,
+  hasAvoidedFlood = false,
   isSelected,
   onSelect,
 }) => {
@@ -64,7 +66,20 @@ export const RouteComparisonCard: React.FC<RouteCardProps> = ({
       </div>
       <div className="mt-2 text-xs">
         {type === 'safe' ? (
-          <span className="text-sky-700 font-semibold">✓ Khô ráo, né toàn bộ điểm ngập</span>
+          hasAvoidedFlood ? (
+            <div className="flex flex-col gap-0.5">
+              <span className="text-emerald-700 font-bold flex items-center gap-1">
+                🛡️ ĐÃ BẺ LÁI NÉ NGẬP THÀNH CÔNG
+              </span>
+              <span className="text-[10px] text-gray-500 italic">
+                Lộ trình vòng qua đường khô ráo, né trọn vẹn điểm ngập nước.
+              </span>
+            </div>
+          ) : (
+            <span className="text-sky-700 font-medium">
+              ✓ Lộ trình khô ráo (Trùng tuyến nhanh nhất vì không có ngập)
+            </span>
+          )
         ) : isFlooded ? (
           <div className="flex flex-col gap-0.5">
             <span className="text-red-700 font-bold">
@@ -75,7 +90,7 @@ export const RouteComparisonCard: React.FC<RouteCardProps> = ({
             </span>
           </div>
         ) : (
-          <span className="text-gray-600 font-medium">Đường khô ráo</span>
+          <span className="text-gray-600 font-medium">Đường khô ráo, không có ngập</span>
         )}
       </div>
     </div>

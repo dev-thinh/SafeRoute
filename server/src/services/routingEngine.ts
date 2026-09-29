@@ -99,11 +99,11 @@ export function extractRouteFloodedSegments(
         : calculateRainDepth(event, targetTime)
     );
 
-    if (depth < 5) continue; // Minimal water, negligible impact
+    if (depth < 10) continue; // Minimal water, not hazardous
 
     const eventPt = turf.point(event.geometry.coordinates);
-    // 150m buffer radius around the flood point
-    const hazardBuf = turf.buffer(eventPt, 0.15, { units: 'kilometers' });
+    // 250m buffer radius around the flood point to ensure full road intersection
+    const hazardBuf = turf.buffer(eventPt, 0.25, { units: 'kilometers' });
     if (!hazardBuf) continue;
 
     for (let i = 0; i < lineCoords.length - 1; i++) {
@@ -153,7 +153,8 @@ export function extractRouteFloodedSegments(
 }
 
 /**
- * Generates tangential detour waypoints around the bounding box of a hazard polygon.
+ * Generates 4 tangential detour waypoints around the bounding box of a specific hazard polygon.
+ * Offsets into parallel avenues (~1.5 km).
  */
 export function generateDetourWaypoints(
   origin: Coordinate,
@@ -163,10 +164,12 @@ export function generateDetourWaypoints(
   const bbox = turf.bbox(hazardPolygon); // [minLng, minLat, maxLng, maxLat]
   const center = turf.center(turf.feature(hazardPolygon)).geometry.coordinates;
 
-  const offsetDistance = 0.008; // ~800m offset
+  const offsetDistance = 0.015; // ~1.5km offset (parallel arterial avenues)
   return [
     { lat: center[1], lng: bbox[0] - offsetDistance }, // West detour
     { lat: center[1], lng: bbox[2] + offsetDistance }, // East detour
+    { lat: bbox[3] + offsetDistance, lng: center[0] }, // North detour
+    { lat: bbox[1] - offsetDistance, lng: center[0] }, // South detour
   ];
 }
 
@@ -220,7 +223,6 @@ export async function navigateSafeRoute(
   vehicleType: VehicleType,
   events: FloodEvent[]
 ): Promise<{ safeRoute: RouteResult; fastestRoute: RouteResult }> {
-  const hazardPolygon = buildHazardMultiPolygonFromEvents(events, targetTime, vehicleType);
   const baseRoutes = await fetchOsrmRoute([origin, destination]);
 
   let fastestRoute = { ...baseRoutes[0] };
@@ -230,7 +232,7 @@ export async function navigateSafeRoute(
   fastestRoute.floodedDistanceMeters = fastestAnalysis.floodedDistanceMeters;
   fastestRoute.floodedSegments = fastestAnalysis.floodedSegments;
 
-  // Search if any alternative route is dry
+  // Search if any alternative route from baseRoutes is completely dry
   let safeRoute: RouteResult | null = null;
   for (const candidate of baseRoutes) {
     const analysis = extractRouteFloodedSegments(candidate.geometry, events, targetTime);
@@ -246,22 +248,70 @@ export async function navigateSafeRoute(
     }
   }
 
-  // If all default alternatives cut through flood, calculate smart detour
-  if (!safeRoute && hazardPolygon) {
-    const detourWaypoints = generateDetourWaypoints(origin, destination, hazardPolygon);
-    for (const waypoint of detourWaypoints) {
-      const detourRoutes = await fetchOsrmRoute([origin, waypoint, destination]);
-      const detourAnalysis = extractRouteFloodedSegments(detourRoutes[0].geometry, events, targetTime);
-      if (!detourAnalysis.isFlooded) {
-        safeRoute = {
-          ...detourRoutes[0],
-          isFlooded: false,
-          maxFloodDepthCm: 0,
-          floodedDistanceMeters: 0,
-          floodedSegments: [],
-        };
-        break;
+  // If the fastest route is flooded, identify which specific flood events intersect it
+  // and compute targeted local detour bypasses around those obstacles!
+  if (fastestRoute.isFlooded) {
+    const hitEvents = events.filter((ev) => {
+      const depth = Math.round(
+        ev.cause === 'high_tide'
+          ? calculateTidalDepth(ev, targetTime)
+          : calculateRainDepth(ev, targetTime)
+      );
+      if (depth < 10) return false;
+      const pt = turf.point(ev.geometry.coordinates);
+      const buf = turf.buffer(pt, 0.25, { units: 'kilometers' });
+      return buf && turf.booleanIntersects(turf.lineString(fastestRoute.geometry.coordinates), buf);
+    });
+
+    const candidateDetours: { route: RouteResult; analysis: ReturnType<typeof extractRouteFloodedSegments> }[] = [];
+
+    for (const hitEvent of hitEvents) {
+      const pt = turf.point(hitEvent.geometry.coordinates);
+      const localHazard = turf.buffer(pt, 0.25, { units: 'kilometers' });
+      if (!localHazard) continue;
+
+      const detourWaypoints = generateDetourWaypoints(origin, destination, localHazard.geometry);
+      for (const waypoint of detourWaypoints) {
+        try {
+          const detourRoutes = await fetchOsrmRoute([origin, waypoint, destination]);
+          if (detourRoutes && detourRoutes.length > 0) {
+            const detourAnalysis = extractRouteFloodedSegments(detourRoutes[0].geometry, events, targetTime);
+            candidateDetours.push({ route: detourRoutes[0], analysis: detourAnalysis });
+          }
+        } catch (e) {
+          // Skip failed waypoint
+        }
       }
+    }
+
+    // 1st Priority: Pick the shortest completely dry detour route
+    const completelyDry = candidateDetours
+      .filter((c) => !c.analysis.isFlooded)
+      .sort((a, b) => a.route.distanceMeters - b.route.distanceMeters);
+
+    if (completelyDry.length > 0) {
+      safeRoute = {
+        ...completelyDry[0].route,
+        isFlooded: false,
+        maxFloodDepthCm: 0,
+        floodedDistanceMeters: 0,
+        floodedSegments: [],
+      };
+    } else if (candidateDetours.length > 0) {
+      // 2nd Priority: Pick the detour with minimal flood exposure
+      candidateDetours.sort(
+        (a, b) =>
+          a.analysis.maxFloodDepthCm - b.analysis.maxFloodDepthCm ||
+          a.analysis.floodedDistanceMeters - b.analysis.floodedDistanceMeters
+      );
+      const best = candidateDetours[0];
+      safeRoute = {
+        ...best.route,
+        isFlooded: best.analysis.isFlooded,
+        maxFloodDepthCm: best.analysis.maxFloodDepthCm,
+        floodedDistanceMeters: best.analysis.floodedDistanceMeters,
+        floodedSegments: best.analysis.floodedSegments,
+      };
     }
   }
 
