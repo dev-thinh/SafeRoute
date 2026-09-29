@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -7,11 +7,22 @@ interface MapViewProps {
   children?: React.ReactNode;
   origin?: { lat: number; lng: number; label: string };
   destination?: { lat: number; lng: number; label: string };
+  center?: [number, number];
   onMapClick?: (lat: number, lng: number) => void;
   onDragOrigin?: (lat: number, lng: number) => void;
   onDragDestination?: (lat: number, lng: number) => void;
   isPickingLocation?: boolean;
 }
+
+const MapCenterHandler: React.FC<{ center?: [number, number] }> = ({ center }) => {
+  const map = useMap();
+  React.useEffect(() => {
+    if (center) {
+      map.flyTo(center, 15, { duration: 1.2 });
+    }
+  }, [center, map]);
+  return null;
+};
 
 const originIcon = L.divIcon({
   className: 'custom-origin-icon',
@@ -42,6 +53,7 @@ export const MapView: React.FC<MapViewProps> = ({
   children,
   origin,
   destination,
+  center,
   onMapClick,
   onDragOrigin,
   onDragDestination,
@@ -62,6 +74,7 @@ export const MapView: React.FC<MapViewProps> = ({
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
+        <MapCenterHandler center={center} />
         <MapClickHandler onMapClick={onMapClick} />
 
         {origin && origin.lat !== 0 && (

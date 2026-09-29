@@ -7,10 +7,12 @@ import {
    X,
    Crosshair,
    Map,
+   Newspaper,
 } from 'lucide-react';
 import { VehicleSelector } from './VehicleSelector';
 import { TimeSelector } from './TimeSelector';
 import { RouteComparisonCard } from './RouteComparisonCard';
+import { NewsFeedTab } from '../News/NewsFeedTab';
 import {
    navigateRoute,
    searchLocation,
@@ -35,6 +37,8 @@ interface RoutePlannerPanelProps {
    pickingField: 'origin' | 'dest' | null;
    onStartPickOnMap: (field: 'origin' | 'dest') => void;
    onCancelPickOnMap: () => void;
+   onRefreshFloods?: () => void;
+   onSelectLocation?: (lat: number, lng: number) => void;
 }
 
 export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
@@ -48,7 +52,10 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
    pickingField,
    onStartPickOnMap,
    onCancelPickOnMap,
+   onRefreshFloods,
+   onSelectLocation,
 }) => {
+   const [mainTab, setMainTab] = useState<'routes' | 'news'>('routes');
    const [vehicle, setVehicle] = useState<'motorbike' | 'car'>('motorbike');
    const [targetTime, setTargetTime] = useState<string>(() =>
       new Date().toISOString(),
@@ -175,6 +182,41 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
             </div>
          </div>
 
+         {/* Navigation Tab Bar: Lộ Trình vs Tin Tức Ngập Lụt */}
+         <div className="flex items-center gap-1.5 p-1 bg-gray-100/90 rounded-xl border border-gray-200/80">
+            <button
+               type="button"
+               onClick={() => setMainTab('routes')}
+               className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-bold transition-all ${
+                  mainTab === 'routes'
+                     ? 'bg-white text-blue-700 shadow-sm'
+                     : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+               }`}
+            >
+               <Navigation className="w-3.5 h-3.5" />
+               Lộ trình né ngập
+            </button>
+            <button
+               type="button"
+               onClick={() => setMainTab('news')}
+               className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-bold transition-all ${
+                  mainTab === 'news'
+                     ? 'bg-white text-indigo-700 shadow-sm'
+                     : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+               }`}
+            >
+               <Newspaper className="w-3.5 h-3.5" />
+               Tin tức ngập lụt
+            </button>
+         </div>
+
+         {mainTab === 'news' ? (
+            <NewsFeedTab
+               onSelectLocation={onSelectLocation}
+               onRefreshFloods={onRefreshFloods}
+            />
+         ) : (
+            <>
          {/* Banner when pick-on-map is active */}
          {pickingField && (
             <div className="p-2.5 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between text-xs text-blue-900 animate-pulse">
@@ -491,6 +533,8 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                   onSelect={() => onSelectRouteType('fastest')}
                />
             </div>
+         )}
+         </>
          )}
       </div>
    );

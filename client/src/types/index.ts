@@ -53,3 +53,25 @@ export interface UserReport {
   downvotes: number;
   status: 'active' | 'resolved';
 }
+
+export interface ScrapedArticleLocation {
+  streetName: string;
+  district: string;
+  depthCm: number;
+  cause: 'high_tide' | 'heavy_rain' | 'combined';
+  lat?: number;
+  lng?: number;
+}
+
+export interface ScrapedArticle {
+  id: string;
+  source: 'VnExpress' | 'Tuổi Trẻ' | 'Thanh Niên' | 'Dân Trí';
+  title: string;
+  url: string;
+  publishedAt: string;
+  crawledAt: string;
+  summary: string;
+  cause: 'high_tide' | 'heavy_rain' | 'combined';
+  extractedLocations: ScrapedArticleLocation[];
+  contentSnippet: string;
+}

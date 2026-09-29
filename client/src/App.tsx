@@ -33,6 +33,7 @@ export const App: React.FC = () => {
 
   // Pick on map state: 'origin' | 'dest' | null
   const [pickingField, setPickingField] = useState<'origin' | 'dest' | null>(null);
+  const [mapCenter, setMapCenter] = useState<[number, number] | undefined>(undefined);
 
   const loadFloods = async () => {
     try {
@@ -112,11 +113,14 @@ export const App: React.FC = () => {
         pickingField={pickingField}
         onStartPickOnMap={setPickingField}
         onCancelPickOnMap={() => setPickingField(null)}
+        onRefreshFloods={loadFloods}
+        onSelectLocation={(lat, lng) => setMapCenter([lat, lng])}
       />
 
       <MapView
         origin={origin}
         destination={destination}
+        center={mapCenter}
         onMapClick={handleMapClick}
         onDragOrigin={handleDragOrigin}
         onDragDestination={handleDragDestination}
