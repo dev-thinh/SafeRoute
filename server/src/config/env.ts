@@ -7,6 +7,8 @@ export const ENV = {
   GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',
   OSRM_URL: process.env.OSRM_URL || 'https://router.project-osrm.org',
   NOMINATIM_URL: process.env.NOMINATIM_URL || 'https://nominatim.openstreetmap.org',
+  GOONG_API_KEY: process.env.GOONG_API_KEY || '',
+  GOOGLE_MAPS_API_KEY: process.env.GOOGLE_MAPS_API_KEY || '',
 };
 
 export const VEHICLE_THRESHOLDS = {

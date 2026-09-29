@@ -72,6 +72,32 @@ export const App: React.FC = () => {
     }
   };
 
+  const handleDragOrigin = async (lat: number, lng: number) => {
+    try {
+      const rev = await reverseGeocode(lat, lng);
+      setOrigin({
+        label: rev.label,
+        lat,
+        lng,
+      });
+    } catch (err) {
+      setOrigin((prev) => ({ ...prev, lat, lng }));
+    }
+  };
+
+  const handleDragDestination = async (lat: number, lng: number) => {
+    try {
+      const rev = await reverseGeocode(lat, lng);
+      setDestination({
+        label: rev.label,
+        lat,
+        lng,
+      });
+    } catch (err) {
+      setDestination((prev) => ({ ...prev, lat, lng }));
+    }
+  };
+
   return (
     <div className="relative w-screen h-screen overflow-hidden font-sans">
       <RoutePlannerPanel
@@ -91,6 +117,8 @@ export const App: React.FC = () => {
         origin={origin}
         destination={destination}
         onMapClick={handleMapClick}
+        onDragOrigin={handleDragOrigin}
+        onDragDestination={handleDragDestination}
         isPickingLocation={pickingField !== null}
       >
         <FloodLayer events={floodEvents} />

@@ -259,8 +259,11 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                   onMouseDown={() => handleSelectLocation(item)}
                   className="p-2.5 text-xs text-gray-800 hover:bg-emerald-50 hover:text-emerald-700 cursor-pointer transition flex items-start gap-2"
                 >
-                  <MapPin className="w-3.5 h-3.5 text-gray-400 mt-0.5 flex-shrink-0" />
-                  <span className="font-medium line-clamp-1">{item.label}</span>
+                  <MapPin className="w-3.5 h-3.5 text-emerald-500 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-900 leading-snug">{item.label}</div>
+                    <div className="text-[10px] text-gray-400 mt-0.5 font-mono">Tọa độ: {item.lat.toFixed(4)}, {item.lng.toFixed(4)}</div>
+                  </div>
                 </div>
               ))}
             </div>
@@ -316,7 +319,7 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                 setSearchQuery(e.target.value);
                 onChangeDestination({ label: e.target.value, lat: 0, lng: 0 });
               }}
-              placeholder="Nhập địa chỉ nhà, tên đường, quận..."
+              placeholder="Nhập số nhà, tên đường, quận..."
               className="text-xs bg-transparent w-full outline-none font-medium text-gray-800 placeholder-gray-400"
             />
             {destination.label && (
@@ -354,12 +357,23 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                   onMouseDown={() => handleSelectLocation(item)}
                   className="p-2.5 text-xs text-gray-800 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition flex items-start gap-2"
                 >
-                  <MapPin className="w-3.5 h-3.5 text-gray-400 mt-0.5 flex-shrink-0" />
-                  <span className="font-medium line-clamp-1">{item.label}</span>
+                  <MapPin className="w-3.5 h-3.5 text-blue-500 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-900 leading-snug">{item.label}</div>
+                    <div className="text-[10px] text-gray-400 mt-0.5 font-mono">Tọa độ: {item.lat.toFixed(4)}, {item.lng.toFixed(4)}</div>
+                  </div>
                 </div>
               ))}
             </div>
           )}
+        </div>
+
+        {/* Grab/Shopee-style Doorstep Precision Hint */}
+        <div className="bg-sky-50/80 border border-sky-100 rounded-xl p-2 text-[11px] text-sky-800 flex items-start gap-2">
+          <span className="text-sm">📍</span>
+          <div className="leading-tight">
+            <span className="font-bold">Định vị chuẩn xác cửa nhà:</span> Bạn có thể <strong>kéo thả trực tiếp ghim (A) hoặc (B)</strong> trên bản đồ để đặt chính xác trước cửa nhà hoặc đầu hẻm như Grab.
+          </div>
         </div>
       </div>
 
