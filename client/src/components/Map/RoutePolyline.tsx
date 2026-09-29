@@ -13,14 +13,14 @@ interface RoutePolylineProps {
 const getSeverityColor = (severity: FloodedSegment['severity']) => {
   switch (severity) {
     case 'low':
-      return { core: '#EAB308', casing: '#713F12', label: 'Mức Vàng: Ngập nhẹ (≤ 15cm)' };
+      return { core: '#EAB308', casing: '#713F12', label: 'Ngập nhẹ ≤ 15cm' };
     case 'medium':
-      return { core: '#F97316', casing: '#7C2D12', label: 'Mức Cam: Cảnh báo ngập (16 - 25cm)' };
+      return { core: '#F97316', casing: '#7C2D12', label: 'Cảnh báo ngập 16 - 25cm' };
     case 'high':
-      return { core: '#EF4444', casing: '#7F1D1D', label: 'Mức Đỏ: Ngập sâu (26 - 35cm)' };
+      return { core: '#EF4444', casing: '#7F1D1D', label: 'Ngập sâu 26 - 35cm' };
     case 'prohibited':
     default:
-      return { core: '#991B1B', casing: '#450A0A', label: 'Mức Đỏ sẫm: CẤM LƯU THÔNG (> 35cm)' };
+      return { core: '#991B1B', casing: '#450A0A', label: 'Cấm lưu thông > 35cm' };
   }
 };
 
@@ -109,7 +109,7 @@ export const RoutePolyline: React.FC<RoutePolylineProps> = ({
               <Popup>
                 <div className="p-1.5 text-xs max-w-[240px]">
                   <div className="font-bold flex items-center gap-1.5 text-red-600">
-                    <span>⚠️ Đoạn ngập (Tuyến nhanh nhất)</span>
+                    <span>⚠️ Đoạn ngập trên tuyến nhanh nhất</span>
                   </div>
                   {seg.streetName && (
                     <div className="text-gray-900 font-bold mt-1 text-sm">
@@ -121,9 +121,6 @@ export const RoutePolyline: React.FC<RoutePolylineProps> = ({
                   </div>
                   <div className="mt-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-800">
                     {colors.label}
-                  </div>
-                  <div className="mt-1.5 text-[10px] text-emerald-700 font-semibold bg-emerald-50 p-1 rounded">
-                    🛡️ SafeRoute đã lập tuyến né ngập (màu xanh) để tránh điểm này!
                   </div>
                 </div>
               </Popup>
@@ -156,7 +153,7 @@ export const RoutePolyline: React.FC<RoutePolylineProps> = ({
               <Popup>
                 <div className="p-1.5 text-xs max-w-[240px]">
                   <div className="font-bold flex items-center gap-1.5 text-red-600">
-                    <span>🚨 Cảnh báo ngập trên tuyến né</span>
+                    <span>🚨 Đoạn ngập trên lộ trình</span>
                   </div>
                   {seg.streetName && (
                     <div className="text-gray-900 font-bold mt-1 text-sm">

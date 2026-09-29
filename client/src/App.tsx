@@ -21,12 +21,12 @@ export const App: React.FC = () => {
 
   // Origin & Destination state
   const [origin, setOrigin] = useState<LocationItem>({
-    label: 'ĐH Khoa Học Tự Nhiên (227 Nguyễn Văn Cừ, Q5)',
+    label: 'ĐH Khoa Học Tự Nhiên, 227 Nguyễn Văn Cừ, Quận 5',
     lat: 10.7626,
     lng: 106.6823,
   });
   const [destination, setDestination] = useState<LocationItem>({
-    label: 'KĐT Phú Mỹ Hưng (Quận 7)',
+    label: 'KĐT Phú Mỹ Hưng, Quận 7',
     lat: 10.7303,
     lng: 106.7075,
   });

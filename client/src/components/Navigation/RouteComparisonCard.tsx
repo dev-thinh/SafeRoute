@@ -57,7 +57,7 @@ export const RouteComparisonCard: React.FC<RouteCardProps> = ({
                 }`}
               />
               <h4 className="text-xs font-bold text-gray-900">
-                {type === 'safe' ? 'Tuyến Né Ngập (Xanh Da Trời)' : 'Tuyến Nhanh Nhất (Tím Neon)'}
+                {type === 'safe' ? 'Tuyến né ngập' : 'Tuyến nhanh nhất'}
               </h4>
             </div>
             <p className="text-[11px] text-gray-500 mt-0.5">{km} km • {minutes} phút</p>
@@ -66,31 +66,27 @@ export const RouteComparisonCard: React.FC<RouteCardProps> = ({
       </div>
       <div className="mt-2 text-xs">
         {type === 'safe' ? (
-          hasAvoidedFlood ? (
-            <div className="flex flex-col gap-0.5">
-              <span className="text-emerald-700 font-bold flex items-center gap-1">
-                🛡️ ĐÃ BẺ LÁI NÉ NGẬP THÀNH CÔNG
-              </span>
-              <span className="text-[10px] text-gray-500 italic">
-                Lộ trình vòng qua đường khô ráo, né trọn vẹn điểm ngập nước.
-              </span>
-            </div>
+          isFlooded ? (
+            <span className="text-red-700 font-bold flex items-center gap-1">
+              ⚠️ Vẫn gặp đoạn ngập: {maxFloodDepthCm ? `${maxFloodDepthCm} cm • ` : ''}{floodedDistanceMeters} m
+            </span>
+          ) : hasAvoidedFlood ? (
+            <span className="text-emerald-700 font-bold flex items-center gap-1">
+              ✓ Đã né đoạn ngập thành công
+            </span>
           ) : (
             <span className="text-sky-700 font-medium">
-              ✓ Lộ trình khô ráo (Trùng tuyến nhanh nhất vì không có ngập)
+              ✓ Tuyến đường khô ráo
             </span>
           )
         ) : isFlooded ? (
-          <div className="flex flex-col gap-0.5">
-            <span className="text-red-700 font-bold">
-              ⚠️ Cắt qua đoạn ngập: {maxFloodDepthCm ? `${maxFloodDepthCm}cm` : ''} (~{floodedDistanceMeters}m)
-            </span>
-            <span className="text-[10px] text-gray-500 italic">
-              Đoạn ngập được tô màu Vàng ➔ Đỏ tương ứng mức độ trên bản đồ
-            </span>
-          </div>
+          <span className="text-red-700 font-bold flex items-center gap-1">
+            ⚠️ Cắt qua đoạn ngập: {maxFloodDepthCm ? `${maxFloodDepthCm} cm • ` : ''}{floodedDistanceMeters} m
+          </span>
         ) : (
-          <span className="text-gray-600 font-medium">Đường khô ráo, không có ngập</span>
+          <span className="text-gray-600 font-medium">
+            ✓ Tuyến đường khô ráo
+          </span>
         )}
       </div>
     </div>

@@ -41,7 +41,7 @@ export function getActiveFloodEventsForTargetTime(targetDate: Date): FloodEvent[
   return [
     {
       id: 'hcmc-flood-1',
-      title: 'Triều cường đường Trần Xuân Soạn (Bờ kè kênh Tẻ)',
+      title: 'Triều cường đường Trần Xuân Soạn',
       sourceType: 'tide_forecast',
       cause: 'high_tide',
       streetName: 'Trần Xuân Soạn',
@@ -56,7 +56,7 @@ export function getActiveFloodEventsForTargetTime(targetDate: Date): FloodEvent[
     },
     {
       id: 'hcmc-flood-2',
-      title: 'Ngập úng đường Nguyễn Thị Thập (Đoạn Mai Văn Vĩnh - Nguyễn Hữu Thọ)',
+      title: 'Ngập úng đường Nguyễn Thị Thập',
       sourceType: 'tide_forecast',
       cause: 'high_tide',
       streetName: 'Nguyễn Thị Thập',
@@ -71,7 +71,7 @@ export function getActiveFloodEventsForTargetTime(targetDate: Date): FloodEvent[
     },
     {
       id: 'hcmc-flood-3',
-      title: 'Triều cường đường Dương Bá Trạc (Chân cầu Kênh Xáng)',
+      title: 'Triều cường đường Dương Bá Trạc',
       sourceType: 'tide_forecast',
       cause: 'high_tide',
       streetName: 'Dương Bá Trạc',
@@ -86,7 +86,7 @@ export function getActiveFloodEventsForTargetTime(targetDate: Date): FloodEvent[
     },
     {
       id: 'hcmc-flood-4',
-      title: 'Triều cường đường Huỳnh Tấn Phát (Đoạn Phú Thuận & Tân Thuận Đông)',
+      title: 'Triều cường đường Huỳnh Tấn Phát',
       sourceType: 'tide_forecast',
       cause: 'high_tide',
       streetName: 'Huỳnh Tấn Phát',
@@ -101,7 +101,7 @@ export function getActiveFloodEventsForTargetTime(targetDate: Date): FloodEvent[
     },
     {
       id: 'hcmc-flood-5',
-      title: 'Triều cường đường Lê Văn Lương (Cầu Long Kiểng / Rạch Tôm)',
+      title: 'Triều cường đường Lê Văn Lương',
       sourceType: 'tide_forecast',
       cause: 'high_tide',
       streetName: 'Lê Văn Lương',
@@ -116,7 +116,7 @@ export function getActiveFloodEventsForTargetTime(targetDate: Date): FloodEvent[
     },
     {
       id: 'hcmc-flood-6',
-      title: 'Triều cường sông Sài Gòn đường Quốc Hương (Thảo Điền)',
+      title: 'Triều cường đường Quốc Hương',
       sourceType: 'tide_forecast',
       cause: 'high_tide',
       streetName: 'Quốc Hương',
@@ -131,7 +131,7 @@ export function getActiveFloodEventsForTargetTime(targetDate: Date): FloodEvent[
     },
     {
       id: 'hcmc-flood-7',
-      title: 'Ngập úng đường Nguyễn Hữu Cảnh (Chân cầu Thủ Thiêm)',
+      title: 'Ngập úng đường Nguyễn Hữu Cảnh',
       sourceType: 'news_crawler',
       cause: 'high_tide',
       streetName: 'Nguyễn Hữu Cảnh',
@@ -146,7 +146,7 @@ export function getActiveFloodEventsForTargetTime(targetDate: Date): FloodEvent[
     },
     {
       id: 'hcmc-flood-8',
-      title: 'Ngập do mưa lớn đường Nguyễn Văn Quá (Chợ Cầu)',
+      title: 'Ngập do mưa lớn đường Nguyễn Văn Quá',
       sourceType: 'news_crawler',
       cause: 'heavy_rain',
       streetName: 'Nguyễn Văn Quá',
@@ -161,7 +161,7 @@ export function getActiveFloodEventsForTargetTime(targetDate: Date): FloodEvent[
     },
     {
       id: 'hcmc-flood-9',
-      title: 'Ngập do mưa dốc đường Võ Văn Ngân & Kha Vạn Cân (Chợ Thủ Đức)',
+      title: 'Ngập do mưa lớn đường Võ Văn Ngân',
       sourceType: 'news_crawler',
       cause: 'heavy_rain',
       streetName: 'Võ Văn Ngân',
@@ -176,7 +176,7 @@ export function getActiveFloodEventsForTargetTime(targetDate: Date): FloodEvent[
     },
     {
       id: 'hcmc-flood-10',
-      title: 'Triều cường kênh Đôi bến Phú Định & Hồ Học Lãm',
+      title: 'Triều cường bến Phú Định',
       sourceType: 'tide_forecast',
       cause: 'high_tide',
       streetName: 'Bến Phú Định',

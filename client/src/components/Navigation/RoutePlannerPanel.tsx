@@ -225,8 +225,8 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                   <span>
                      Click trên bản đồ để chọn{' '}
                      {pickingField === 'origin'
-                        ? 'Điểm đi (A)'
-                        : 'Điểm đến (B)'}
+                        ? 'Điểm xuất phát'
+                        : 'Điểm đến'}
                   </span>
                </div>
                <button
@@ -246,7 +246,7 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                <div className="flex items-center justify-between mb-1">
                   <span className="text-[11px] font-bold text-gray-600 flex items-center gap-1">
                      <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />{' '}
-                     Điểm xuất phát (A)
+                     Điểm xuất phát
                   </span>
                   <div className="flex items-center gap-1">
                      <button
@@ -322,7 +322,7 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                      <div className="p-2 bg-gray-50 text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center justify-between sticky top-0 bg-gray-50/95 backdrop-blur-sm z-10">
                         <span className="flex items-center gap-1">
                            <Search className="w-3 h-3 text-emerald-600" />
-                           Gợi ý Điểm xuất phát (A)
+                           Gợi ý điểm xuất phát
                         </span>
                         {searching && (
                            <span className="text-emerald-600 lowercase font-normal">
@@ -382,7 +382,7 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                <div className="flex items-center justify-between mb-1">
                   <span className="text-[11px] font-bold text-gray-600 flex items-center gap-1">
                      <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />{' '}
-                     Điểm đến (B)
+                     Điểm đến
                   </span>
                   <button
                      type="button"
@@ -446,7 +446,7 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                      <div className="p-2 bg-gray-50 text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center justify-between sticky top-0 bg-gray-50/95 backdrop-blur-sm z-10">
                         <span className="flex items-center gap-1">
                            <Search className="w-3 h-3 text-blue-600" />
-                           Gợi ý Điểm đến (B)
+                           Gợi ý điểm đến
                         </span>
                         {searching && (
                            <span className="text-blue-600 lowercase font-normal">
@@ -491,8 +491,8 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                <div className="leading-tight">
                   <span className="font-bold">Định vị chuẩn xác cửa nhà:</span>{' '}
                   Bạn có thể{' '}
-                  <strong>kéo thả trực tiếp ghim (A) hoặc (B)</strong> trên bản
-                  đồ để đặt chính xác vị trí.
+                  <strong>kéo thả ghim trên bản đồ</strong> để đặt chính xác vị
+                  trí.
                </div>
             </div>
          </div>
@@ -517,51 +517,37 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
          {routeData && (
             <div className="space-y-2.5 pt-2 border-t border-gray-100">
                {/* Visual Flood Detection Alert Banner */}
-               {routeData.fastest_route.isFlooded && (
-                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs space-y-1">
-                     <div className="flex items-center gap-1.5 font-bold text-amber-900">
-                        <span className="text-base">⚠️</span>
-                        <span>Cảnh báo ngập lụt trên lộ trình:</span>
+               {routeData.safe_route.isFlooded ? (
+                  <div className="p-2.5 bg-red-50 border border-red-200 rounded-xl text-xs space-y-0.5">
+                     <div className="flex items-center gap-1.5 font-bold text-red-900">
+                        <span>🚨</span>
+                        <span>
+                           Lộ trình có đoạn ngập sâu {routeData.safe_route.maxFloodDepthCm} cm, dài {routeData.safe_route.floodedDistanceMeters} m
+                        </span>
                      </div>
-                     <p className="text-amber-800 leading-relaxed text-[11px]">
-                        Tuyến ngắn nhất có{' '}
-                        <strong>
-                           {routeData.fastest_route.floodedDistanceMeters}m
-                        </strong>{' '}
-                        bị ngập (sâu tối đa{' '}
-                        <strong className="text-red-700">
-                           {routeData.fastest_route.maxFloodDepthCm}cm
-                        </strong>
-                        {routeData.fastest_route.floodedSegments?.[0]?.streetName
-                           ? ` tại ${routeData.fastest_route.floodedSegments[0].streetName}`
-                           : ''}
-                        ) - đã được tô màu nổi bật trên bản đồ.
+                     <p className="text-red-700 text-[11px]">
+                        Các lối đi quanh khu vực này hiện đều ngập. Chú ý an toàn khi di chuyển.
                      </p>
-                     {!routeData.safe_route.isFlooded ? (
-                        <div className="text-[11px] text-emerald-800 font-semibold bg-emerald-100/70 p-1.5 rounded-lg flex items-center gap-1 mt-1">
-                           <span>🛡️</span>
-                           <span>
-                              SafeRoute đã tự động điều hướng sang tuyến né ngập
-                              an toàn (màu xanh da trời)!
-                           </span>
-                        </div>
-                     ) : (
-                        <div className="text-[11px] text-red-800 font-semibold bg-red-100/70 p-1.5 rounded-lg flex items-center gap-1 mt-1">
-                           <span>🚨</span>
-                           <span>
-                              Khu vực ngập sâu: Tuyến tối ưu vẫn ngập{' '}
-                              {routeData.safe_route.maxFloodDepthCm}cm. Khuyến cáo
-                              chú ý an toàn!
-                           </span>
-                        </div>
-                     )}
                   </div>
-               )}
+               ) : routeData.fastest_route.isFlooded ? (
+                  <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-xs space-y-0.5">
+                     <div className="flex items-center gap-1.5 font-bold text-amber-900">
+                        <span>⚠️</span>
+                        <span>
+                           Tuyến nhanh nhất ngập {routeData.fastest_route.maxFloodDepthCm} cm, dài {routeData.fastest_route.floodedDistanceMeters} m
+                        </span>
+                     </div>
+                     <p className="text-emerald-800 font-semibold text-[11px]">
+                        Đã chuyển sang tuyến né ngập an toàn.
+                     </p>
+                  </div>
+               ) : null}
                <RouteComparisonCard
                   type="safe"
                   distanceMeters={routeData.safe_route.distanceMeters}
                   durationSeconds={routeData.safe_route.durationSeconds}
                   isFlooded={routeData.safe_route.isFlooded}
+                  maxFloodDepthCm={routeData.safe_route.maxFloodDepthCm}
                   floodedDistanceMeters={routeData.safe_route.floodedDistanceMeters}
                   hasAvoidedFlood={routeData.fastest_route.isFlooded && !routeData.safe_route.isFlooded}
                   isSelected={selectedRouteType === 'safe'}
