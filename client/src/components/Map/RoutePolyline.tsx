@@ -31,109 +31,91 @@ export const RoutePolyline: React.FC<RoutePolylineProps> = ({
   fastestFloodedSegments = [],
   selectedRoute,
 }) => {
+  const isSafeSelected = selectedRoute === 'safe';
+  const isFastestSelected = selectedRoute === 'fastest';
+
+  // Only render flooded segments belonging to the currently selected route
+  const activeFloodedSegments = isSafeSelected ? safeFloodedSegments : fastestFloodedSegments;
+
   return (
     <>
-      {/* Fastest Route - Neon Violet / Purple with outer casing */}
-      {fastestGeometry && (
+      {/* Secondary / Inactive Route rendered softly in background */}
+      {!isFastestSelected && fastestGeometry && (
+        <Polyline
+          positions={fastestGeometry.coordinates.map((c) => [c[1], c[0]])}
+          pathOptions={{
+            color: '#94A3B8',
+            weight: 4,
+            opacity: 0.45,
+            dashArray: '6, 8',
+          }}
+        />
+      )}
+
+      {!isSafeSelected && safeGeometry && (
+        <Polyline
+          positions={safeGeometry.coordinates.map((c) => [c[1], c[0]])}
+          pathOptions={{
+            color: '#94A3B8',
+            weight: 4,
+            opacity: 0.45,
+          }}
+        />
+      )}
+
+      {/* Active Primary Route */}
+      {isFastestSelected && fastestGeometry && (
         <>
           {/* Outer casing */}
           <Polyline
             positions={fastestGeometry.coordinates.map((c) => [c[1], c[0]])}
             pathOptions={{
               color: '#3B0764',
-              weight: selectedRoute === 'fastest' ? 8 : 5,
-              opacity: 0.6,
+              weight: 8,
+              opacity: 0.8,
             }}
           />
-          {/* Inner dashed line */}
+          {/* Inner core line */}
           <Polyline
             positions={fastestGeometry.coordinates.map((c) => [c[1], c[0]])}
             pathOptions={{
-              color: selectedRoute === 'fastest' ? '#A855F7' : '#7E22CE',
-              weight: selectedRoute === 'fastest' ? 5 : 3,
-              dashArray: '6, 8',
-              opacity: 0.95,
-            }}
-          />
-        </>
-      )}
-
-      {/* Safe Route - Bright Electric Sky Blue with outer casing */}
-      {safeGeometry && (
-        <>
-          {/* Outer casing for maximum contrast against map */}
-          <Polyline
-            positions={safeGeometry.coordinates.map((c) => [c[1], c[0]])}
-            pathOptions={{
-              color: '#0C4A6E',
-              weight: selectedRoute === 'safe' ? 9 : 6,
-              opacity: 0.7,
-            }}
-          />
-          {/* Core Sky Blue Line */}
-          <Polyline
-            positions={safeGeometry.coordinates.map((c) => [c[1], c[0]])}
-            pathOptions={{
-              color: selectedRoute === 'safe' ? '#0284C7' : '#38BDF8',
-              weight: selectedRoute === 'safe' ? 6 : 4,
+              color: '#A855F7',
+              weight: 5,
               opacity: 1,
             }}
           />
         </>
       )}
 
-      {/* Flooded Segments on Fastest Route (Always visibly highlighted to show WHERE the flood is) */}
-      {fastestFloodedSegments.map((seg, idx) => {
-        const colors = getSeverityColor(seg.severity);
-        const isSelected = selectedRoute === 'fastest';
-        return (
-          <React.Fragment key={`fastest-flood-${idx}`}>
-            {/* Outer high-contrast black casing */}
-            <Polyline
-              positions={seg.coordinates.map((c) => [c[1], c[0]])}
-              pathOptions={{
-                color: colors.casing,
-                weight: isSelected ? 12 : 9,
-                opacity: 0.9,
-              }}
-            />
-            {/* Vivid Color Segment (Yellow -> Orange -> Red -> Prohibited) */}
-            <Polyline
-              positions={seg.coordinates.map((c) => [c[1], c[0]])}
-              pathOptions={{
-                color: colors.core,
-                weight: isSelected ? 7 : 5,
-                opacity: 1,
-              }}
-            >
-              <Popup>
-                <div className="p-1.5 text-xs max-w-[240px]">
-                  <div className="font-bold flex items-center gap-1.5 text-red-600">
-                    <span>⚠️ Đoạn ngập trên tuyến nhanh nhất</span>
-                  </div>
-                  {seg.streetName && (
-                    <div className="text-gray-900 font-bold mt-1 text-sm">
-                      {seg.streetName}
-                    </div>
-                  )}
-                  <div className="mt-1 text-[11px] text-gray-700">
-                    Độ sâu dự báo: <strong className="text-red-700 font-extrabold text-xs">{seg.depthCm} cm</strong>
-                  </div>
-                  <div className="mt-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-800">
-                    {colors.label}
-                  </div>
-                </div>
-              </Popup>
-            </Polyline>
-          </React.Fragment>
-        );
-      })}
+      {isSafeSelected && safeGeometry && (
+        <>
+          {/* Outer casing */}
+          <Polyline
+            positions={safeGeometry.coordinates.map((c) => [c[1], c[0]])}
+            pathOptions={{
+              color: '#0C4A6E',
+              weight: 9,
+              opacity: 0.85,
+            }}
+          />
+          {/* Inner core line */}
+          <Polyline
+            positions={safeGeometry.coordinates.map((c) => [c[1], c[0]])}
+            pathOptions={{
+              color: '#0284C7',
+              weight: 6,
+              opacity: 1,
+            }}
+          />
+        </>
+      )}
 
-      {/* Flooded Segments on Safe Route (if impossible to bypass all floods) */}
-      {safeFloodedSegments.map((seg, idx) => {
+      {/* Flooded Segments ONLY for the currently active route */}
+      {activeFloodedSegments.map((seg, idx) => {
         const colors = getSeverityColor(seg.severity);
         return (
-          <React.Fragment key={`safe-flood-${idx}`}>
+          <React.Fragment key={`active-flood-${idx}`}>
+            {/* Outer high-contrast black casing */}
             <Polyline
               positions={seg.coordinates.map((c) => [c[1], c[0]])}
               pathOptions={{
@@ -142,6 +124,7 @@ export const RoutePolyline: React.FC<RoutePolylineProps> = ({
                 opacity: 0.95,
               }}
             />
+            {/* Vivid Color Segment */}
             <Polyline
               positions={seg.coordinates.map((c) => [c[1], c[0]])}
               pathOptions={{
@@ -153,7 +136,7 @@ export const RoutePolyline: React.FC<RoutePolylineProps> = ({
               <Popup>
                 <div className="p-1.5 text-xs max-w-[240px]">
                   <div className="font-bold flex items-center gap-1.5 text-red-600">
-                    <span>🚨 Đoạn ngập trên lộ trình</span>
+                    <span>⚠️ Đoạn ngập trên lộ trình</span>
                   </div>
                   {seg.streetName && (
                     <div className="text-gray-900 font-bold mt-1 text-sm">
@@ -161,7 +144,7 @@ export const RoutePolyline: React.FC<RoutePolylineProps> = ({
                     </div>
                   )}
                   <div className="mt-1 text-[11px] text-gray-700">
-                    Độ sâu dự báo: <strong className="text-red-700">{seg.depthCm} cm</strong>
+                    Độ sâu dự báo: <strong className="text-red-700 font-extrabold text-xs">{seg.depthCm} cm</strong>
                   </div>
                   <div className="mt-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-800">
                     {colors.label}

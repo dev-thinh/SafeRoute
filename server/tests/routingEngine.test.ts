@@ -4,6 +4,7 @@ import {
   generateDetourWaypoints,
   calculateVehicleDuration,
   extractRouteFloodedSegments,
+  isRouteInvalidSpur,
 } from '../src/services/routingEngine';
 import { FloodEvent } from '../src/types';
 import * as turf from '@turf/turf';
@@ -117,4 +118,67 @@ describe('RoutingEngine & Detour Logic', () => {
     expect(mbAnalysis42.isFlooded).toBe(true);
     expect(carAnalysis42.isFlooded).toBe(true);
   });
+
+  it('isRouteInvalidSpur should detect U-turns, alleys, and dead-end reversals', () => {
+    // Clean route
+    const cleanRoute = {
+      geometry: { coordinates: [[106.68, 10.76], [106.70, 10.74]] },
+      legs: [
+        {
+          steps: [
+            { maneuver: { modifier: 'straight', bearing_before: 120, bearing_after: 120 }, name: 'Nguyễn Thị Thập' },
+            { maneuver: { modifier: 'arrive', bearing_before: 120, bearing_after: 120 }, name: 'Nguyễn Thị Thập' },
+          ],
+        },
+        {
+          steps: [
+            { maneuver: { modifier: 'depart', bearing_before: 125, bearing_after: 125 }, name: 'Nguyễn Hữu Thọ' },
+            { maneuver: { modifier: 'arrive', bearing_before: 125, bearing_after: 125 }, name: 'Nguyễn Hữu Thọ' },
+          ],
+        },
+      ],
+    };
+    expect(isRouteInvalidSpur(cleanRoute)).toBe(false);
+
+    // Route with U-turn turnaround angle at waypoint (178 degrees)
+    const uTurnRoute = {
+      geometry: { coordinates: [[106.68, 10.76], [106.70, 10.74]] },
+      legs: [
+        {
+          steps: [
+            { maneuver: { modifier: 'straight', bearing_before: 45, bearing_after: 45 }, name: 'Đường Số 3' },
+            { maneuver: { modifier: 'arrive', bearing_before: 50, bearing_after: 50 }, name: 'Đường Số 3' },
+          ],
+        },
+        {
+          steps: [
+            { maneuver: { modifier: 'depart', bearing_before: 230, bearing_after: 230 }, name: 'Đường Số 3' },
+            { maneuver: { modifier: 'arrive', bearing_before: 230, bearing_after: 230 }, name: 'Nguyễn Thị Thập' },
+          ],
+        },
+      ],
+    };
+    expect(isRouteInvalidSpur(uTurnRoute)).toBe(true);
+
+    // Route entering a narrow dead-end alley (Hẻm ...)
+    const alleyRoute = {
+      geometry: { coordinates: [[106.68, 10.76], [106.70, 10.74]] },
+      legs: [
+        {
+          steps: [
+            { maneuver: { modifier: 'turn', bearing_before: 90, bearing_after: 90 }, name: 'Hẻm 793/49 Trần Xuân Soạn' },
+            { maneuver: { modifier: 'arrive', bearing_before: 90, bearing_after: 90 }, name: 'Hẻm 793/49 Trần Xuân Soạn' },
+          ],
+        },
+        {
+          steps: [
+            { maneuver: { modifier: 'depart', bearing_before: 95, bearing_after: 95 }, name: 'Hẻm 793 Trần Xuân Soạn' },
+            { maneuver: { modifier: 'arrive', bearing_before: 95, bearing_after: 95 }, name: 'Trần Xuân Soạn' },
+          ],
+        },
+      ],
+    };
+    expect(isRouteInvalidSpur(alleyRoute)).toBe(true);
+  });
 });
+
