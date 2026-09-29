@@ -5,6 +5,46 @@ const api = axios.create({
   baseURL: '/api',
 });
 
+export const HCMC_PRESETS = [
+  { label: 'ĐH Khoa Học Tự Nhiên (227 Nguyễn Văn Cừ, Q5)', lat: 10.7626, lng: 106.6823 },
+  { label: 'Chợ Bến Thành (Quận 1)', lat: 10.7725, lng: 106.6980 },
+  { label: 'KĐT Phú Mỹ Hưng (Quận 7)', lat: 10.7303, lng: 106.7075 },
+  { label: 'Đường Trần Xuân Soạn (Quận 7 - Hay ngập triều)', lat: 10.7485, lng: 106.7082 },
+  { label: 'Landmark 81 (Bình Thạnh)', lat: 10.7950, lng: 106.7219 },
+  { label: 'Thảo Điền (TP. Thủ Đức - Đường Quốc Hương)', lat: 10.8038, lng: 106.7326 },
+  { label: 'Sân bay Tân Sơn Nhất (Tân Bình)', lat: 10.8185, lng: 106.6588 },
+  { label: 'ĐH Bách Khoa (268 Lý Thường Kiệt, Q10)', lat: 10.7722, lng: 106.6578 },
+  { label: 'Hồ Con Rùa (Quận 3)', lat: 10.7828, lng: 106.6958 },
+  { label: 'Đường Huỳnh Tấn Phát (Quận 7)', lat: 10.7381, lng: 106.7291 },
+  { label: 'Đường Nguyễn Văn Quá (Quận 12)', lat: 10.8415, lng: 106.6273 },
+];
+
+export const searchLocation = async (query: string): Promise<{ label: string; lat: number; lng: number }[]> => {
+  const trimmed = query.trim().toLowerCase();
+  if (!trimmed) return HCMC_PRESETS.slice(0, 5);
+
+  const matchedPresets = HCMC_PRESETS.filter((p) => p.label.toLowerCase().includes(trimmed));
+  if (matchedPresets.length > 0) return matchedPresets;
+
+  try {
+    const res = await axios.get(
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query + ', Ho Chi Minh City, Vietnam')}&format=json&limit=5`,
+      { headers: { 'Accept-Language': 'vi' }, timeout: 4000 }
+    );
+    if (res.data && res.data.length > 0) {
+      return res.data.map((item: any) => ({
+        label: item.display_name.split(',').slice(0, 3).join(','),
+        lat: parseFloat(item.lat),
+        lng: parseFloat(item.lon),
+      }));
+    }
+  } catch (err) {
+    console.warn('Geocoding search failed, returning presets', err);
+  }
+
+  return HCMC_PRESETS.slice(0, 5);
+};
+
 export const getActiveFloods = (targetTime?: string) =>
   api.get('/floods/active', { params: { target_time: targetTime } }).then((r) => r.data);
 
@@ -26,3 +66,4 @@ export const voteReport = (id: string, type: 'upvote' | 'resolved') =>
 
 export const parseArticle = (data: { url?: string; raw_text?: string }) =>
   api.post('/admin/articles/parse', data).then((r) => r.data);
+
