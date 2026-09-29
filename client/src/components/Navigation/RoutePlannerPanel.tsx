@@ -171,9 +171,9 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
       )}
 
       {/* Origin & Destination Inputs with Quick Pick buttons */}
-      <div className="relative space-y-2">
+      <div className="space-y-2">
         {/* Origin Field */}
-        <div>
+        <div className="relative">
           <div className="flex items-center justify-between mb-1">
             <span className="text-[11px] font-bold text-gray-600 flex items-center gap-1">
               <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" /> Điểm xuất phát (A)
@@ -214,6 +214,9 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                 setActiveField('origin');
                 setSearchQuery(origin.label);
               }}
+              onBlur={() => setTimeout(() => {
+                if (activeField === 'origin') setActiveField(null);
+              }, 250)}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
                 onChangeOrigin({ label: e.target.value, lat: 0, lng: 0 });
@@ -234,6 +237,34 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
               </button>
             )}
           </div>
+
+          {/* Dropdown Suggestions for Origin */}
+          {activeField === 'origin' && (
+            <div className="absolute top-full left-0 right-0 z-50 bg-white border border-gray-200 rounded-xl shadow-2xl mt-1.5 max-h-56 overflow-y-auto divide-y divide-gray-100">
+              <div className="p-2 bg-gray-50 text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center justify-between sticky top-0 bg-gray-50/95 backdrop-blur-sm z-10">
+                <span className="flex items-center gap-1">
+                  <Search className="w-3 h-3 text-emerald-600" />
+                  Gợi ý Điểm xuất phát (A)
+                </span>
+                {searching && <span className="text-emerald-600 lowercase font-normal">đang tìm...</span>}
+              </div>
+              {suggestions.length === 0 && !searching && (
+                <div className="p-3 text-xs text-gray-500 text-center">
+                  Không tìm thấy địa chỉ. Bạn có thể bấm <strong className="text-emerald-600">"Ghim trên map"</strong> hoặc <strong className="text-emerald-600">"Vị trí của tôi"</strong> để chọn điểm chuẩn xác.
+                </div>
+              )}
+              {suggestions.map((item, idx) => (
+                <div
+                  key={idx}
+                  onMouseDown={() => handleSelectLocation(item)}
+                  className="p-2.5 text-xs text-gray-800 hover:bg-emerald-50 hover:text-emerald-700 cursor-pointer transition flex items-start gap-2"
+                >
+                  <MapPin className="w-3.5 h-3.5 text-gray-400 mt-0.5 flex-shrink-0" />
+                  <span className="font-medium line-clamp-1">{item.label}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Swap button */}
@@ -249,7 +280,7 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
         </div>
 
         {/* Destination Field */}
-        <div>
+        <div className="relative">
           <div className="flex items-center justify-between mb-1">
             <span className="text-[11px] font-bold text-gray-600 flex items-center gap-1">
               <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" /> Điểm đến (B)
@@ -278,6 +309,9 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                 setActiveField('dest');
                 setSearchQuery(destination.label);
               }}
+              onBlur={() => setTimeout(() => {
+                if (activeField === 'dest') setActiveField(null);
+              }, 250)}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
                 onChangeDestination({ label: e.target.value, lat: 0, lng: 0 });
@@ -298,35 +332,35 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
               </button>
             )}
           </div>
-        </div>
 
-        {/* Dropdown Suggestions */}
-        {activeField && (
-          <div className="absolute top-full left-0 right-0 z-50 bg-white border border-gray-200 rounded-xl shadow-2xl mt-1 max-h-56 overflow-y-auto divide-y divide-gray-100">
-            <div className="p-2 bg-gray-50 text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center justify-between">
-              <span className="flex items-center gap-1">
-                <Search className="w-3 h-3 text-blue-600" />
-                Kết quả tìm kiếm địa chỉ TP.HCM
-              </span>
-              {searching && <span className="text-blue-600 lowercase font-normal">đang tìm...</span>}
+          {/* Dropdown Suggestions for Destination */}
+          {activeField === 'dest' && (
+            <div className="absolute top-full left-0 right-0 z-50 bg-white border border-gray-200 rounded-xl shadow-2xl mt-1.5 max-h-56 overflow-y-auto divide-y divide-gray-100">
+              <div className="p-2 bg-gray-50 text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center justify-between sticky top-0 bg-gray-50/95 backdrop-blur-sm z-10">
+                <span className="flex items-center gap-1">
+                  <Search className="w-3 h-3 text-blue-600" />
+                  Gợi ý Điểm đến (B)
+                </span>
+                {searching && <span className="text-blue-600 lowercase font-normal">đang tìm...</span>}
+              </div>
+              {suggestions.length === 0 && !searching && (
+                <div className="p-3 text-xs text-gray-500 text-center">
+                  Không tìm thấy địa chỉ. Bạn có thể bấm <strong className="text-blue-600">"Ghim trên map"</strong> để chọn điểm chuẩn xác.
+                </div>
+              )}
+              {suggestions.map((item, idx) => (
+                <div
+                  key={idx}
+                  onMouseDown={() => handleSelectLocation(item)}
+                  className="p-2.5 text-xs text-gray-800 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition flex items-start gap-2"
+                >
+                  <MapPin className="w-3.5 h-3.5 text-gray-400 mt-0.5 flex-shrink-0" />
+                  <span className="font-medium line-clamp-1">{item.label}</span>
+                </div>
+              ))}
             </div>
-            {suggestions.length === 0 && !searching && (
-              <div className="p-3 text-xs text-gray-500 text-center">
-                Không tìm thấy địa chỉ chính xác. Bạn có thể bấm <strong className="text-blue-600">"Ghim trên map"</strong> hoặc <strong className="text-blue-600">"Vị trí của tôi"</strong> để chọn điểm chuẩn xác 100% như Grab.
-              </div>
-            )}
-            {suggestions.map((item, idx) => (
-              <div
-                key={idx}
-                onMouseDown={() => handleSelectLocation(item)}
-                className="p-2.5 text-xs text-gray-800 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition flex items-start gap-2"
-              >
-                <MapPin className="w-3.5 h-3.5 text-gray-400 mt-0.5 flex-shrink-0" />
-                <span className="font-medium line-clamp-1">{item.label}</span>
-              </div>
-            ))}
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       <VehicleSelector vehicle={vehicle} onChange={setVehicle} />
