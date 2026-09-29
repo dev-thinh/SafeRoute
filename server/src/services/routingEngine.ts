@@ -3,7 +3,7 @@ import * as turf from '@turf/turf';
 import { Coordinate, VehicleType, FloodEvent } from '../types';
 import { ENV } from '../config/env';
 import { buildHazardMultiPolygonFromEvents } from './spatialService';
-import { calculateTidalDepth, calculateRainDepth } from './predictionEngine';
+import { calculateTidalDepth, calculateRainDepth, calculateEventDepth } from './predictionEngine';
 
 export interface FloodedSegment {
   coordinates: [number, number][]; // [[lng, lat], ...]
@@ -93,11 +93,7 @@ export function extractRouteFloodedSegments(
   let totalDistance = 0;
 
   for (const event of events) {
-    const depth = Math.round(
-      event.cause === 'high_tide'
-        ? calculateTidalDepth(event, targetTime)
-        : calculateRainDepth(event, targetTime)
-    );
+    const depth = Math.round(calculateEventDepth(event, targetTime));
 
     if (depth < 10) continue; // Minimal water, not hazardous
 
@@ -252,11 +248,7 @@ export async function navigateSafeRoute(
   // and compute targeted local detour bypasses around those obstacles!
   if (fastestRoute.isFlooded) {
     const hitEvents = events.filter((ev) => {
-      const depth = Math.round(
-        ev.cause === 'high_tide'
-          ? calculateTidalDepth(ev, targetTime)
-          : calculateRainDepth(ev, targetTime)
-      );
+      const depth = Math.round(calculateEventDepth(ev, targetTime));
       if (depth < 10) return false;
       const pt = turf.point(ev.geometry.coordinates);
       const buf = turf.buffer(pt, 0.25, { units: 'kilometers' });

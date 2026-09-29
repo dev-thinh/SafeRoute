@@ -35,9 +35,9 @@ export const App: React.FC = () => {
   const [pickingField, setPickingField] = useState<'origin' | 'dest' | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number] | undefined>(undefined);
 
-  const loadFloods = async () => {
+  const loadFloods = async (targetTime?: string) => {
     try {
-      const data = await getActiveFloods();
+      const data = await getActiveFloods(targetTime);
       setFloodEvents(data.events || []);
       setReports(data.reports || []);
     } catch (err) {
@@ -120,6 +120,7 @@ export const App: React.FC = () => {
       <MapView
         origin={origin}
         destination={destination}
+        routes={routes}
         center={mapCenter}
         onMapClick={handleMapClick}
         onDragOrigin={handleDragOrigin}

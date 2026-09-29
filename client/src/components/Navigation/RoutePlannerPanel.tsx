@@ -37,7 +37,7 @@ interface RoutePlannerPanelProps {
    pickingField: 'origin' | 'dest' | null;
    onStartPickOnMap: (field: 'origin' | 'dest') => void;
    onCancelPickOnMap: () => void;
-   onRefreshFloods?: () => void;
+   onRefreshFloods?: (targetTime?: string) => void;
    onSelectLocation?: (lat: number, lng: number) => void;
 }
 
@@ -498,7 +498,13 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
          </div>
 
          <VehicleSelector vehicle={vehicle} onChange={setVehicle} />
-         <TimeSelector selectedTime={targetTime} onChange={setTargetTime} />
+         <TimeSelector
+            selectedTime={targetTime}
+            onChange={(t) => {
+               setTargetTime(t);
+               if (onRefreshFloods) onRefreshFloods(t);
+            }}
+         />
 
          <button
             onClick={handleSearch}
@@ -510,6 +516,47 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
 
          {routeData && (
             <div className="space-y-2.5 pt-2 border-t border-gray-100">
+               {/* Visual Flood Detection Alert Banner */}
+               {routeData.fastest_route.isFlooded && (
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs space-y-1">
+                     <div className="flex items-center gap-1.5 font-bold text-amber-900">
+                        <span className="text-base">⚠️</span>
+                        <span>Cảnh báo ngập lụt trên lộ trình:</span>
+                     </div>
+                     <p className="text-amber-800 leading-relaxed text-[11px]">
+                        Tuyến ngắn nhất có{' '}
+                        <strong>
+                           {routeData.fastest_route.floodedDistanceMeters}m
+                        </strong>{' '}
+                        bị ngập (sâu tối đa{' '}
+                        <strong className="text-red-700">
+                           {routeData.fastest_route.maxFloodDepthCm}cm
+                        </strong>
+                        {routeData.fastest_route.floodedSegments?.[0]?.streetName
+                           ? ` tại ${routeData.fastest_route.floodedSegments[0].streetName}`
+                           : ''}
+                        ) - đã được tô màu nổi bật trên bản đồ.
+                     </p>
+                     {!routeData.safe_route.isFlooded ? (
+                        <div className="text-[11px] text-emerald-800 font-semibold bg-emerald-100/70 p-1.5 rounded-lg flex items-center gap-1 mt-1">
+                           <span>🛡️</span>
+                           <span>
+                              SafeRoute đã tự động điều hướng sang tuyến né ngập
+                              an toàn (màu xanh da trời)!
+                           </span>
+                        </div>
+                     ) : (
+                        <div className="text-[11px] text-red-800 font-semibold bg-red-100/70 p-1.5 rounded-lg flex items-center gap-1 mt-1">
+                           <span>🚨</span>
+                           <span>
+                              Khu vực ngập sâu: Tuyến tối ưu vẫn ngập{' '}
+                              {routeData.safe_route.maxFloodDepthCm}cm. Khuyến cáo
+                              chú ý an toàn!
+                           </span>
+                        </div>
+                     )}
+                  </div>
+               )}
                <RouteComparisonCard
                   type="safe"
                   distanceMeters={routeData.safe_route.distanceMeters}

@@ -31,11 +31,6 @@ export const RoutePolyline: React.FC<RoutePolylineProps> = ({
   fastestFloodedSegments = [],
   selectedRoute,
 }) => {
-  // Determine which flooded segments to highlight based on active selection
-  const activeFloodedSegments = selectedRoute === 'fastest' ? fastestFloodedSegments : safeFloodedSegments;
-  // Also display inactive route flooded segments slightly dimmer
-  const inactiveFloodedSegments = selectedRoute === 'fastest' ? safeFloodedSegments : fastestFloodedSegments;
-
   return (
     <>
       {/* Fastest Route - Neon Violet / Purple with outer casing */}
@@ -87,54 +82,85 @@ export const RoutePolyline: React.FC<RoutePolylineProps> = ({
         </>
       )}
 
-      {/* Inactive Route Flooded Segments (Dimmer) */}
-      {inactiveFloodedSegments.map((seg, idx) => {
+      {/* Flooded Segments on Fastest Route (Always visibly highlighted to show WHERE the flood is) */}
+      {fastestFloodedSegments.map((seg, idx) => {
         const colors = getSeverityColor(seg.severity);
+        const isSelected = selectedRoute === 'fastest';
         return (
-          <Polyline
-            key={`inactive-flood-${idx}`}
-            positions={seg.coordinates.map((c) => [c[1], c[0]])}
-            pathOptions={{
-              color: colors.core,
-              weight: 4,
-              opacity: 0.5,
-              dashArray: '4, 4',
-            }}
-          />
-        );
-      })}
-
-      {/* Active Route Flooded Segments (Highlighted & Colored: Yellow -> Orange -> Red -> Prohibited Dark Red) */}
-      {activeFloodedSegments.map((seg, idx) => {
-        const colors = getSeverityColor(seg.severity);
-        return (
-          <React.Fragment key={`active-flood-${idx}`}>
-            {/* Outer high-contrast black/dark casing */}
+          <React.Fragment key={`fastest-flood-${idx}`}>
+            {/* Outer high-contrast black casing */}
             <Polyline
               positions={seg.coordinates.map((c) => [c[1], c[0]])}
               pathOptions={{
                 color: colors.casing,
-                weight: 10,
+                weight: isSelected ? 12 : 9,
                 opacity: 0.9,
               }}
             />
-            {/* Vivid Color Segment (Yellow -> Red) */}
+            {/* Vivid Color Segment (Yellow -> Orange -> Red -> Prohibited) */}
             <Polyline
               positions={seg.coordinates.map((c) => [c[1], c[0]])}
               pathOptions={{
                 color: colors.core,
-                weight: 6,
+                weight: isSelected ? 7 : 5,
                 opacity: 1,
               }}
             >
               <Popup>
-                <div className="p-1.5 text-xs max-w-[220px]">
+                <div className="p-1.5 text-xs max-w-[240px]">
                   <div className="font-bold flex items-center gap-1.5 text-red-600">
-                    <span>⚠️ Đoạn đường ngập lụt</span>
+                    <span>⚠️ Đoạn ngập (Tuyến nhanh nhất)</span>
                   </div>
                   {seg.streetName && (
-                    <div className="text-gray-800 font-semibold mt-1">
-                      Đường: {seg.streetName}
+                    <div className="text-gray-900 font-bold mt-1 text-sm">
+                      {seg.streetName}
+                    </div>
+                  )}
+                  <div className="mt-1 text-[11px] text-gray-700">
+                    Độ sâu dự báo: <strong className="text-red-700 font-extrabold text-xs">{seg.depthCm} cm</strong>
+                  </div>
+                  <div className="mt-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-800">
+                    {colors.label}
+                  </div>
+                  <div className="mt-1.5 text-[10px] text-emerald-700 font-semibold bg-emerald-50 p-1 rounded">
+                    🛡️ SafeRoute đã lập tuyến né ngập (màu xanh) để tránh điểm này!
+                  </div>
+                </div>
+              </Popup>
+            </Polyline>
+          </React.Fragment>
+        );
+      })}
+
+      {/* Flooded Segments on Safe Route (if impossible to bypass all floods) */}
+      {safeFloodedSegments.map((seg, idx) => {
+        const colors = getSeverityColor(seg.severity);
+        return (
+          <React.Fragment key={`safe-flood-${idx}`}>
+            <Polyline
+              positions={seg.coordinates.map((c) => [c[1], c[0]])}
+              pathOptions={{
+                color: colors.casing,
+                weight: 12,
+                opacity: 0.95,
+              }}
+            />
+            <Polyline
+              positions={seg.coordinates.map((c) => [c[1], c[0]])}
+              pathOptions={{
+                color: colors.core,
+                weight: 7,
+                opacity: 1,
+              }}
+            >
+              <Popup>
+                <div className="p-1.5 text-xs max-w-[240px]">
+                  <div className="font-bold flex items-center gap-1.5 text-red-600">
+                    <span>🚨 Cảnh báo ngập trên tuyến né</span>
+                  </div>
+                  {seg.streetName && (
+                    <div className="text-gray-900 font-bold mt-1 text-sm">
+                      {seg.streetName}
                     </div>
                   )}
                   <div className="mt-1 text-[11px] text-gray-700">

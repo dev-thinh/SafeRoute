@@ -77,3 +77,30 @@ export function isHazardActive(
   const threshold = VEHICLE_THRESHOLDS[vehicleType].avoid;
   return depthCm >= threshold;
 }
+
+/**
+ * Calculates flood depth for any FloodEvent, respecting its source type and temporal model.
+ */
+export function calculateEventDepth(event: FloodEvent, targetTime: Date): number {
+  if (event.sourceType === 'news_crawler' || event.sourceType === 'admin_manual') {
+    const t = targetTime.getTime();
+    const tStart = event.startTime.getTime();
+    const tEnd = event.endTime.getTime();
+    if (t >= tStart && t <= tEnd) {
+      return event.estimatedDepthCm;
+    }
+    const sameDay =
+      targetTime.getFullYear() === event.startTime.getFullYear() &&
+      targetTime.getMonth() === event.startTime.getMonth() &&
+      targetTime.getDate() === event.startTime.getDate();
+    if (sameDay) {
+      return event.estimatedDepthCm;
+    }
+    return 0;
+  }
+
+  if (event.cause === 'high_tide') {
+    return calculateTidalDepth(event, targetTime);
+  }
+  return calculateRainDepth(event, targetTime);
+}

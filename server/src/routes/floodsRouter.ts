@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { getActiveFloodEventsForTargetTime, inMemoryFloodEvents } from './routesRouter';
 import { inMemoryReports } from './reportsRouter';
-import { calculateTidalDepth, calculateRainDepth } from '../services/predictionEngine';
+import { calculateEventDepth } from '../services/predictionEngine';
 
 export const floodsRouter = Router();
 
@@ -11,7 +11,7 @@ floodsRouter.get('/active', (req, res) => {
   const combined = [...eventsForTime, ...inMemoryFloodEvents];
 
   const activeEvents = combined.map((e) => {
-    const depth = e.cause === 'high_tide' ? calculateTidalDepth(e, targetTime) : calculateRainDepth(e, targetTime);
+    const depth = calculateEventDepth(e, targetTime);
     return { ...e, current_depth_cm: Math.round(depth) };
   });
 
