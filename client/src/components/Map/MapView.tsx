@@ -185,6 +185,13 @@ export const MapView: React.FC<MapViewProps> = ({
   isPickingLocation,
 }) => {
   const defaultCenter: [number, number] = [10.7626, 106.6823];
+  const goongTilesKey = import.meta.env.VITE_GOONG_MAPTILES_KEY;
+  const tileUrl = goongTilesKey
+    ? `https://tiles.goong.io/assets/goong_map_web/{z}/{x}/{y}.png?api_key=${goongTilesKey}`
+    : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+  const tileAttribution = goongTilesKey
+    ? '&copy; <a href="https://goong.io/">Goong Map</a>'
+    : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
   return (
     <div className={`w-full h-full relative ${isPickingLocation ? 'cursor-crosshair' : ''}`}>
@@ -195,8 +202,8 @@ export const MapView: React.FC<MapViewProps> = ({
         zoomControl={false}
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution={tileAttribution}
+          url={tileUrl}
         />
 
         <MapNavigationController
