@@ -3,7 +3,7 @@ import * as cheerio from 'cheerio';
 import { extractFloodEventsWithGemini } from './geminiExtractor';
 import { geocodeStreet } from './geocodingService';
 import { inMemoryFloodEvents, saveFloodEvent } from '../db/floodsRepo';
-import { saveArticle } from '../db/newsRepo';
+import { saveArticle, getArticles } from '../db/newsRepo';
 import { FloodEvent } from '../types';
 
 export interface ScrapedArticleLocation {
@@ -202,6 +202,23 @@ export const STREET_INDICATORS = [
 ];
 
 /**
+ * Synchronizes in-memory crawledArticlesStore with persistent PostgreSQL news_articles.
+ * Ensures historical articles are never lost when server restarts.
+ */
+export async function syncArticlesFromDb(): Promise<void> {
+  try {
+    const dbArticles = await getArticles([]);
+    for (const a of dbArticles) {
+      if (!crawledArticlesStore.some((item) => item.url === a.url || item.title === a.title)) {
+        crawledArticlesStore.push(a);
+      }
+    }
+  } catch {
+    // Ignore if DB not yet connected
+  }
+}
+
+/**
  * Crawls RSS feeds and news sites for flood reports, parses them with Gemini AI,
  * and automatically injects new flood events into the active routing database.
  * Optimized for high-throughput with parallel RSS fetching and instant local geocoding.
@@ -212,6 +229,9 @@ export async function crawlLatestFloodNews(): Promise<{
   newlyDetectedFloods: number;
   articles: ScrapedArticle[];
 }> {
+  // Always synchronize existing database articles first
+  await syncArticlesFromDb();
+
   const rssSources = [
     { name: 'VnExpress' as const, url: 'https://vnexpress.net/rss/thoi-su.rss' },
     { name: 'Tuổi Trẻ' as const, url: 'https://tuoitre.vn/rss/thoi-su.rss' },
