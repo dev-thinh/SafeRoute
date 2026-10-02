@@ -95,9 +95,121 @@ export async function getAllQuadrantsPrecipitation(
   return Object.fromEntries(results) as Record<HcmcQuadrant, number>;
 }
 
+import { HCMC_VULNERABLE_CORRIDORS } from './vulnerableRoads';
+
+export interface QuadrantWeatherStatus {
+  id: HcmcQuadrant;
+  name: string;
+  lat: number;
+  lng: number;
+  precipitationMm: number;
+  alertLevel: 'safe' | 'warning' | 'danger';
+  alertText: string;
+}
+
+export interface HourlyForecastItem {
+  time: string;
+  precipitationMm: number;
+}
+
+export interface WeatherDashboardData {
+  quadrants: QuadrantWeatherStatus[];
+  hourlyTimeline: HourlyForecastItem[];
+  corridorsAtRisk: Array<{
+    id: string;
+    streetName: string;
+    district: string;
+    rainThresholdMm: number;
+    currentRainMm: number;
+    estimatedDepthCm: number;
+    coordinate: [number, number];
+    description: string;
+    isCurrentlyFlooded: boolean;
+  }>;
+  fetchedAt: string;
+}
+
+/**
+ * Aggregates complete weather forecast and flood vulnerability analytics for HCMC.
+ */
+export async function getWeatherDashboardData(targetDate: Date = new Date()): Promise<WeatherDashboardData> {
+  const rainByQuadrant = await getAllQuadrantsPrecipitation(targetDate);
+
+  const quadrants: QuadrantWeatherStatus[] = (['center', 'south', 'east', 'northwest'] as HcmcQuadrant[]).map((q) => {
+    const loc = HCMC_QUADRANTS[q];
+    const mm = rainByQuadrant[q] || 0;
+    let alertLevel: 'safe' | 'warning' | 'danger' = 'safe';
+    let alertText = 'Thời tiết ổn định, không ngập';
+
+    if (mm >= 35) {
+      alertLevel = 'danger';
+      alertText = 'Mưa rất to, nguy cơ ngập sâu';
+    } else if (mm >= 15) {
+      alertLevel = 'warning';
+      alertText = 'Mưa vừa, nguy cơ ngập cục bộ';
+    }
+
+    return {
+      id: q,
+      name: loc.name,
+      lat: loc.lat,
+      lng: loc.lng,
+      precipitationMm: mm,
+      alertLevel,
+      alertText,
+    };
+  });
+
+  // Extract next 12 hours from center quadrant cache
+  const cachedCenter = weatherCache.get('center');
+  const hourlyTimeline: HourlyForecastItem[] = [];
+  if (cachedCenter?.hourlyMap) {
+    const sortedKeys = Object.keys(cachedCenter.hourlyMap).sort();
+    const nowKey = targetDate.toISOString().slice(0, 13) + ':00';
+    const futureKeys = sortedKeys.filter((k) => k >= nowKey).slice(0, 12);
+    for (const k of futureKeys) {
+      hourlyTimeline.push({
+        time: k,
+        precipitationMm: cachedCenter.hourlyMap[k] || 0,
+      });
+    }
+  }
+
+  // Cross-reference with all calibrated vulnerable corridors
+  const corridorsAtRisk = HCMC_VULNERABLE_CORRIDORS.map((corridor) => {
+    let rainMm = rainByQuadrant[corridor.quadrant] || 0;
+    if (corridor.district === 'Bình Thạnh') {
+      rainMm = Math.max(rainByQuadrant.center || 0, rainByQuadrant.east || 0);
+    }
+    const isFlooded = rainMm >= corridor.rainThresholdMm;
+    const ratio = rainMm > 0 ? rainMm / corridor.rainThresholdMm : 0;
+    const estimatedDepth = isFlooded ? Math.min(75, Math.round(corridor.baseDepthCm * Math.sqrt(ratio))) : 0;
+
+    return {
+      id: corridor.id,
+      streetName: corridor.streetName,
+      district: corridor.district,
+      rainThresholdMm: corridor.rainThresholdMm,
+      currentRainMm: rainMm,
+      estimatedDepthCm: estimatedDepth,
+      coordinate: corridor.coordinate,
+      description: corridor.description,
+      isCurrentlyFlooded: isFlooded,
+    };
+  });
+
+  return {
+    quadrants,
+    hourlyTimeline,
+    corridorsAtRisk,
+    fetchedAt: new Date().toISOString(),
+  };
+}
+
 /**
  * Resets the cache (useful for testing).
  */
 export function clearWeatherCache(): void {
   weatherCache.clear();
 }
+

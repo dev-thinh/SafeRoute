@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { NavigateResponse } from '../types';
+import { NavigateResponse, WeatherDashboardData } from '../types';
 
 const api = axios.create({
   baseURL: '/api',
@@ -78,5 +78,8 @@ export const getNewsArticles = () =>
 
 export const triggerCrawlNow = () =>
   api.post('/news/crawl-now').then((r) => r.data);
+
+export const getWeatherData = (targetTime?: string): Promise<WeatherDashboardData> =>
+  api.get('/weather', { params: { target_time: targetTime } }).then((r) => r.data);
 
 

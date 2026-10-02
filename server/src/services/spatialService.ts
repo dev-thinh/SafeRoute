@@ -18,9 +18,9 @@ export function buildHazardMultiPolygonFromEvents(
       : calculateRainDepth(event, targetTime);
 
     if (isHazardActive(depth, event.confidenceScore, vehicleType)) {
-      // Create a 50m buffer around geometry
+      // Create an 80m buffer around geometry to match routingEngine
       const pt = turf.point(event.geometry.coordinates);
-      const buffered = turf.buffer(pt, 0.05, { units: 'kilometers' });
+      const buffered = turf.buffer(pt, 0.08, { units: 'kilometers' });
       if (buffered && buffered.geometry.type === 'Polygon') {
         activePolygons.push(buffered as GeoJSON.Feature<GeoJSON.Polygon>);
       }

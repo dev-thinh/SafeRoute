@@ -6,6 +6,7 @@ import { reportsRouter } from './routes/reportsRouter';
 import { adminRouter } from './routes/adminRouter';
 import { geocodingRouter } from './routes/geocodingRouter';
 import { newsRouter } from './routes/newsRouter';
+import { weatherRouter } from './routes/weatherRouter';
 
 export function createApp() {
   const app = express();
@@ -22,6 +23,7 @@ export function createApp() {
   app.use('/api/admin', adminRouter);
   app.use('/api/geocoding', geocodingRouter);
   app.use('/api/news', newsRouter);
+  app.use('/api/weather', weatherRouter);
 
   return app;
 }

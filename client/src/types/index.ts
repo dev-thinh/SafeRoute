@@ -75,3 +75,38 @@ export interface ScrapedArticle {
   extractedLocations: ScrapedArticleLocation[];
   contentSnippet: string;
 }
+
+export interface QuadrantWeatherStatus {
+  id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  precipitationMm: number;
+  alertLevel: 'safe' | 'warning' | 'danger';
+  alertText: string;
+}
+
+export interface HourlyForecastItem {
+  time: string;
+  precipitationMm: number;
+}
+
+export interface CorridorRiskStatus {
+  id: string;
+  streetName: string;
+  district: string;
+  rainThresholdMm: number;
+  currentRainMm: number;
+  estimatedDepthCm: number;
+  coordinate: [number, number]; // [lng, lat]
+  description: string;
+  isCurrentlyFlooded: boolean;
+}
+
+export interface WeatherDashboardData {
+  quadrants: QuadrantWeatherStatus[];
+  hourlyTimeline: HourlyForecastItem[];
+  corridorsAtRisk: CorridorRiskStatus[];
+  fetchedAt: string;
+}
+

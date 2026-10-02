@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgis/postgis:16-3.4
+    image: pgrouting/pgrouting-extra:16-3.5-3.8.0
     container_name: saferoute-postgis
     restart: always
     environment:

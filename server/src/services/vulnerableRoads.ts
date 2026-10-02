@@ -169,6 +169,83 @@ export const HCMC_VULNERABLE_CORRIDORS: VulnerableCorridor[] = [
     description: 'Đoạn nối An Dương Vương ra đại lộ Võ Văn Kiệt',
   },
   {
+    id: 'corridor-nguyen-gia-tri',
+    streetName: 'Nguyễn Gia Trí',
+    district: 'Bình Thạnh',
+    city: 'TP. Hồ Chí Minh',
+    quadrant: 'east',
+    rainThresholdMm: 20,
+    baseDepthCm: 60,
+    coordinate: [106.7145, 10.8035],
+    description: 'Vùng trũng rạch Văn Thánh cứ mưa to là ngập sâu nửa thân người',
+  },
+  {
+    id: 'corridor-dinh-bo-linh',
+    streetName: 'Đinh Bộ Lĩnh',
+    district: 'Bình Thạnh',
+    city: 'TP. Hồ Chí Minh',
+    quadrant: 'center',
+    rainThresholdMm: 25,
+    baseDepthCm: 45,
+    coordinate: [106.7090, 10.8070],
+    description: 'Đoạn từ cầu Đinh Bộ Lĩnh đến đường Bạch Đằng thường xuyên ngập',
+  },
+  {
+    id: 'corridor-bach-dang',
+    streetName: 'Bạch Đằng',
+    district: 'Bình Thạnh',
+    city: 'TP. Hồ Chí Minh',
+    quadrant: 'center',
+    rainThresholdMm: 25,
+    baseDepthCm: 40,
+    coordinate: [106.7020, 10.8020],
+    description: 'Khu vực chợ Bà Chiểu đến ngã tư Hàng Xanh',
+  },
+  {
+    id: 'corridor-kha-van-can',
+    streetName: 'Kha Vạn Cân',
+    district: 'TP. Thủ Đức',
+    city: 'TP. Hồ Chí Minh',
+    quadrant: 'east',
+    rainThresholdMm: 25,
+    baseDepthCm: 45,
+    coordinate: [106.7450, 10.8520],
+    description: 'Đoạn chân cầu vượt Linh Xuân và đường sắt',
+  },
+  {
+    id: 'corridor-do-xuan-hop',
+    streetName: 'Đỗ Xuân Hợp',
+    district: 'TP. Thủ Đức',
+    city: 'TP. Hồ Chí Minh',
+    quadrant: 'east',
+    rainThresholdMm: 25,
+    baseDepthCm: 50,
+    coordinate: [106.7780, 10.8120],
+    description: 'Khu vực phường Phước Long B trũng thấp kinh niên',
+  },
+  {
+    id: 'corridor-pham-van-chieu',
+    streetName: 'Phạm Văn Chiêu',
+    district: 'Gò Vấp',
+    city: 'TP. Hồ Chí Minh',
+    quadrant: 'northwest',
+    rainThresholdMm: 25,
+    baseDepthCm: 45,
+    coordinate: [106.6500, 10.8530],
+    description: 'Đoạn từ Lê Văn Thọ đến Cây Trâm ngập kinh niên',
+  },
+  {
+    id: 'corridor-le-van-tho',
+    streetName: 'Lê Văn Thọ',
+    district: 'Gò Vấp',
+    city: 'TP. Hồ Chí Minh',
+    quadrant: 'northwest',
+    rainThresholdMm: 25,
+    baseDepthCm: 40,
+    coordinate: [106.6580, 10.8460],
+    description: 'Khu vực công viên Làng Hoa đến chợ Xóm Mới',
+  },
+  {
     id: 'corridor-an-duong-vuong',
     streetName: 'An Dương Vương',
     district: 'Quận 8',
@@ -191,7 +268,11 @@ export function getRainInducedFloodEvents(
   const events: FloodEvent[] = [];
 
   for (const corridor of HCMC_VULNERABLE_CORRIDORS) {
-    const quadrantRain = rainByQuadrant[corridor.quadrant] || 0;
+    let quadrantRain = rainByQuadrant[corridor.quadrant] || 0;
+    // Binh Thanh is at border of Center and East; evaluate the higher rain rate
+    if (corridor.district === 'Bình Thạnh') {
+      quadrantRain = Math.max(rainByQuadrant.center || 0, rainByQuadrant.east || 0);
+    }
 
     // Trigger flood obstacle if quadrant precipitation meets or exceeds corridor threshold
     if (quadrantRain >= corridor.rainThresholdMm) {

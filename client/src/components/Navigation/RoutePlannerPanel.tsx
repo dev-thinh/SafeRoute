@@ -8,11 +8,13 @@ import {
    Crosshair,
    Map,
    Newspaper,
+   CloudRain,
 } from 'lucide-react';
 import { VehicleSelector } from './VehicleSelector';
 import { TimeSelector } from './TimeSelector';
 import { RouteComparisonCard } from './RouteComparisonCard';
 import { NewsFeedTab } from '../News/NewsFeedTab';
+import { WeatherTab } from '../Weather/WeatherTab';
 import {
    navigateRoute,
    searchLocation,
@@ -55,7 +57,7 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
    onRefreshFloods,
    onSelectLocation,
 }) => {
-   const [mainTab, setMainTab] = useState<'routes' | 'news'>('routes');
+   const [mainTab, setMainTab] = useState<'routes' | 'news' | 'weather'>('routes');
    const [vehicle, setVehicle] = useState<'motorbike' | 'car'>('motorbike');
    const [targetTime, setTargetTime] = useState<string>(() =>
       new Date().toISOString(),
@@ -182,31 +184,43 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
             </div>
          </div>
 
-         {/* Navigation Tab Bar: Lộ Trình vs Tin Tức Ngập Lụt */}
-         <div className="flex items-center gap-1.5 p-1 bg-gray-100/90 rounded-xl border border-gray-200/80">
+         {/* Navigation Tab Bar: Lộ Trình vs Tin Tức vs Thời Tiết */}
+         <div className="flex items-center gap-1 p-1 bg-gray-100/90 rounded-xl border border-gray-200/80">
             <button
                type="button"
                onClick={() => setMainTab('routes')}
-               className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-bold transition-all ${
+               className={`flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-all ${
                   mainTab === 'routes'
                      ? 'bg-white text-blue-700 shadow-sm'
                      : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
                }`}
             >
                <Navigation className="w-3.5 h-3.5" />
-               Lộ trình né ngập
+               Lộ trình
             </button>
             <button
                type="button"
                onClick={() => setMainTab('news')}
-               className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-bold transition-all ${
+               className={`flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-all ${
                   mainTab === 'news'
                      ? 'bg-white text-indigo-700 shadow-sm'
                      : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
                }`}
             >
                <Newspaper className="w-3.5 h-3.5" />
-               Tin tức ngập lụt
+               Tin tức
+            </button>
+            <button
+               type="button"
+               onClick={() => setMainTab('weather')}
+               className={`flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-all ${
+                  mainTab === 'weather'
+                     ? 'bg-white text-sky-700 shadow-sm'
+                     : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+               }`}
+            >
+               <CloudRain className="w-3.5 h-3.5" />
+               Thời tiết
             </button>
          </div>
 
@@ -215,6 +229,8 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                onSelectLocation={onSelectLocation}
                onRefreshFloods={onRefreshFloods}
             />
+         ) : mainTab === 'weather' ? (
+            <WeatherTab onSelectLocation={onSelectLocation} />
          ) : (
             <>
          {/* Banner when pick-on-map is active */}

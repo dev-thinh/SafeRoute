@@ -38,11 +38,14 @@ export const FloodLayer: React.FC<FloodLayerProps> = ({ events }) => {
           event.geometry.coordinates[0],
         ];
 
+        // Exactly synchronized with backend FLOOD_HAZARD_RADIUS_METERS = 80m
+        const floodRadius = isActive ? 80 : 40;
+
         return (
           <Circle
             key={event.id}
             center={coords}
-            radius={250}
+            radius={floodRadius}
             pathOptions={{
               color,
               fillColor: color,

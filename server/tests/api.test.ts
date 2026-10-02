@@ -41,4 +41,14 @@ describe('SafeRoute REST API', () => {
     expect(res.body.report.id).toBeDefined();
     expect(res.body.report.depthLevel).toBe('wheel');
   });
+
+  it('GET /api/weather should return dashboard weather data and corridors at risk', async () => {
+    const res = await request(app).get('/api/weather');
+    expect(res.status).toBe(200);
+    expect(res.body.quadrants).toBeInstanceOf(Array);
+    expect(res.body.quadrants.length).toBe(4);
+    expect(res.body.quadrants.find((q: any) => q.id === 'center')).toBeDefined();
+    expect(res.body.hourlyTimeline).toBeInstanceOf(Array);
+    expect(res.body.corridorsAtRisk).toBeInstanceOf(Array);
+  }, 10000);
 });
