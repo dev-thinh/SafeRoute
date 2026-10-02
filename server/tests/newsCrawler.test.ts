@@ -2,6 +2,9 @@ import { describe, it, expect } from 'vitest';
 import {
   getActiveNewsFloodEvents,
   crawledArticlesStore,
+  HCMC_GEO_KEYWORDS,
+  EXCLUSION_KEYWORDS,
+  STREET_INDICATORS,
 } from '../src/services/newsCrawler';
 import { FloodEvent } from '../src/types';
 
@@ -70,4 +73,38 @@ describe('Smart News Crawler & Deduplication', () => {
     expect(activeEvents.some((e) => e.id === 'expired-1')).toBe(false); // Expired news obstacle filtered
     expect(activeEvents.some((e) => e.id === 'tide-1')).toBe(true); // Non-news untouched by news decay
   });
+
+  it('should identify valid HCMC geographic references and reject non-HCMC references', () => {
+    const validHcmc = 'Mưa lớn ngập nhiều nơi tại TP.HCM chiều tối';
+    const nonHcmc = 'Mưa lớn tại miền Bắc và lũ quét ở Đồng Nai';
+
+    const isHcmcValid = HCMC_GEO_KEYWORDS.some((kw: string) => validHcmc.toLowerCase().includes(kw));
+    const isNonHcmcValid = HCMC_GEO_KEYWORDS.some((kw: string) => nonHcmc.toLowerCase().includes(kw));
+
+    expect(isHcmcValid).toBe(true);
+    expect(isNonHcmcValid).toBe(false);
+  });
+
+  it('should exclude airport, flight, and conference topics via blacklist', () => {
+    const flightTitle = 'Mưa lớn khiến hàng loạt chuyến bay không thể đáp Tân Sơn Nhất';
+    const normalTitle = 'Đường Phan Huy Ích ngập sâu trong mưa lớn';
+
+    const isFlightExcluded = EXCLUSION_KEYWORDS.some((kw: string) => flightTitle.toLowerCase().includes(kw));
+    const isNormalExcluded = EXCLUSION_KEYWORDS.some((kw: string) => normalTitle.toLowerCase().includes(kw));
+
+    expect(isFlightExcluded).toBe(true);
+    expect(isNormalExcluded).toBe(false);
+  });
+
+  it('should verify street indicators exist before invoking AI extraction', () => {
+    const textWithStreet = 'Ghi nhận tại đường Phan Huy Ích nước dâng cao hơn 50cm';
+    const textGeneral = 'Tình hình thời tiết diễn biến phức tạp, lượng mưa đo được rất cao';
+
+    const hasStreet1 = STREET_INDICATORS.some((ind: string) => textWithStreet.toLowerCase().includes(ind));
+    const hasStreet2 = STREET_INDICATORS.some((ind: string) => textGeneral.toLowerCase().includes(ind));
+
+    expect(hasStreet1).toBe(true);
+    expect(hasStreet2).toBe(false);
+  });
 });
+

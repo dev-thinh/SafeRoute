@@ -179,6 +179,28 @@ export async function fetchArticleContent(url: string): Promise<{ title: string;
   };
 }
 
+// Layer 1 Filter: Geographic whitelist for HCMC
+export const HCMC_GEO_KEYWORDS = [
+  'tp.hcm', 'tphcm', 'tp hcm', 'tp. hcm', 'sài gòn', 'sai gon', 'thủ đức', 'thu duc',
+  'quận 1', 'quận 2', 'quận 3', 'quận 4', 'quận 5', 'quận 6', 'quận 7', 'quận 8',
+  'quận 9', 'quận 10', 'quận 11', 'quận 12', 'gò vấp', 'go vap', 'bình thạnh', 'binh thanh',
+  'tân bình', 'tan binh', 'tân phú', 'tan phu', 'phú nhuận', 'phu nhuan', 'bình tân', 'binh tan',
+  'nhà bè', 'nha be', 'hóc môn', 'hoc mon', 'củ chi', 'cu chi', 'bình chánh', 'binh chanh', 'cần giờ'
+];
+
+// Layer 1 Filter: Exclusion blacklist for non-road/other-province topics
+export const EXCLUSION_KEYWORDS = [
+  'chuyến bay', 'máy bay', 'hàng không', 'sân bay', 'tân sơn nhất',
+  'hoãn chuyến', 'hội thảo', 'hội nghị', 'bài toán', 'kiến nghị cử tri', 'dự án luật',
+  'miền bắc', 'bắc bộ', 'miền trung', 'trung bộ', 'đồng nai',
+  'bình dương', 'hà nội', 'đà nẵng'
+];
+
+// Layer 2 Filter: Fast street indicators
+export const STREET_INDICATORS = [
+  'đường ', 'tuyến đường ', 'phố ', 'ngã tư ', 'ngã ba ', 'giao lộ ', 'cầu ', 'hẻm ', 'bến '
+];
+
 /**
  * Crawls RSS feeds and news sites for flood reports, parses them with Gemini AI,
  * and automatically injects new flood events into the active routing database.
@@ -217,12 +239,17 @@ export async function crawlLatestFloodNews(): Promise<{
 
         const lowerText = `${itemTitle} ${itemDesc}`.toLowerCase();
         const matchesKeyword = keywords.some((kw) => lowerText.includes(kw));
-        if (matchesKeyword && itemLink) {
+
+        // Layer 1 Filter: Must mention HCMC and must NOT belong to excluded non-road/other-province topics
+        const isHcmc = HCMC_GEO_KEYWORDS.some((geo) => lowerText.includes(geo));
+        const isExcluded = EXCLUSION_KEYWORDS.some((ex) => lowerText.includes(ex));
+
+        if (matchesKeyword && isHcmc && !isExcluded && itemLink) {
           items.push({ title: itemTitle, link: itemLink, pubDate: itemDate, desc: itemDesc });
         }
       });
 
-      // Process up to 5 newest articles from each feed
+      // Process up to 5 newest filtered articles from each feed
       for (const item of items.slice(0, 5)) {
         // Skip if already in store
         const existing = crawledArticlesStore.find((a) => a.url === item.link || a.title === item.title);
@@ -232,22 +259,42 @@ export async function crawlLatestFloodNews(): Promise<{
           // Fetch full text
           const article = await fetchArticleContent(item.link);
           const fullText = `${article.title}\n${article.content}`;
+
+          // Layer 2 Filter: Fast check for street/intersection indicator
+          const lowerFull = fullText.toLowerCase();
+          const hasStreet = STREET_INDICATORS.some((ind) => lowerFull.includes(ind));
+          if (!hasStreet) {
+            continue; // Skip calling AI if article does not mention any street or road
+          }
+
+          // Gentle delay to prevent Gemini API 503/429 concurrency spikes
+          await new Promise((r) => setTimeout(r, 1000));
+
           const aiResult = await extractFloodEventsWithGemini(fullText);
+
+          // Layer 3 Filter: Post-AI validation (must have valid summary and locations)
+          if (
+            !aiResult.locations ||
+            aiResult.locations.length === 0 ||
+            aiResult.summary.includes('Không thể phân tích')
+          ) {
+            continue;
+          }
 
           const extractedLocs: ScrapedArticleLocation[] = [];
 
           for (const loc of aiResult.locations) {
             const coord = await geocodeStreet(loc.street_name, loc.district);
-            extractedLocs.push({
-              streetName: loc.street_name,
-              district: loc.district,
-              depthCm: loc.estimated_depth_cm,
-              cause: aiResult.cause,
-              lat: coord?.lat,
-              lng: coord?.lng,
-            });
-
             if (coord) {
+              extractedLocs.push({
+                streetName: loc.street_name,
+                district: loc.district,
+                depthCm: loc.estimated_depth_cm,
+                cause: aiResult.cause,
+                lat: coord.lat,
+                lng: coord.lng,
+              });
+
               const pubTime = item.pubDate ? new Date(item.pubDate) : new Date();
               const startTime = loc.start_time ? new Date(loc.start_time) : new Date(pubTime.getTime() - 30 * 60 * 1000);
               const peakTime = loc.peak_time ? new Date(loc.peak_time) : pubTime;
@@ -290,6 +337,11 @@ export async function crawlLatestFloodNews(): Promise<{
                 saveFloodEvent(floodEv).catch(() => {});
               }
             }
+          }
+
+          // Only store article if at least 1 verified street location was geocoded
+          if (extractedLocs.length === 0) {
+            continue;
           }
 
           const newScrapedItem: ScrapedArticle = {
