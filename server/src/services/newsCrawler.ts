@@ -4,6 +4,7 @@ import { extractFloodEventsWithGemini } from './geminiExtractor';
 import { geocodeStreet } from './geocodingService';
 import { inMemoryFloodEvents, saveFloodEvent } from '../db/floodsRepo';
 import { saveArticle } from '../db/newsRepo';
+import { FloodEvent } from '../types';
 
 export interface ScrapedArticleLocation {
   streetName: string;
@@ -221,8 +222,8 @@ export async function crawlLatestFloodNews(): Promise<{
         }
       });
 
-      // Process up to 2 newest articles from each feed
-      for (const item of items.slice(0, 2)) {
+      // Process up to 5 newest articles from each feed
+      for (const item of items.slice(0, 5)) {
         // Skip if already in store
         const existing = crawledArticlesStore.find((a) => a.url === item.link || a.title === item.title);
         if (existing) continue;
@@ -247,24 +248,47 @@ export async function crawlLatestFloodNews(): Promise<{
             });
 
             if (coord) {
-              newFloodsCount++;
-              const floodEv = {
-                id: `crawled-${Date.now()}-${Math.random()}`,
-                title: `${article.title} • ${src.name}`,
-                sourceType: 'news_crawler' as const,
-                cause: aiResult.cause,
-                streetName: loc.street_name,
-                district: loc.district,
-                city: loc.city || 'TP. Hồ Chí Minh',
-                startTime: new Date(loc.start_time),
-                peakTime: new Date(loc.peak_time),
-                endTime: new Date(loc.end_time),
-                estimatedDepthCm: loc.estimated_depth_cm,
-                confidenceScore: loc.confidence || 0.9,
-                geometry: { type: 'Point', coordinates: [coord.lng, coord.lat] },
-              };
-              inMemoryFloodEvents.unshift(floodEv);
-              saveFloodEvent(floodEv).catch(() => {});
+              const pubTime = item.pubDate ? new Date(item.pubDate) : new Date();
+              const startTime = loc.start_time ? new Date(loc.start_time) : new Date(pubTime.getTime() - 30 * 60 * 1000);
+              const peakTime = loc.peak_time ? new Date(loc.peak_time) : pubTime;
+              // 3-hour active navigation obstacle window
+              const endTime = loc.end_time ? new Date(loc.end_time) : new Date(pubTime.getTime() + 3 * 3600 * 1000);
+
+              // Deduplication & clustering: check if street & district is already recorded
+              const existingIdx = inMemoryFloodEvents.findIndex(
+                (e) =>
+                  e.streetName.toLowerCase().trim() === loc.street_name.toLowerCase().trim() &&
+                  e.district.toLowerCase().trim() === loc.district.toLowerCase().trim()
+              );
+
+              if (existingIdx !== -1) {
+                // Merge into existing cluster: take max depth, boost confidence
+                const existing = inMemoryFloodEvents[existingIdx];
+                existing.estimatedDepthCm = Math.max(existing.estimatedDepthCm, loc.estimated_depth_cm || 30);
+                existing.confidenceScore = Math.min(1.0, existing.confidenceScore + 0.1);
+                if (endTime > existing.endTime) {
+                  existing.endTime = endTime;
+                }
+              } else {
+                newFloodsCount++;
+                const floodEv = {
+                  id: `crawled-${Date.now()}-${Math.random()}`,
+                  title: `${article.title} • ${src.name}`,
+                  sourceType: 'news_crawler' as const,
+                  cause: aiResult.cause,
+                  streetName: loc.street_name,
+                  district: loc.district,
+                  city: loc.city || 'TP. Hồ Chí Minh',
+                  startTime,
+                  peakTime,
+                  endTime,
+                  estimatedDepthCm: loc.estimated_depth_cm || 35,
+                  confidenceScore: loc.confidence || 0.9,
+                  geometry: { type: 'Point' as const, coordinates: [coord.lng, coord.lat] },
+                };
+                inMemoryFloodEvents.unshift(floodEv);
+                saveFloodEvent(floodEv).catch(() => {});
+              }
             }
           }
 
@@ -300,3 +324,21 @@ export async function crawlLatestFloodNews(): Promise<{
     articles: crawledArticlesStore,
   };
 }
+
+/**
+ * Filters flood events to only those actively causing road obstacles at targetDate.
+ * Articles older than their active obstacle window (3 hours) will not block roads.
+ */
+export function getActiveNewsFloodEvents(
+  events: FloodEvent[],
+  targetDate: Date = new Date()
+): FloodEvent[] {
+  const targetMs = targetDate.getTime();
+  return events.filter((e) => {
+    if (e.sourceType !== 'news_crawler') return true;
+    const startMs = e.startTime.getTime();
+    const endMs = e.endTime.getTime();
+    return targetMs >= startMs && targetMs <= endMs;
+  });
+}
+
