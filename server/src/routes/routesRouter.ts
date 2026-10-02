@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { navigateSafeRoute } from '../services/routingEngine';
-import { findPgRoutingSafeRoute } from '../services/pgRoutingService';
 import { VehicleType, FloodEvent } from '../types';
 import { inMemoryReports } from './reportsRouter';
 
@@ -254,18 +253,7 @@ routesRouter.post('/navigate', async (req, res) => {
       ...crowdsourcedEvents,
     ];
 
-    // 1. Prioritize native pgRouting engine on local PostGIS (100% natural Dijkstra flood avoidance)
-    let result = null;
-    try {
-      result = await findPgRoutingSafeRoute(origin, destination, targetDate, vehicle, combinedEvents);
-    } catch (pgErr) {
-      console.warn('pgRouting query failed, falling back to external engine:', pgErr);
-    }
-
-    // 2. If outside Saigon OSM network or disconnected graph, fall back to Goong API engine
-    if (!result) {
-      result = await navigateSafeRoute(origin, destination, targetDate, vehicle, combinedEvents);
-    }
+    const result = await navigateSafeRoute(origin, destination, targetDate, vehicle, combinedEvents);
 
     return res.json({
       safe_route: result.safeRoute,

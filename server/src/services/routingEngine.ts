@@ -23,14 +23,6 @@ export interface RouteResult {
 }
 
 /**
- * Standard spatial buffer radius for urban flood hazards.
- * 80 meters radius covers 160m along the flooded roadway dip/trough,
- * while preventing spillover onto dry parallel streets.
- */
-export const FLOOD_HAZARD_RADIUS_METERS = 80;
-export const FLOOD_HAZARD_RADIUS_KM = 0.08;
-
-/**
  * Calculates realistic travel duration in urban Vietnam.
  * Motorbikes: ~32 km/h (8.89 m/s) navigating traffic and filtering through lanes.
  * Cars: ~20 km/h (5.56 m/s) due to urban congestion, traffic light phases, and lane restrictions.
@@ -42,9 +34,9 @@ export function calculateVehicleDuration(distanceMeters: number, vehicleType: Ve
 
 /**
  * Detects whether an OSRM route contains a dead-end spur, U-turn, or cul-de-sac reversal.
- * Returns true if the route turns into a dead end, visits an impassable alley for cars, or backtracks.
+ * Returns true if the route turns into a dead end, visits an alley, or backtracks.
  */
-export function isRouteInvalidSpur(route: any, vehicleType: VehicleType = 'car'): boolean {
+export function isRouteInvalidSpur(route: any): boolean {
   if (!route || !route.legs) return true;
 
   // 1. Explicit U-turn modifier in any step maneuver
@@ -71,30 +63,27 @@ export function isRouteInvalidSpur(route: any, vehicleType: VehicleType = 'car')
       const arriveRoad = (leg0.steps[leg0.steps.length - 2]?.name || '').toLowerCase();
       const departRoad = (leg1.steps[1]?.name || leg1.steps[0]?.name || '').toLowerCase();
 
-      // Only reject narrow residential alleys for cars
-      // Motorbikes in Vietnam routinely and safely navigate through alleys
-      if (vehicleType === 'car') {
-        if (
-          arriveRoad.startsWith('hẻm') ||
-          departRoad.startsWith('hẻm') ||
-          arriveRoad.startsWith('ngõ') ||
-          departRoad.startsWith('ngõ') ||
-          arriveRoad.startsWith('kiệt') ||
-          departRoad.startsWith('kiệt') ||
-          arriveRoad.startsWith('ngách') ||
-          departRoad.startsWith('ngách')
-        ) {
-          return true;
-        }
+      // Reject routes entering narrow residential alleys (Hẻm / Ngõ / Kiệt / Ngách)
+      if (
+        arriveRoad.startsWith('hẻm') ||
+        departRoad.startsWith('hẻm') ||
+        arriveRoad.startsWith('ngõ') ||
+        departRoad.startsWith('ngõ') ||
+        arriveRoad.startsWith('kiệt') ||
+        departRoad.startsWith('kiệt') ||
+        arriveRoad.startsWith('ngách') ||
+        departRoad.startsWith('ngách')
+      ) {
+        return true;
       }
 
-      // Check turnaround angle (> 140° turnaround at waypoint indicating backtracking)
+      // Check turnaround angle (> 120° turnaround at waypoint)
       const bIn = lastStep0.maneuver.bearing_before;
       const bOut = firstStep1.maneuver.bearing_after;
       if (bIn !== undefined && bOut !== undefined) {
         let diff = Math.abs(bOut - bIn);
         if (diff > 180) diff = 360 - diff;
-        if (diff > 140) {
+        if (diff > 120) {
           return true; // U-turn / dead-end reversal
         }
       }
@@ -187,7 +176,7 @@ export function extractRouteFloodedSegments(
     if (depth < 10) continue; // Minimal water, not hazardous
 
     const eventPt = turf.point(event.geometry.coordinates);
-    const hazardBuf = turf.buffer(eventPt, FLOOD_HAZARD_RADIUS_KM, { units: 'kilometers' });
+    const hazardBuf = turf.buffer(eventPt, 0.25, { units: 'kilometers' });
     if (!hazardBuf) continue;
 
     for (let i = 0; i < lineCoords.length - 1; i++) {
@@ -267,137 +256,6 @@ export function generateDetourWaypoints(
 }
 
 /**
- * Decodes Google / Mapbox / Goong encoded polyline into [lng, lat] GeoJSON coordinates.
- */
-export function decodePolyline(str: string): [number, number][] {
-  let index = 0, lat = 0, lng = 0;
-  const coordinates: [number, number][] = [];
-  while (index < str.length) {
-    let b, shift = 0, result = 0;
-    do {
-      b = str.charCodeAt(index++) - 63;
-      result |= (b & 0x1f) << shift;
-      shift += 5;
-    } while (b >= 0x20);
-    const dlat = (result & 1) ? ~(result >> 1) : (result >> 1);
-    lat += dlat;
-
-    shift = 0;
-    result = 0;
-    do {
-      b = str.charCodeAt(index++) - 63;
-      result |= (b & 0x1f) << shift;
-      shift += 5;
-    } while (b >= 0x20);
-    const dlng = (result & 1) ? ~(result >> 1) : (result >> 1);
-    lng += dlng;
-
-    coordinates.push([lng / 1e5, lat / 1e5]);
-  }
-  return coordinates;
-}
-
-/**
- * Calls Goong Direction API tailored for Vietnam road & alley networks.
- * Directly supports motorbike (bike) and car profiles without snapping across parallel walls.
- */
-export async function fetchGoongRoute(
-  coordinates: Coordinate[],
-  vehicleType: VehicleType = 'motorbike'
-): Promise<RouteResult[]> {
-  if (!ENV.GOONG_API_KEY || coordinates.length < 2) return [];
-
-  const origin = `${coordinates[0].lat},${coordinates[0].lng}`;
-  const destination = `${coordinates[coordinates.length - 1].lat},${coordinates[coordinates.length - 1].lng}`;
-  const vehicle = vehicleType === 'motorbike' ? 'bike' : 'car';
-
-  let waypointsParam = '';
-  if (coordinates.length > 2) {
-    const intermediate = coordinates.slice(1, -1).map((c) => `${c.lat},${c.lng}`).join('|');
-    waypointsParam = `&waypoints=${intermediate}`;
-  }
-
-  try {
-    const url = `https://rsapi.goong.io/Direction?origin=${origin}&destination=${destination}${waypointsParam}&vehicle=${vehicle}&alternatives=true&api_key=${ENV.GOONG_API_KEY}`;
-    const response = await axios.get(url, { timeout: 5000 });
-    const routes = response.data?.routes;
-    if (!routes || routes.length === 0) return [];
-
-    return routes
-      .map((r: any) => {
-        const coords = decodePolyline(r.overview_polyline?.points || '');
-        const distMeters = r.legs?.reduce((sum: number, leg: any) => sum + (leg.distance?.value || 0), 0) || 5000;
-        const durSeconds = calculateVehicleDuration(distMeters, vehicleType);
-
-        return {
-          distanceMeters: distMeters,
-          durationSeconds: durSeconds,
-          isFlooded: false,
-          maxFloodDepthCm: 0,
-          floodedDistanceMeters: 0,
-          geometry: {
-            type: 'LineString',
-            coordinates: coords,
-          } as GeoJSON.LineString,
-        };
-      })
-      .filter((r: RouteResult) => r.geometry.coordinates.length > 1);
-  } catch (err: any) {
-    console.warn('Goong Direction error, falling back to OSRM:', err.message);
-    return [];
-  }
-}
-
-/**
- * Calls Goong Direction for 3 coordinates (origin -> waypoint -> destination)
- * by combining Leg 1 and Leg 2, because Goong Direction API does not support intermediate waypoints in a single query.
- */
-export async function fetchGoongMultiLegRoute(
-  coordinates: Coordinate[],
-  vehicleType: VehicleType = 'motorbike'
-): Promise<RouteResult[]> {
-  if (!ENV.GOONG_API_KEY || coordinates.length !== 3) return [];
-  const vehicle = vehicleType === 'motorbike' ? 'bike' : 'car';
-  try {
-    const [res1, res2] = await Promise.all([
-      axios.get(
-        `https://rsapi.goong.io/Direction?origin=${coordinates[0].lat},${coordinates[0].lng}&destination=${coordinates[1].lat},${coordinates[1].lng}&vehicle=${vehicle}&api_key=${ENV.GOONG_API_KEY}`,
-        { timeout: 4000 }
-      ),
-      axios.get(
-        `https://rsapi.goong.io/Direction?origin=${coordinates[1].lat},${coordinates[1].lng}&destination=${coordinates[2].lat},${coordinates[2].lng}&vehicle=${vehicle}&api_key=${ENV.GOONG_API_KEY}`,
-        { timeout: 4000 }
-      ),
-    ]);
-
-    const r1 = res1.data?.routes?.[0];
-    const r2 = res2.data?.routes?.[0];
-    if (!r1 || !r2) return [];
-
-    const coords1 = decodePolyline(r1.overview_polyline?.points || '');
-    const coords2 = decodePolyline(r2.overview_polyline?.points || '');
-    const combinedCoords = [...coords1, ...coords2];
-    const totalDist = (r1.legs?.[0]?.distance?.value || 0) + (r2.legs?.[0]?.distance?.value || 0);
-
-    return [
-      {
-        distanceMeters: totalDist,
-        durationSeconds: calculateVehicleDuration(totalDist, vehicleType),
-        isFlooded: false,
-        maxFloodDepthCm: 0,
-        floodedDistanceMeters: 0,
-        geometry: {
-          type: 'LineString',
-          coordinates: combinedCoords,
-        },
-      },
-    ];
-  } catch (err: any) {
-    return [];
-  }
-}
-
-/**
  * Calls OSRM API to fetch directions between coordinates with vehicle-specific speed calculation,
  * filtering out any routes that contain dead-end spurs or U-turn reversals.
  */
@@ -415,7 +273,7 @@ export async function fetchOsrmRoute(
     }
 
     const validRoutes = response.data.routes
-      .filter((r: any) => !isRouteInvalidSpur(r, vehicleType))
+      .filter((r: any) => !isRouteInvalidSpur(r))
       .map((r: any) => ({
         distanceMeters: Math.round(r.distance),
         durationSeconds: calculateVehicleDuration(r.distance, vehicleType),
@@ -446,140 +304,26 @@ export async function fetchOsrmRoute(
 
     return [];
   } catch (error) {
-    // If routing failed on raw alley points, snap origin and destination to nearest road network entry
-    if (coordinates.length === 2) {
-      try {
-        const [snapO, snapD] = await Promise.all([
-          axios.get(`${ENV.OSRM_URL}/nearest/v1/driving/${coordinates[0].lng},${coordinates[0].lat}?number=1`, { timeout: 3000 }),
-          axios.get(`${ENV.OSRM_URL}/nearest/v1/driving/${coordinates[1].lng},${coordinates[1].lat}?number=1`, { timeout: 3000 }),
-        ]);
-        const locO = snapO.data?.waypoints?.[0]?.location;
-        const locD = snapD.data?.waypoints?.[0]?.location;
-        if (locO && locD) {
-          const snappedUrl = `${ENV.OSRM_URL}/route/v1/driving/${locO[0]},${locO[1]};${locD[0]},${locD[1]}?geometries=geojson&overview=full`;
-          const sRes = await axios.get(snappedUrl, { timeout: 4000 });
-          const sRoute = sRes.data?.routes?.[0];
-          if (sRoute) {
-            const coords = [
-              [coordinates[0].lng, coordinates[0].lat],
-              ...sRoute.geometry.coordinates,
-              [coordinates[1].lng, coordinates[1].lat],
-            ];
-            return [
-              {
-                distanceMeters: Math.round(sRoute.distance),
-                durationSeconds: calculateVehicleDuration(sRoute.distance, vehicleType),
-                isFlooded: false,
-                maxFloodDepthCm: 0,
-                floodedDistanceMeters: 0,
-                geometry: { type: 'LineString', coordinates: coords },
-              },
-            ];
-          }
-        }
-      } catch (snapErr) {
-        // Continue
-      }
-    }
-    return [];
+    const straightLine: GeoJSON.LineString = {
+      type: 'LineString',
+      coordinates: coordinates.map((c) => [c.lng, c.lat]),
+    };
+    return [
+      {
+        distanceMeters: 5000,
+        durationSeconds: calculateVehicleDuration(5000, vehicleType),
+        isFlooded: false,
+        maxFloodDepthCm: 0,
+        floodedDistanceMeters: 0,
+        geometry: straightLine,
+      },
+    ];
   }
 }
 
 /**
- * Detects whether a route geometry contains any hairpin U-turn spurs or cul-de-sac backtracking
- * (e.g. driving into a dead-end alley to satisfy a waypoint, then turning 180° around and driving back out).
- */
-export function hasRouteBacktrack(coords: [number, number][]): boolean {
-  if (!coords || coords.length < 4) return false;
-  for (let i = 0; i < coords.length - 2; i++) {
-    const [x1, y1] = coords[i];
-    const [x2, y2] = coords[i + 1];
-    const dx1 = x2 - x1, dy1 = y2 - y1;
-    const len1 = Math.hypot(dx1, dy1);
-    if (len1 === 0) continue;
-    const maxJ = Math.min(coords.length - 1, i + 35);
-    for (let j = i + 1; j < maxJ; j++) {
-      const [u1, v1] = coords[j];
-      const [u2, v2] = coords[j + 1];
-      const dx2 = u2 - u1, dy2 = v2 - v1;
-      const len2 = Math.hypot(dx2, dy2);
-      if (len2 === 0) continue;
-      const cosSim = (dx1 * dx2 + dy1 * dy2) / (len1 * len2);
-      if (cosSim < -0.82) {
-        const mid1 = [(x1 + x2) / 2, (y1 + y2) / 2];
-        const mid2 = [(u1 + u2) / 2, (v1 + v2) / 2];
-        const dist = turf.distance(turf.point(mid1), turf.point(mid2), { units: 'meters' });
-        if (dist < 25) return true;
-      }
-    }
-  }
-  return false;
-}
-
-/**
- * Gathers a diverse pool of natural through-routes across both Goong and OSRM engines,
- * filtering out any cul-de-sacs or backtracking paths.
- */
-export async function fetchBaseRoutePool(
-  origin: Coordinate,
-  destination: Coordinate,
-  vehicleType: VehicleType = 'motorbike'
-): Promise<RouteResult[]> {
-  const pool: RouteResult[] = [];
-
-  if (ENV.GOONG_API_KEY) {
-    const [goongMain, goongCar] = await Promise.all([
-      fetchGoongRoute([origin, destination], vehicleType),
-      vehicleType === 'motorbike' ? fetchGoongRoute([origin, destination], 'car') : Promise.resolve([]),
-    ]);
-    pool.push(...goongMain, ...goongCar);
-  }
-
-  const osrmRoutes = await fetchOsrmRoute([origin, destination], vehicleType);
-  pool.push(...osrmRoutes);
-
-  // Deduplicate routes by distance and preserve all valid street geometries
-  const uniquePool: RouteResult[] = [];
-  for (const r of pool) {
-    if (!r.geometry?.coordinates || r.geometry.coordinates.length < 2) continue;
-
-    const isDup = uniquePool.some((ex) => Math.abs(ex.distanceMeters - r.distanceMeters) < 40);
-    if (!isDup) {
-      uniquePool.push(r);
-    }
-  }
-
-  return uniquePool;
-}
-
-/**
- * Unified route fetcher: tries Goong Direction first (with alley & motorbike support),
- * and transparently falls back to OSRM.
- */
-export async function fetchRoutes(
-  coordinates: Coordinate[],
-  vehicleType: VehicleType = 'motorbike'
-): Promise<RouteResult[]> {
-  if (ENV.GOONG_API_KEY) {
-    if (coordinates.length === 2) {
-      const goongRoutes = await fetchGoongRoute(coordinates, vehicleType);
-      if (goongRoutes.length > 0) {
-        return goongRoutes;
-      }
-    } else if (coordinates.length === 3) {
-      const multiRoutes = await fetchGoongMultiLegRoute(coordinates, vehicleType);
-      if (multiRoutes.length > 0) {
-        return multiRoutes;
-      }
-    }
-  }
-
-  return fetchOsrmRoute(coordinates, vehicleType);
-}
-
-/**
- * Searches for clean, continuous detour routes around flood obstacles by placing strategic lateral
- * waypoints perpendicular to the travel direction on real named thoroughfares, completely avoiding cul-de-sacs.
+ * Searches for clean, continuous detour routes around flood obstacles by snapping candidate
+ * offsets onto real named thoroughfares via OSRM /nearest, strictly excluding dead-end alleys.
  */
 export async function findCleanDetourRoutes(
   origin: Coordinate,
@@ -587,96 +331,59 @@ export async function findCleanDetourRoutes(
   hazardPolygon: GeoJSON.Polygon | GeoJSON.MultiPolygon,
   vehicleType: VehicleType = 'motorbike'
 ): Promise<RouteResult[]> {
+  const bbox = turf.bbox(hazardPolygon);
   const center = turf.center(turf.feature(hazardPolygon)).geometry.coordinates;
 
-  // Compute travel direction vector from origin to destination
-  const dx = destination.lng - origin.lng;
-  const dy = destination.lat - origin.lat;
-  const len = Math.hypot(dx, dy) || 1;
-  const ux = dx / len;
-  const uy = dy / len;
-
-  // Lateral perpendicular vectors flanking the hazard (left and right of the corridor)
-  const p1 = { x: -uy, y: ux };
-  const p2 = { x: uy, y: -ux };
-
-  // Generate strategic lateral offsets flanking the flooded roadway
-  const rawOffsets: Coordinate[] = [
-    { lng: center[0] + p1.x * 0.0035, lat: center[1] + p1.y * 0.0035 },
-    { lng: center[0] + p2.x * 0.0035, lat: center[1] + p2.y * 0.0035 },
-    { lng: center[0] + p1.x * 0.007, lat: center[1] + p1.y * 0.007 },
-    { lng: center[0] + p2.x * 0.007, lat: center[1] + p2.y * 0.007 },
-    { lng: center[0], lat: center[1] + 0.004 },
-    { lng: center[0], lat: center[1] - 0.004 },
-    { lng: center[0] + 0.004, lat: center[1] },
-    { lng: center[0] - 0.004, lat: center[1] },
+  const offset = vehicleType === 'motorbike' ? 0.009 : 0.016;
+  const rawOffsets = [
+    { lng: bbox[0] - offset, lat: center[1] },
+    { lng: bbox[2] + offset, lat: center[1] },
+    { lng: center[0], lat: bbox[3] + offset },
+    { lng: center[0], lat: bbox[1] - offset },
+    { lng: bbox[0] - offset * 1.5, lat: center[1] },
+    { lng: bbox[2] + offset * 1.5, lat: center[1] },
+    { lng: center[0], lat: bbox[3] + offset * 1.5 },
+    { lng: center[0], lat: bbox[1] - offset * 1.5 },
   ];
 
   const candidateRoutes: RouteResult[] = [];
-  const snappedWaypoints: { lng: number; lat: number }[] = [];
 
-  for (const raw of rawOffsets) {
+  for (const cand of rawOffsets) {
     try {
-      const nearestUrl = `${ENV.OSRM_URL}/nearest/v1/driving/${raw.lng},${raw.lat}?number=3`;
-      const nearRes = await axios.get(nearestUrl, { timeout: 2500 });
-      const waypoints = nearRes.data?.waypoints || [];
+      const nearestUrl = `${ENV.OSRM_URL}/nearest/v1/driving/${cand.lng},${cand.lat}?number=5`;
+      const nearRes = await axios.get(nearestUrl, { timeout: 4000 });
+      const waypoints = nearRes.data.waypoints || [];
 
       for (const wp of waypoints) {
-        const roadName = (wp.name || '').trim();
+        const roadName = wp.name || '';
         const lowerName = roadName.toLowerCase();
-
-        // Intermediate waypoints must be on public named thoroughfares, never in dead-end alleys
+        // Skip unnamed streets and residential alleys
         if (
           !roadName ||
           lowerName.startsWith('hẻm') ||
           lowerName.startsWith('ngõ') ||
           lowerName.startsWith('kiệt') ||
-          lowerName.startsWith('ngách') ||
-          lowerName.startsWith('đường nội bộ')
+          lowerName.startsWith('ngách')
         ) {
           continue;
         }
 
-        // Must be at least 90m away from the flood center to avoid the hazard buffer
-        const distFromHazard = turf.distance(
-          turf.point([wp.location[0], wp.location[1]]),
-          turf.point([center[0], center[1]]),
-          { units: 'meters' }
+        const [snapLng, snapLat] = wp.location;
+        const detourRoutes = await fetchOsrmRoute(
+          [origin, { lng: snapLng, lat: snapLat }, destination],
+          vehicleType
         );
-        if (distFromHazard < 90) continue;
 
-        // Deduplicate waypoints
-        const isDuplicate = snappedWaypoints.some((ex) =>
-          turf.distance(turf.point([ex.lng, ex.lat]), turf.point([wp.location[0], wp.location[1]]), { units: 'meters' }) < 150
-        );
-        if (isDuplicate) continue;
-
-        snappedWaypoints.push({ lng: wp.location[0], lat: wp.location[1] });
-        break; // Found primary through-street for this offset
-      }
-
-      if (snappedWaypoints.length >= 3) break;
-    } catch (e) {
-      // Continue searching next offset
-    }
-  }
-
-  for (const wp of snappedWaypoints) {
-    try {
-      const detourRoutes = await fetchRoutes(
-        [origin, { lng: wp.lng, lat: wp.lat }, destination],
-        vehicleType
-      );
-
-      if (detourRoutes && detourRoutes.length > 0) {
-        const candRoute = detourRoutes[0];
-        // Strictly reject any synthetic detour that backtracks into a dead-end alley
-        if (!hasRouteBacktrack(candRoute.geometry.coordinates as [number, number][])) {
-          candidateRoutes.push(candRoute);
+        if (detourRoutes && detourRoutes.length > 0) {
+          candidateRoutes.push(detourRoutes[0]);
+          break; // Found a valid through-road for this direction
         }
       }
-    } catch (routeErr) {
-      // Continue to next candidate
+      if (candidateRoutes.length >= 2) {
+        break; // Sufficient alternative detours found
+      }
+    } catch (e) {
+      // Continue searching next offset
     }
   }
 
@@ -685,7 +392,8 @@ export async function findCleanDetourRoutes(
 
 /**
  * Computes both the safe route and the fastest route avoiding active flood zones,
- * prioritizing natural direct alternatives from Goong & OSRM before resorting to synthetic detours.
+ * taking into account vehicle type (motorbike vs car) for speed and clearance,
+ * with strict protection against dead ends and spurious alley detours.
  */
 export async function navigateSafeRoute(
   origin: Coordinate,
@@ -694,14 +402,8 @@ export async function navigateSafeRoute(
   vehicleType: VehicleType,
   events: FloodEvent[]
 ): Promise<{ safeRoute: RouteResult; fastestRoute: RouteResult }> {
-  // 1. Fetch diverse base route pool across Goong (bike & car thoroughfares) and OSRM
-  let baseRoutes = await fetchBaseRoutePool(origin, destination, vehicleType);
-
-  // If pool was empty (e.g. temporary API timeout), retry with direct fetchRoutes
-  if (baseRoutes.length === 0) {
-    baseRoutes = await fetchRoutes([origin, destination], vehicleType);
-  }
-
+  // 1. Fetch base direct routes from OSRM
+  const baseRoutes = await fetchOsrmRoute([origin, destination], vehicleType);
   const candidatePool: RouteResult[] = [...baseRoutes];
 
   // 2. Evaluate base candidates against flood events
@@ -721,79 +423,75 @@ export async function navigateSafeRoute(
 
   // Fastest route is the lowest duration among base routes
   evaluatedCandidates.sort((a, b) => a.route.durationSeconds - b.route.durationSeconds);
-
-  if (evaluatedCandidates.length === 0) {
-    throw new Error('Không thể tìm thấy lộ trình trên mạng lưới đường bộ giữa hai địa điểm này');
-  }
-
   const fastestRoute: RouteResult = { ...evaluatedCandidates[0].route };
 
   // 3. Safe route determination:
+  // First, check if any direct alternative route is completely dry
   const dryBaseCandidates = evaluatedCandidates.filter((c) => !c.analysis.isFlooded);
 
   let safeRoute: RouteResult | null = null;
 
-  // If the fastest route is already completely dry, safe route is the fastest route
-  if (!fastestRoute.isFlooded) {
-    safeRoute = fastestRoute;
-  } else {
-    // Fastest route IS flooded!
-    // PRIORITY 1: Check if an alternative base route from the pool (e.g. Goong bike/car alternative) is dry!
-    if (dryBaseCandidates.length > 0) {
-      dryBaseCandidates.sort((a, b) => a.route.distanceMeters - b.route.distanceMeters);
-      safeRoute = dryBaseCandidates[0].route;
+  // If the fastest route is flooded for this vehicle, compute targeted detours via real through-roads
+  if (fastestRoute.isFlooded) {
+    const hitEvents = events.filter((ev) => {
+      const depth = Math.round(calculateEventDepth(ev, targetTime));
+      if (depth < (VEHICLE_THRESHOLDS[vehicleType]?.avoid || 20)) return false;
+      const pt = turf.point(ev.geometry.coordinates);
+      const buf = turf.buffer(pt, 0.25, { units: 'kilometers' });
+      return buf && turf.booleanIntersects(turf.lineString(fastestRoute.geometry.coordinates), buf);
+    });
+
+    const candidateDetours: { route: RouteResult; analysis: ReturnType<typeof extractRouteFloodedSegments> }[] = [];
+
+    for (const hitEvent of hitEvents) {
+      const pt = turf.point(hitEvent.geometry.coordinates);
+      const localHazard = turf.buffer(pt, 0.25, { units: 'kilometers' });
+      if (!localHazard) continue;
+
+      const cleanDetours = await findCleanDetourRoutes(origin, destination, localHazard.geometry, vehicleType);
+      for (const dRoute of cleanDetours) {
+        const detourAnalysis = extractRouteFloodedSegments(dRoute.geometry, events, targetTime, vehicleType);
+        candidateDetours.push({
+          route: {
+            ...dRoute,
+            isFlooded: detourAnalysis.isFlooded,
+            maxFloodDepthCm: detourAnalysis.maxFloodDepthCm,
+            floodedDistanceMeters: detourAnalysis.floodedDistanceMeters,
+            floodedSegments: detourAnalysis.floodedSegments,
+          },
+          analysis: detourAnalysis,
+        });
+      }
     }
 
-    // PRIORITY 2: If no base route is dry, compute clean through-street detours around the flood hazards
-    if (!safeRoute || safeRoute.isFlooded) {
-      const hitEvents = events.filter((ev) => {
-        const depth = Math.round(calculateEventDepth(ev, targetTime));
-        if (depth < (VEHICLE_THRESHOLDS[vehicleType]?.avoid || 20)) return false;
-        const pt = turf.point(ev.geometry.coordinates);
-        const buf = turf.buffer(pt, FLOOD_HAZARD_RADIUS_KM, { units: 'kilometers' });
-        return buf && turf.booleanIntersects(turf.lineString(fastestRoute.geometry.coordinates), buf);
-      });
+    // 1st Priority: Pick the shortest completely dry detour route
+    const completelyDry = candidateDetours
+      .filter((c) => !c.analysis.isFlooded)
+      .sort((a, b) => a.route.distanceMeters - b.route.distanceMeters);
 
-      const candidateDetours: { route: RouteResult; analysis: ReturnType<typeof extractRouteFloodedSegments> }[] = [];
-
-      for (const hitEvent of hitEvents) {
-        const pt = turf.point(hitEvent.geometry.coordinates);
-        const localHazard = turf.buffer(pt, FLOOD_HAZARD_RADIUS_KM, { units: 'kilometers' });
-        if (!localHazard) continue;
-
-        const cleanDetours = await findCleanDetourRoutes(origin, destination, localHazard.geometry, vehicleType);
-        for (const dRoute of cleanDetours) {
-          const detourAnalysis = extractRouteFloodedSegments(dRoute.geometry, events, targetTime, vehicleType);
-          candidateDetours.push({
-            route: {
-              ...dRoute,
-              isFlooded: detourAnalysis.isFlooded,
-              maxFloodDepthCm: detourAnalysis.maxFloodDepthCm,
-              floodedDistanceMeters: detourAnalysis.floodedDistanceMeters,
-              floodedSegments: detourAnalysis.floodedSegments,
-            },
-            analysis: detourAnalysis,
-          });
-        }
-      }
-
-      // Filter for 100% DRY detours
-      const dryDetours = candidateDetours
-        .filter((c) => !c.analysis.isFlooded)
-        .sort((a, b) => a.route.distanceMeters - b.route.distanceMeters);
-
-      if (dryDetours.length > 0) {
-        // Shortest completely dry detour route
-        safeRoute = dryDetours[0].route;
-      } else if (candidateDetours.length > 0) {
-        // If unavoidable (e.g. origin/destination is on flooded segment), pick detour with minimal flood depth & distance
-        candidateDetours.sort(
-          (a, b) =>
-            a.analysis.maxFloodDepthCm - b.analysis.maxFloodDepthCm ||
-            a.analysis.floodedDistanceMeters - b.analysis.floodedDistanceMeters ||
-            a.route.distanceMeters - b.route.distanceMeters
-        );
-        safeRoute = candidateDetours[0].route;
+    if (completelyDry.length > 0) {
+      safeRoute = completelyDry[0].route;
+    } else if (dryBaseCandidates.length > 0) {
+      // 2nd Priority: Pick from dry base candidates
+      safeRoute = dryBaseCandidates[0].route;
+    } else if (candidateDetours.length > 0) {
+      // 3rd Priority: Pick the detour with minimal flood exposure
+      candidateDetours.sort(
+        (a, b) =>
+          a.analysis.maxFloodDepthCm - b.analysis.maxFloodDepthCm ||
+          a.analysis.floodedDistanceMeters - b.analysis.floodedDistanceMeters
+      );
+      safeRoute = candidateDetours[0].route;
+    }
+  } else {
+    // If fastest route is not flooded:
+    // If there is another dry candidate with different geometry, offer it as safeRoute
+    if (dryBaseCandidates.length > 1) {
+      const alternative = dryBaseCandidates.find(
+        (c) => Math.abs(c.route.distanceMeters - fastestRoute.distanceMeters) > 80
+      );
+      if (alternative) {
+        safeRoute = alternative.route;
       }
     }
   }
