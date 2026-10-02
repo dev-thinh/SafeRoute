@@ -47,11 +47,6 @@ export async function extractFloodEventsWithGemini(articleText: string): Promise
   }
 
   const genAI = new GoogleGenerativeAI(ENV.GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-1.5-flash',
-    generationConfig: { responseMimeType: 'application/json' },
-  });
-
   const prompt = `Bạn là trợ lý AI chuyên phân tích tin tức ngập lụt, triều cường và thời tiết tại TP. Hồ Chí Minh.
 Hãy trích xuất danh sách các điểm ngập từ bài viết sau đây dưới định dạng JSON đúng theo schema:
 {
@@ -64,9 +59,9 @@ Hãy trích xuất danh sách các điểm ngập từ bài viết sau đây dư
       "district": string,
       "city": string,
       "estimated_depth_cm": number,
-      "start_time": string (ISO 8601),
-      "peak_time": string (ISO 8601),
-      "end_time": string (ISO 8601),
+      "start_time": string,
+      "peak_time": string,
+      "end_time": string,
       "confidence": number
     }
   ]
@@ -75,7 +70,29 @@ Hãy trích xuất danh sách các điểm ngập từ bài viết sau đây dư
 Nội dung bài viết:
 ${articleText}`;
 
-  const result = await model.generateContent(prompt);
-  const text = result.response.text();
-  return parseGeminiExtractionResponse(text || '{}');
+  const candidateModels = ['gemini-3.5-flash', 'gemini-3.8-flash'];
+  let lastError: any = null;
+
+  for (const modelName of candidateModels) {
+    try {
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        generationConfig: { responseMimeType: 'application/json' },
+      });
+      const result = await model.generateContent(prompt);
+      const text = result.response.text();
+      return parseGeminiExtractionResponse(text || '{}');
+    } catch (err: any) {
+      lastError = err;
+      continue;
+    }
+  }
+
+  console.warn('Gemini AI extraction failed with all candidate models:', lastError?.message);
+  return {
+    summary: 'Không thể phân tích tự động bài báo qua AI',
+    cause: 'combined',
+    confidence_overall: 0.5,
+    locations: [],
+  };
 }

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { navigateSafeRoute } from '../services/routingEngine';
+import { findPgRoutingSafeRoute } from '../services/pgRoutingService';
 import { VehicleType, FloodEvent } from '../types';
 import { inMemoryReports } from './reportsRouter';
 
@@ -194,6 +195,9 @@ export function getActiveFloodEventsForTargetTime(targetDate: Date): FloodEvent[
 
 import { inMemoryFloodEvents, getDynamicFloodEvents } from '../db/floodsRepo';
 import { getActiveReports } from '../db/reportsRepo';
+import { getAllQuadrantsPrecipitation } from '../services/weatherService';
+import { getRainInducedFloodEvents } from '../services/vulnerableRoads';
+import { getActiveNewsFloodEvents } from '../services/newsCrawler';
 export { inMemoryFloodEvents };
 
 routesRouter.post('/navigate', async (req, res) => {
@@ -209,10 +213,21 @@ routesRouter.post('/navigate', async (req, res) => {
     // 1. Dynamic baseline HCMC hotspots aligned to user's selected date/time
     const baselineEvents = getActiveFloodEventsForTargetTime(targetDate);
 
-    // 2. Events ingested via AI Gemini news crawler / admin panel
-    const dynamicAdminEvents = await getDynamicFloodEvents();
+    // 2. Real-time meteorological rainfall observation & vulnerable corridors
+    let rainPrecipitation: Record<string, number> = { center: 0, south: 0, east: 0, northwest: 0 };
+    let rainInducedEvents: FloodEvent[] = [];
+    try {
+      rainPrecipitation = await getAllQuadrantsPrecipitation(targetDate);
+      rainInducedEvents = getRainInducedFloodEvents(targetDate, rainPrecipitation as any);
+    } catch (weatherErr) {
+      console.warn('Weather service query failed:', weatherErr);
+    }
 
-    // 3. Live crowdsourced user reports converted to flood hazard obstacles
+    // 3. Active news events (applying 3-hour temporal decay for navigation obstacles)
+    const dynamicAdminEvents = await getDynamicFloodEvents();
+    const activeNewsEvents = getActiveNewsFloodEvents(dynamicAdminEvents, targetDate);
+
+    // 4. Live crowdsourced user reports converted to flood hazard obstacles
     const activeReports = await getActiveReports();
     const crowdsourcedEvents: FloodEvent[] = activeReports
       .filter((r) => r.status === 'active')
@@ -232,15 +247,32 @@ routesRouter.post('/navigate', async (req, res) => {
         geometry: { type: 'Point', coordinates: [r.coordinate.lng, r.coordinate.lat] },
       }));
 
-    const combinedEvents = [...baselineEvents, ...dynamicAdminEvents, ...crowdsourcedEvents];
+    const combinedEvents = [
+      ...baselineEvents,
+      ...rainInducedEvents,
+      ...activeNewsEvents,
+      ...crowdsourcedEvents,
+    ];
 
-    const result = await navigateSafeRoute(origin, destination, targetDate, vehicle, combinedEvents);
+    // 1. Prioritize native pgRouting engine on local PostGIS (100% natural Dijkstra flood avoidance)
+    let result = null;
+    try {
+      result = await findPgRoutingSafeRoute(origin, destination, targetDate, vehicle, combinedEvents);
+    } catch (pgErr) {
+      console.warn('pgRouting query failed, falling back to external engine:', pgErr);
+    }
+
+    // 2. If outside Saigon OSM network or disconnected graph, fall back to Goong API engine
+    if (!result) {
+      result = await navigateSafeRoute(origin, destination, targetDate, vehicle, combinedEvents);
+    }
 
     return res.json({
       safe_route: result.safeRoute,
       fastest_route: result.fastestRoute,
       target_time: targetDate.toISOString(),
       vehicle_type: vehicle,
+      precipitation_by_quadrant: rainPrecipitation,
     });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
