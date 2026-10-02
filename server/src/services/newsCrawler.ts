@@ -164,7 +164,7 @@ seedInitialFloodEvents();
 export async function fetchArticleContent(url: string): Promise<{ title: string; content: string }> {
   const response = await axios.get(url, {
     headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-    timeout: 8000,
+    timeout: 4000,
   });
   const $ = cheerio.load(response.data);
   const title = $('h1').text().trim() || $('title').text().trim();
@@ -204,6 +204,7 @@ export const STREET_INDICATORS = [
 /**
  * Crawls RSS feeds and news sites for flood reports, parses them with Gemini AI,
  * and automatically injects new flood events into the active routing database.
+ * Optimized for high-throughput with parallel RSS fetching and instant local geocoding.
  */
 export async function crawlLatestFloodNews(): Promise<{
   newArticlesCount: number;
@@ -221,11 +222,12 @@ export async function crawlLatestFloodNews(): Promise<{
   let newArticlesFound = 0;
   let newFloodsCount = 0;
 
-  for (const src of rssSources) {
+  // Parallel fetching across all RSS sources simultaneously
+  const rssPromises = rssSources.map(async (src) => {
     try {
       const response = await axios.get(src.url, {
         headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
-        timeout: 6000,
+        timeout: 4000,
       });
 
       const $ = cheerio.load(response.data, { xmlMode: true });
@@ -249,8 +251,8 @@ export async function crawlLatestFloodNews(): Promise<{
         }
       });
 
-      // Process up to 5 newest filtered articles from each feed
-      for (const item of items.slice(0, 5)) {
+      // Process up to 2 newest filtered articles from each feed for speed & relevance
+      for (const item of items.slice(0, 2)) {
         // Skip if already in store
         const existing = crawledArticlesStore.find((a) => a.url === item.link || a.title === item.title);
         if (existing) continue;
@@ -267,8 +269,8 @@ export async function crawlLatestFloodNews(): Promise<{
             continue; // Skip calling AI if article does not mention any street or road
           }
 
-          // Gentle delay to prevent Gemini API 503/429 concurrency spikes
-          await new Promise((r) => setTimeout(r, 1000));
+          // Gentle 400ms pause to respect API limits
+          await new Promise((r) => setTimeout(r, 400));
 
           const aiResult = await extractFloodEventsWithGemini(fullText);
 
@@ -284,6 +286,7 @@ export async function crawlLatestFloodNews(): Promise<{
           const extractedLocs: ScrapedArticleLocation[] = [];
 
           for (const loc of aiResult.locations) {
+            // Instant local/in-memory geocoding (0-2ms)
             const coord = await geocodeStreet(loc.street_name, loc.district);
             if (coord) {
               extractedLocs.push({
@@ -367,7 +370,9 @@ export async function crawlLatestFloodNews(): Promise<{
     } catch (err: any) {
       console.warn(`Error fetching RSS feed ${src.url}:`, err.message);
     }
-  }
+  });
+
+  await Promise.all(rssPromises);
 
   return {
     newArticlesCount: newArticlesFound,
