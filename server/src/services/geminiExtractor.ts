@@ -83,7 +83,7 @@ Hãy phân loại bài viết và trích xuất danh sách các điểm ngập d
 Nội dung bài viết:
 ${articleText}`;
 
-  const candidateModels = ['gemini-3.5-flash', 'gemini-3.8-flash'];
+  const candidateModels = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash-8b'];
   let lastError: any = null;
 
   for (const modelName of candidateModels) {
