@@ -5,7 +5,8 @@ import { RoutePolyline } from './components/Map/RoutePolyline';
 import { FloodDepthLegend } from './components/Map/FloodDepthLegend';
 import { ReportMarker } from './components/Map/ReportMarker';
 import { RoutePlannerPanel, LocationItem } from './components/Navigation/RoutePlannerPanel';
-import { ReportFloodModal } from './components/Reporting/ReportFloodModal';
+import { ReportFloodModal, SelectedReportLocation } from './components/Reporting/ReportFloodModal';
+import { ReportLocationPinOverlay } from './components/Reporting/ReportLocationPinOverlay';
 import { getActiveFloods, reverseGeocode } from './services/api';
 import { Droplet } from 'lucide-react';
 import { NavigateResponse, FloodEvent, UserReport } from './types';
@@ -15,7 +16,18 @@ export const App: React.FC = () => {
   const [selectedRouteType, setSelectedRouteType] = useState<'safe' | 'fastest'>('safe');
   const [floodEvents, setFloodEvents] = useState<FloodEvent[]>([]);
   const [reports, setReports] = useState<UserReport[]>([]);
+
+  // Modal & Pinning Mode State
   const [isReportOpen, setIsReportOpen] = useState(false);
+  const [isPinningReport, setIsPinningReport] = useState(false);
+  const [isMapMoving, setIsMapMoving] = useState(false);
+  const [centerCoord, setCenterCoord] = useState<{ lat: number; lng: number }>({
+    lat: 10.7626,
+    lng: 106.6823,
+  });
+  const [centerAddress, setCenterAddress] = useState<string>('');
+  const [isLoadingAddress, setIsLoadingAddress] = useState(false);
+  const [selectedReportLocation, setSelectedReportLocation] = useState<SelectedReportLocation | null>(null);
 
   // Origin & Destination state
   const [origin, setOrigin] = useState<LocationItem>({
@@ -29,7 +41,7 @@ export const App: React.FC = () => {
     lng: 106.7075,
   });
 
-  // Pick on map state: 'origin' | 'dest' | null
+  // Pick on map state for route: 'origin' | 'dest' | null
   const [pickingField, setPickingField] = useState<'origin' | 'dest' | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number] | undefined>(undefined);
 
@@ -46,6 +58,24 @@ export const App: React.FC = () => {
   useEffect(() => {
     loadFloods();
   }, []);
+
+  // Debounced reverse geocode when map center moves during pinning mode
+  useEffect(() => {
+    if (!isPinningReport) return;
+    setIsLoadingAddress(true);
+    const timer = setTimeout(async () => {
+      try {
+        const rev = await reverseGeocode(centerCoord.lat, centerCoord.lng);
+        setCenterAddress(rev.label);
+      } catch (err) {
+        setCenterAddress(`Tọa độ: ${centerCoord.lat.toFixed(5)}, ${centerCoord.lng.toFixed(5)}`);
+      } finally {
+        setIsLoadingAddress(false);
+      }
+    }, 280);
+
+    return () => clearTimeout(timer);
+  }, [centerCoord.lat, centerCoord.lng, isPinningReport]);
 
   const handleMapClick = async (lat: number, lng: number) => {
     if (!pickingField) return;
@@ -98,23 +128,69 @@ export const App: React.FC = () => {
     }
   };
 
+  // Start pinning mode for report flood
+  const handleStartReportPinning = () => {
+    setIsPinningReport(true);
+    setIsReportOpen(false);
+  };
+
+  // Confirm selected location and open report form modal
+  const handleConfirmReportLocation = () => {
+    setSelectedReportLocation({
+      lat: centerCoord.lat,
+      lng: centerCoord.lng,
+      label: centerAddress || `Tọa độ: ${centerCoord.lat.toFixed(5)}, ${centerCoord.lng.toFixed(5)}`,
+    });
+    setIsPinningReport(false);
+    setIsReportOpen(true);
+  };
+
+  // User wants to re-pick location from inside the modal
+  const handleRePickLocation = () => {
+    setIsReportOpen(false);
+    setIsPinningReport(true);
+  };
+
+  // Locate me using browser GPS
+  const handleLocateMe = () => {
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setMapCenter([pos.coords.latitude, pos.coords.longitude]);
+          setCenterCoord({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        },
+        (err) => {
+          console.warn('Geolocation error:', err);
+          alert('Không thể xác định vị trí GPS. Vui lòng cấp quyền vị trí trên trình duyệt của bạn!');
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    } else {
+      alert('Trình duyệt của bạn không hỗ trợ định vị GPS!');
+    }
+  };
+
   return (
     <div className="relative w-screen h-screen overflow-hidden font-sans">
-      <RoutePlannerPanel
-        origin={origin}
-        destination={destination}
-        onChangeOrigin={setOrigin}
-        onChangeDestination={setDestination}
-        onRoutesCalculated={setRoutes}
-        selectedRouteType={selectedRouteType}
-        onSelectRouteType={setSelectedRouteType}
-        pickingField={pickingField}
-        onStartPickOnMap={setPickingField}
-        onCancelPickOnMap={() => setPickingField(null)}
-        onRefreshFloods={loadFloods}
-        onSelectLocation={(lat, lng) => setMapCenter([lat, lng])}
-      />
+      {/* 1. Left Sidebar Navigation Panel (Hidden during report pin mode) */}
+      {!isPinningReport && (
+        <RoutePlannerPanel
+          origin={origin}
+          destination={destination}
+          onChangeOrigin={setOrigin}
+          onChangeDestination={setDestination}
+          onRoutesCalculated={setRoutes}
+          selectedRouteType={selectedRouteType}
+          onSelectRouteType={setSelectedRouteType}
+          pickingField={pickingField}
+          onStartPickOnMap={setPickingField}
+          onCancelPickOnMap={() => setPickingField(null)}
+          onRefreshFloods={loadFloods}
+          onSelectLocation={(lat, lng) => setMapCenter([lat, lng])}
+        />
+      )}
 
+      {/* 2. Interactive Map View */}
       <MapView
         origin={origin}
         destination={destination}
@@ -124,6 +200,9 @@ export const App: React.FC = () => {
         onDragOrigin={handleDragOrigin}
         onDragDestination={handleDragDestination}
         isPickingLocation={pickingField !== null}
+        isPinningReport={isPinningReport}
+        onMapCenterChange={(lat, lng) => setCenterCoord({ lat, lng })}
+        onMapMovingChange={setIsMapMoving}
       >
         <FloodLayer events={floodEvents} />
         <ReportMarker reports={reports} />
@@ -138,24 +217,41 @@ export const App: React.FC = () => {
         )}
       </MapView>
 
-      {/* Floating Flood Depth Legend Bar (Yellow -> Orange -> Red -> Prohibited) */}
-      <FloodDepthLegend />
+      {/* 3. Floating Flood Depth Legend Bar (Hidden during report pin mode) */}
+      {!isPinningReport && <FloodDepthLegend />}
 
-      {/* Floating Action Button */}
-      <div className="absolute bottom-6 right-6 z-[1000]">
-        <button
-          onClick={() => setIsReportOpen(true)}
-          className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-full shadow-xl transition"
-        >
-          <Droplet className="w-4 h-4" />
-          Báo ngập tại đây
-        </button>
-      </div>
+      {/* 4. Floating Action Button "Báo ngập tại đây" (Hidden during report pin mode) */}
+      {!isPinningReport && (
+        <div className="absolute bottom-6 right-6 z-[1000]">
+          <button
+            onClick={handleStartReportPinning}
+            className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-full shadow-xl transition hover:shadow-2xl hover:scale-105 active:scale-95 cursor-pointer"
+          >
+            <Droplet className="w-4 h-4 fill-current" />
+            <span>Báo ngập tại đây</span>
+          </button>
+        </div>
+      )}
 
+      {/* 5. Center Pin & Overlay during Report Location Pinning */}
+      <ReportLocationPinOverlay
+        isPinning={isPinningReport}
+        isMoving={isMapMoving}
+        coord={centerCoord}
+        address={centerAddress}
+        isLoadingAddress={isLoadingAddress}
+        onConfirm={handleConfirmReportLocation}
+        onCancel={() => setIsPinningReport(false)}
+        onLocateMe={handleLocateMe}
+      />
+
+      {/* 6. Report Flood Form Modal with marked location details */}
       <ReportFloodModal
         isOpen={isReportOpen}
+        location={selectedReportLocation}
         onClose={() => setIsReportOpen(false)}
         onReportSubmitted={loadFloods}
+        onRePickLocation={handleRePickLocation}
       />
     </div>
   );

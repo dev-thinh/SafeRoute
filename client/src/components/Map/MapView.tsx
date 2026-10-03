@@ -14,6 +14,9 @@ interface MapViewProps {
   onDragOrigin?: (lat: number, lng: number) => void;
   onDragDestination?: (lat: number, lng: number) => void;
   isPickingLocation?: boolean;
+  isPinningReport?: boolean;
+  onMapCenterChange?: (lat: number, lng: number) => void;
+  onMapMovingChange?: (isMoving: boolean) => void;
 }
 
 const MapNavigationController: React.FC<{
@@ -110,9 +113,10 @@ const FitRouteButton: React.FC<{
   routes?: NavigateResponse | null;
   origin?: { lat: number; lng: number };
   destination?: { lat: number; lng: number };
-}> = ({ routes, origin, destination }) => {
+  hidden?: boolean;
+}> = ({ routes, origin, destination, hidden }) => {
   const map = useMap();
-  if (!routes || (!routes.safe_route && !routes.fastest_route)) return null;
+  if (hidden || !routes || (!routes.safe_route && !routes.fastest_route)) return null;
 
   const handleFit = () => {
     const bounds = L.latLngBounds([]);
@@ -146,6 +150,45 @@ const FitRouteButton: React.FC<{
       </button>
     </div>
   );
+};
+
+const MapPinTracker: React.FC<{
+  active?: boolean;
+  onCenterChange?: (lat: number, lng: number) => void;
+  onMovingChange?: (isMoving: boolean) => void;
+}> = ({ active, onCenterChange, onMovingChange }) => {
+  const map = useMapEvents({
+    movestart() {
+      if (active && onMovingChange) {
+        onMovingChange(true);
+      }
+    },
+    move() {
+      if (active && onCenterChange) {
+        const c = map.getCenter();
+        onCenterChange(c.lat, c.lng);
+      }
+    },
+    moveend() {
+      if (active) {
+        if (onMovingChange) onMovingChange(false);
+        if (onCenterChange) {
+          const c = map.getCenter();
+          onCenterChange(c.lat, c.lng);
+        }
+      }
+    },
+  });
+
+  React.useEffect(() => {
+    if (active && onCenterChange) {
+      const c = map.getCenter();
+      onCenterChange(c.lat, c.lng);
+      if (onMovingChange) onMovingChange(false);
+    }
+  }, [active, map]);
+
+  return null;
 };
 
 const originIcon = L.divIcon({
@@ -183,6 +226,9 @@ export const MapView: React.FC<MapViewProps> = ({
   onDragOrigin,
   onDragDestination,
   isPickingLocation,
+  isPinningReport,
+  onMapCenterChange,
+  onMapMovingChange,
 }) => {
   const defaultCenter: [number, number] = [10.7626, 106.6823];
   // Pure OpenStreetMap raster tiles - 100% free and no API key required
@@ -212,6 +258,12 @@ export const MapView: React.FC<MapViewProps> = ({
           routes={routes}
           origin={origin}
           destination={destination}
+          hidden={isPinningReport}
+        />
+        <MapPinTracker
+          active={isPinningReport}
+          onCenterChange={onMapCenterChange}
+          onMovingChange={onMapMovingChange}
         />
         <MapClickHandler onMapClick={onMapClick} />
 
