@@ -13,14 +13,14 @@ interface RoutePolylineProps {
 const getSeverityColor = (severity: FloodedSegment['severity']) => {
   switch (severity) {
     case 'low':
-      return { core: '#EAB308', casing: '#713F12', label: 'Ngập nhẹ ≤ 15cm' };
+      return { core: '#EAB308', casing: '#713F12', label: 'Mắt cá chân (< 20cm)' };
     case 'medium':
-      return { core: '#F97316', casing: '#7C2D12', label: 'Cảnh báo ngập 16 - 25cm' };
+      return { core: '#F59E0B', casing: '#78350F', label: 'Nửa bánh xe (20 - 40cm)' };
     case 'high':
-      return { core: '#EF4444', casing: '#7F1D1D', label: 'Ngập sâu 26 - 35cm' };
+      return { core: '#F97316', casing: '#7C2D12', label: 'Đầu gối / Ngập pô (40 - 60cm)' };
     case 'prohibited':
     default:
-      return { core: '#991B1B', casing: '#450A0A', label: 'Cấm lưu thông > 35cm' };
+      return { core: '#DC2626', casing: '#450A0A', label: 'Ngập sâu (> 60cm) - Nguy hiểm' };
   }
 };
 
@@ -56,30 +56,28 @@ export const RoutePolyline: React.FC<RoutePolylineProps> = ({
         <Polyline
           positions={safeGeometry.coordinates.map((c) => [c[1], c[0]])}
           pathOptions={{
-            color: '#94A3B8',
+            color: '#6EE7B7',
             weight: 4,
-            opacity: 0.45,
+            opacity: 0.5,
           }}
         />
       )}
 
-      {/* Active Primary Route */}
+      {/* Active Primary Route: Fastest (Blue) */}
       {isFastestSelected && fastestGeometry && (
         <>
-          {/* Outer casing */}
           <Polyline
             positions={fastestGeometry.coordinates.map((c) => [c[1], c[0]])}
             pathOptions={{
-              color: '#3B0764',
+              color: '#1E3A8A',
               weight: 8,
               opacity: 0.8,
             }}
           />
-          {/* Inner core line */}
           <Polyline
             positions={fastestGeometry.coordinates.map((c) => [c[1], c[0]])}
             pathOptions={{
-              color: '#A855F7',
+              color: '#2563EB',
               weight: 5,
               opacity: 1,
             }}
@@ -87,22 +85,21 @@ export const RoutePolyline: React.FC<RoutePolylineProps> = ({
         </>
       )}
 
+      {/* Active Primary Route: Safe (Emerald) */}
       {isSafeSelected && safeGeometry && (
         <>
-          {/* Outer casing */}
           <Polyline
             positions={safeGeometry.coordinates.map((c) => [c[1], c[0]])}
             pathOptions={{
-              color: '#0C4A6E',
+              color: '#064E3B',
               weight: 9,
               opacity: 0.85,
             }}
           />
-          {/* Inner core line */}
           <Polyline
             positions={safeGeometry.coordinates.map((c) => [c[1], c[0]])}
             pathOptions={{
-              color: '#0284C7',
+              color: '#059669',
               weight: 6,
               opacity: 1,
             }}
@@ -115,7 +112,6 @@ export const RoutePolyline: React.FC<RoutePolylineProps> = ({
         const colors = getSeverityColor(seg.severity);
         return (
           <React.Fragment key={`active-flood-${idx}`}>
-            {/* Outer high-contrast black casing */}
             <Polyline
               positions={seg.coordinates.map((c) => [c[1], c[0]])}
               pathOptions={{
@@ -124,7 +120,6 @@ export const RoutePolyline: React.FC<RoutePolylineProps> = ({
                 opacity: 0.95,
               }}
             />
-            {/* Vivid Color Segment */}
             <Polyline
               positions={seg.coordinates.map((c) => [c[1], c[0]])}
               pathOptions={{
@@ -143,10 +138,11 @@ export const RoutePolyline: React.FC<RoutePolylineProps> = ({
                       {seg.streetName}
                     </div>
                   )}
-                  <div className="mt-1 text-[11px] text-gray-700">
-                    Độ sâu dự báo: <strong className="text-red-700 font-extrabold text-xs">{seg.depthCm} cm</strong>
+                  <div className="mt-1.5 flex items-center justify-between text-[11px] text-gray-700">
+                    <span>Độ sâu dự báo:</span>
+                    <strong className="text-red-600 font-bold font-mono text-xs">{seg.depthCm} cm</strong>
                   </div>
-                  <div className="mt-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-800">
+                  <div className="mt-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-800 inline-block border border-gray-200">
                     {colors.label}
                   </div>
                 </div>
@@ -158,3 +154,5 @@ export const RoutePolyline: React.FC<RoutePolylineProps> = ({
     </>
   );
 };
+
+export default RoutePolyline;

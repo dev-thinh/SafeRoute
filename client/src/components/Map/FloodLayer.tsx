@@ -16,21 +16,27 @@ export const FloodLayer: React.FC<FloodLayerProps> = ({ events }) => {
             : event.estimatedDepthCm;
         const isActive = depth >= 10;
 
-        // Color based on active depth severity scale
+        // Color based on standardized 4-tier flood alert scale
         let color = '#9CA3AF'; // Muted gray when dry
-        let severityText = 'Mực nước bình thường, khô ráo';
-        if (depth > 35) {
-          color = '#991B1B';
-          severityText = 'Cấm lưu thông > 35cm';
-        } else if (depth > 25) {
-          color = '#EF4444';
-          severityText = 'Ngập sâu 26 - 35cm';
-        } else if (depth > 15) {
-          color = '#F97316';
-          severityText = 'Cảnh báo ngập 16 - 25cm';
+        let severityText = 'Khô ráo / Bình thường';
+        let badgeBg = 'bg-gray-100 text-gray-700';
+
+        if (depth > 60) {
+          color = '#DC2626'; // red-600
+          severityText = 'Ngập sâu (> 60cm) - Tuyệt đối không đi vào';
+          badgeBg = 'bg-red-50 text-red-700 border-red-200';
+        } else if (depth >= 40) {
+          color = '#F97316'; // orange-500
+          severityText = 'Đầu gối / Ngập pô (40 - 60cm) - Nguy hiểm xe máy';
+          badgeBg = 'bg-orange-50 text-orange-700 border-orange-200';
+        } else if (depth >= 20) {
+          color = '#F59E0B'; // amber-500
+          severityText = 'Nửa bánh xe (20 - 40cm) - Cần cẩn thận';
+          badgeBg = 'bg-amber-50 text-amber-700 border-amber-200';
         } else if (depth >= 10) {
-          color = '#EAB308';
-          severityText = 'Ngập nhẹ 10 - 15cm';
+          color = '#EAB308'; // yellow-500
+          severityText = 'Mắt cá chân (< 20cm) - Cảnh báo nhẹ';
+          badgeBg = 'bg-yellow-50 text-yellow-800 border-yellow-200';
         }
 
         const coords: [number, number] = [
@@ -38,7 +44,7 @@ export const FloodLayer: React.FC<FloodLayerProps> = ({ events }) => {
           event.geometry.coordinates[0],
         ];
 
-        // Exactly synchronized with backend FLOOD_HAZARD_RADIUS_METERS = 80m
+        // Synchronized with backend FLOOD_HAZARD_RADIUS_METERS = 80m
         const floodRadius = isActive ? 80 : 40;
 
         return (
@@ -55,18 +61,23 @@ export const FloodLayer: React.FC<FloodLayerProps> = ({ events }) => {
             }}
           >
             <Popup>
-              <div className="p-1 text-xs">
-                <h4 className="font-bold text-gray-900">{event.streetName}</h4>
-                <p className="text-gray-600">Quận: {event.district}</p>
-                <div className="mt-1 font-bold text-xs" style={{ color: isActive ? color : '#4B5563' }}>
-                  {isActive ? `Độ sâu dự báo: ~${depth} cm` : `Hiện tại khô ráo`}
+              <div className="p-1.5 text-xs max-w-[220px]">
+                <h4 className="font-bold text-gray-900 text-sm leading-snug">{event.streetName}</h4>
+                <p className="text-gray-500 text-[11px] mt-0.5">Quận: {event.district}</p>
+                <div className="mt-2 flex items-center justify-between">
+                  <span className="text-gray-600 text-[11px]">Độ sâu dự báo:</span>
+                  <span className="font-mono font-bold text-xs" style={{ color: isActive ? color : '#4B5563' }}>
+                    {isActive ? `~${depth} cm` : `Khô ráo`}
+                  </span>
                 </div>
-                <div className="mt-0.5 text-[10px] text-gray-500 font-medium">
+                <div className={`mt-2 p-1.5 rounded-lg border text-[10px] font-semibold leading-tight ${badgeBg}`}>
                   {severityText}
                 </div>
-                <p className="text-gray-400 text-[10px] mt-1 border-t border-gray-100 pt-1">
-                  Đỉnh triều dự kiến: ~{event.estimatedDepthCm} cm
-                </p>
+                {event.estimatedDepthCm !== undefined && (
+                  <p className="text-gray-400 text-[10px] mt-1.5 border-t border-gray-100 pt-1 font-mono">
+                    Đỉnh triều dự kiến: ~{event.estimatedDepthCm} cm
+                  </p>
+                )}
               </div>
             </Popup>
           </Circle>
@@ -75,3 +86,5 @@ export const FloodLayer: React.FC<FloodLayerProps> = ({ events }) => {
     </>
   );
 };
+
+export default FloodLayer;

@@ -1,14 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-   MapPin,
-   Navigation,
-   ArrowUpDown,
-   Search,
-   X,
-   Crosshair,
-   Map,
-   Newspaper,
-   CloudRain,
+  MapPin,
+  Navigation,
+  ArrowUpDown,
+  Search,
+  X,
+  Crosshair,
+  Map,
+  Target,
+  Newspaper,
+  CloudRain,
+  Loader2,
+  PanelLeftClose,
 } from 'lucide-react';
 import { VehicleSelector } from './VehicleSelector';
 import { TimeSelector } from './TimeSelector';
@@ -16,575 +19,619 @@ import { RouteComparisonCard } from './RouteComparisonCard';
 import { NewsFeedTab } from '../News/NewsFeedTab';
 import { WeatherTab } from '../Weather/WeatherTab';
 import {
-   navigateRoute,
-   searchLocation,
-   reverseGeocode,
+  navigateRoute,
+  searchLocation,
+  reverseGeocode,
 } from '../../services/api';
 import { NavigateResponse } from '../../types';
 
 export interface LocationItem {
-   label: string;
-   lat: number;
-   lng: number;
+  label: string;
+  lat: number;
+  lng: number;
 }
 
 interface RoutePlannerPanelProps {
-   origin: LocationItem;
-   destination: LocationItem;
-   onChangeOrigin: (loc: LocationItem) => void;
-   onChangeDestination: (loc: LocationItem) => void;
-   onRoutesCalculated: (routes: NavigateResponse) => void;
-   selectedRouteType: 'safe' | 'fastest';
-   onSelectRouteType: (t: 'safe' | 'fastest') => void;
-   pickingField: 'origin' | 'dest' | null;
-   onStartPickOnMap: (field: 'origin' | 'dest') => void;
-   onCancelPickOnMap: () => void;
-   onRefreshFloods?: (targetTime?: string) => void;
-   onSelectLocation?: (lat: number, lng: number) => void;
+  origin: LocationItem;
+  destination: LocationItem;
+  onChangeOrigin: (loc: LocationItem) => void;
+  onChangeDestination: (loc: LocationItem) => void;
+  onRoutesCalculated: (routes: NavigateResponse) => void;
+  selectedRouteType: 'safe' | 'fastest';
+  onSelectRouteType: (t: 'safe' | 'fastest') => void;
+  pickingField: 'origin' | 'dest' | null;
+  onStartPickOnMap: (field: 'origin' | 'dest') => void;
+  onCancelPickOnMap: () => void;
+  onRefreshFloods?: (targetTime?: string) => void;
+  onSelectLocation?: (lat: number, lng: number) => void;
+  onToggleCollapse?: () => void;
 }
 
 export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
-   origin,
-   destination,
-   onChangeOrigin,
-   onChangeDestination,
-   onRoutesCalculated,
-   selectedRouteType,
-   onSelectRouteType,
-   pickingField,
-   onStartPickOnMap,
-   onCancelPickOnMap,
-   onRefreshFloods,
-   onSelectLocation,
+  origin,
+  destination,
+  onChangeOrigin,
+  onChangeDestination,
+  onRoutesCalculated,
+  selectedRouteType,
+  onSelectRouteType,
+  pickingField,
+  onStartPickOnMap,
+  onCancelPickOnMap,
+  onRefreshFloods,
+  onSelectLocation,
+  onToggleCollapse,
 }) => {
-   const [mainTab, setMainTab] = useState<'routes' | 'news' | 'weather'>('routes');
-   const [vehicle, setVehicle] = useState<'motorbike' | 'car'>('motorbike');
-   const [targetTime, setTargetTime] = useState<string>(() =>
-      new Date().toISOString(),
-   );
-   const [loading, setLoading] = useState(false);
-   const [routeData, setRouteData] = useState<NavigateResponse | null>(null);
+  const [mainTab, setMainTab] = useState<'routes' | 'news' | 'weather'>('routes');
+  const [vehicle, setVehicle] = useState<'motorbike' | 'car'>('motorbike');
+  const [targetTime, setTargetTime] = useState<string>(() => new Date().toISOString());
+  const [loading, setLoading] = useState(false);
+  const [routeData, setRouteData] = useState<NavigateResponse | null>(null);
 
-   // Search autocomplete state
-   const [activeField, setActiveField] = useState<'origin' | 'dest' | null>(
-      null,
-   );
-   const [searchQuery, setSearchQuery] = useState('');
-   const [suggestions, setSuggestions] = useState<LocationItem[]>([]);
-   const [searching, setSearching] = useState(false);
-   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Search autocomplete state
+  const [activeField, setActiveField] = useState<'origin' | 'dest' | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [suggestions, setSuggestions] = useState<LocationItem[]>([]);
+  const [searching, setSearching] = useState(false);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-   // GPS geolocation state
-   const [gpsLoading, setGpsLoading] = useState(false);
+  // GPS geolocation state
+  const [gpsLoading, setGpsLoading] = useState(false);
 
-   useEffect(() => {
-      if (activeField) {
-         if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-         setSearching(true);
-         searchTimeoutRef.current = setTimeout(async () => {
-            const results = await searchLocation(searchQuery);
-            setSuggestions(results);
-            setSearching(false);
-         }, 300);
+  useEffect(() => {
+    if (activeField) {
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+      setSearching(true);
+      searchTimeoutRef.current = setTimeout(async () => {
+        const results = await searchLocation(searchQuery);
+        setSuggestions(results);
+        setSearching(false);
+      }, 300);
+    }
+    return () => {
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    };
+  }, [searchQuery, activeField]);
+
+  const handleSelectLocation = (loc: LocationItem) => {
+    if (activeField === 'origin') {
+      onChangeOrigin(loc);
+    } else if (activeField === 'dest') {
+      onChangeDestination(loc);
+    }
+    setActiveField(null);
+    setSearchQuery('');
+  };
+
+  const handleGetCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      alert('Trình duyệt không hỗ trợ định vị GPS.');
+      return;
+    }
+
+    setGpsLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        try {
+          const rev = await reverseGeocode(latitude, longitude);
+          onChangeOrigin({
+            label: rev.label || 'Vị trí của tôi',
+            lat: latitude,
+            lng: longitude,
+          });
+        } catch {
+          onChangeOrigin({
+            label: `Tọa độ: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`,
+            lat: latitude,
+            lng: longitude,
+          });
+        } finally {
+          setGpsLoading(false);
+        }
+      },
+      (err) => {
+        console.warn('GPS location error:', err);
+        alert('Không thể xác định vị trí GPS. Vui lòng cấp quyền truy cập vị trí trên trình duyệt.');
+        setGpsLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  };
+
+  const handleSwap = () => {
+    if (loading) return;
+    const temp = { ...origin };
+    onChangeOrigin(destination);
+    onChangeDestination(temp);
+  };
+
+  const handleSearch = async () => {
+    if (loading || !origin.label.trim() || !destination.label.trim()) return;
+    setLoading(true);
+    try {
+      let finalOrigin = { ...origin };
+      let finalDest = { ...destination };
+
+      if (!finalOrigin.lat) {
+        const found = await searchLocation(finalOrigin.label);
+        if (found.length > 0) finalOrigin = found[0];
       }
-      return () => {
-         if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-      };
-   }, [searchQuery, activeField]);
-
-   const handleSelectLocation = (loc: LocationItem) => {
-      if (activeField === 'origin') {
-         onChangeOrigin(loc);
-      } else if (activeField === 'dest') {
-         onChangeDestination(loc);
-      }
-      setActiveField(null);
-      setSearchQuery('');
-   };
-
-   const handleGetCurrentLocation = () => {
-      if (!navigator.geolocation) {
-         alert('Trình duyệt của bạn không hỗ trợ định vị GPS.');
-         return;
+      if (!finalDest.lat) {
+        const found = await searchLocation(finalDest.label);
+        if (found.length > 0) finalDest = found[0];
       }
 
-      setGpsLoading(true);
-      navigator.geolocation.getCurrentPosition(
-         async (pos) => {
-            const { latitude, longitude } = pos.coords;
-            const rev = await reverseGeocode(latitude, longitude);
-            onChangeOrigin({
-               label: rev.label || 'Vị trí hiện tại của tôi',
-               lat: latitude,
-               lng: longitude,
-            });
-            setGpsLoading(false);
-         },
-         (err) => {
-            console.warn('GPS location error:', err);
-            alert(
-               'Không thể lấy vị trí hiện tại. Vui lòng cho phép quyền truy cập vị trí trên trình duyệt.',
-            );
-            setGpsLoading(false);
-         },
-         { enableHighAccuracy: true, timeout: 8000 },
-      );
-   };
+      const data = await navigateRoute({
+        origin: { lat: finalOrigin.lat, lng: finalOrigin.lng },
+        destination: { lat: finalDest.lat, lng: finalDest.lng },
+        target_time: targetTime,
+        vehicle_type: vehicle,
+      });
+      setRouteData(data);
+      onRoutesCalculated(data);
+    } catch (err) {
+      console.error('Route calculation failed', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-   const handleSwap = () => {
-      const temp = { ...origin };
-      onChangeOrigin(destination);
-      onChangeDestination(temp);
-   };
+  const isFindRouteDisabled =
+    loading ||
+    !origin.label.trim() ||
+    !destination.label.trim() ||
+    (origin.lat !== 0 &&
+      destination.lat !== 0 &&
+      origin.lat === destination.lat &&
+      origin.lng === destination.lng);
 
-   const handleSearch = async () => {
-      setLoading(true);
-      try {
-         let finalOrigin = { ...origin };
-         let finalDest = { ...destination };
+  return (
+    <div className="absolute top-4 left-4 z-[1000] w-[calc(100vw-2rem)] sm:w-96 max-h-[92vh] overflow-y-auto bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-2xl border border-gray-200/80 flex flex-col gap-3.5 transition-all">
+      {/* Brand Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-200/60 flex items-center justify-center shadow-xs">
+            <span className="text-lg leading-none">🌊</span>
+          </div>
+          <div>
+            <h2 className="font-bold text-base text-gray-900 tracking-tight leading-tight">
+              SafeRoute
+            </h2>
+            <p className="text-[11px] text-gray-500 font-medium">
+              Định tuyến né ngập thông minh TP.HCM
+            </p>
+          </div>
+        </div>
 
-         // Fallback geocoding if lat/lng is 0
-         if (!finalOrigin.lat) {
-            const found = await searchLocation(finalOrigin.label);
-            if (found.length > 0) finalOrigin = found[0];
-         }
-         if (!finalDest.lat) {
-            const found = await searchLocation(finalDest.label);
-            if (found.length > 0) finalDest = found[0];
-         }
+        {onToggleCollapse && (
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            title="Thu gọn bảng điều khiển"
+            aria-label="Thu gọn bảng điều khiển"
+            className="p-1.5 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition active:scale-95 cursor-pointer"
+          >
+            <PanelLeftClose className="w-4 h-4" />
+          </button>
+        )}
+      </div>
 
-         const data = await navigateRoute({
-            origin: { lat: finalOrigin.lat, lng: finalOrigin.lng },
-            destination: { lat: finalDest.lat, lng: finalDest.lng },
-            target_time: targetTime,
-            vehicle_type: vehicle,
-         });
-         setRouteData(data);
-         onRoutesCalculated(data);
-      } catch (err) {
-         console.error('Route calculation failed', err);
-      } finally {
-         setLoading(false);
-      }
-   };
+      {/* Navigation Tab Bar: Lộ Trình vs Tin Tức vs Thời Tiết */}
+      <div className="flex items-center gap-1 p-1 bg-gray-100/90 rounded-xl border border-gray-200/80">
+        <button
+          type="button"
+          onClick={() => setMainTab('routes')}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-xs font-bold transition-all min-h-[36px] cursor-pointer ${
+            mainTab === 'routes'
+              ? 'bg-white text-blue-700 shadow-sm ring-1 ring-black/5'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-white/40'
+          }`}
+        >
+          <Navigation className="w-3.5 h-3.5" />
+          <span>Lộ trình</span>
+        </button>
 
-   return (
-      <div className="absolute top-4 left-4 z-[1000] w-96 max-h-[92vh] overflow-y-auto bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-2xl border border-gray-100 flex flex-col gap-3.5">
-         <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-               <span className="text-2xl">🌊</span>
-               <div>
-                  <h2 className="font-extrabold text-base text-gray-900 tracking-tight">
-                     SafeRoute
-                  </h2>
-                  <p className="text-[11px] text-gray-500">
-                     Định tuyến né ngập thông minh TP.HCM
-                  </p>
-               </div>
+        <button
+          type="button"
+          onClick={() => setMainTab('news')}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-xs font-bold transition-all min-h-[36px] cursor-pointer ${
+            mainTab === 'news'
+              ? 'bg-white text-blue-700 shadow-sm ring-1 ring-black/5'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-white/40'
+          }`}
+        >
+          <Newspaper className="w-3.5 h-3.5" />
+          <span>Tin tức</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setMainTab('weather')}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-xs font-bold transition-all min-h-[36px] cursor-pointer ${
+            mainTab === 'weather'
+              ? 'bg-white text-blue-700 shadow-sm ring-1 ring-black/5'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-white/40'
+          }`}
+        >
+          <CloudRain className="w-3.5 h-3.5" />
+          <span>Thời tiết</span>
+        </button>
+      </div>
+
+      {mainTab === 'news' ? (
+        <NewsFeedTab
+          onSelectLocation={onSelectLocation}
+          onRefreshFloods={onRefreshFloods}
+        />
+      ) : mainTab === 'weather' ? (
+        <WeatherTab onSelectLocation={onSelectLocation} />
+      ) : (
+        <>
+          {/* Banner when pick-on-map is active */}
+          {pickingField && (
+            <div
+              className={`p-2.5 rounded-xl flex items-center justify-between text-xs border ${
+                pickingField === 'origin'
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                  : 'bg-rose-50 border-rose-200 text-rose-900'
+              }`}
+            >
+              <div className="flex items-center gap-2 font-semibold">
+                {pickingField === 'origin' ? (
+                  <MapPin className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                ) : (
+                  <Target className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                )}
+                <span>
+                  {pickingField === 'origin'
+                    ? 'Chấm chọn Điểm xuất phát'
+                    : 'Chấm chọn Điểm đến'}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={onCancelPickOnMap}
+                className={`text-xs font-bold hover:underline px-1.5 py-0.5 ${
+                  pickingField === 'origin'
+                    ? 'text-emerald-700 hover:text-emerald-900'
+                    : 'text-rose-700 hover:text-rose-900'
+                }`}
+              >
+                Hủy
+              </button>
             </div>
-         </div>
+          )}
 
-         {/* Navigation Tab Bar: Lộ Trình vs Tin Tức vs Thời Tiết */}
-         <div className="flex items-center gap-1 p-1 bg-gray-100/90 rounded-xl border border-gray-200/80">
-            <button
-               type="button"
-               onClick={() => setMainTab('routes')}
-               className={`flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-all ${
-                  mainTab === 'routes'
-                     ? 'bg-white text-blue-700 shadow-sm'
-                     : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-               }`}
-            >
-               <Navigation className="w-3.5 h-3.5" />
-               Lộ trình
-            </button>
-            <button
-               type="button"
-               onClick={() => setMainTab('news')}
-               className={`flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-all ${
-                  mainTab === 'news'
-                     ? 'bg-white text-indigo-700 shadow-sm'
-                     : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-               }`}
-            >
-               <Newspaper className="w-3.5 h-3.5" />
-               Tin tức
-            </button>
-            <button
-               type="button"
-               onClick={() => setMainTab('weather')}
-               className={`flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-xs font-bold transition-all ${
-                  mainTab === 'weather'
-                     ? 'bg-white text-sky-700 shadow-sm'
-                     : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-               }`}
-            >
-               <CloudRain className="w-3.5 h-3.5" />
-               Thời tiết
-            </button>
-         </div>
-
-         {mainTab === 'news' ? (
-            <NewsFeedTab
-               onSelectLocation={onSelectLocation}
-               onRefreshFloods={onRefreshFloods}
-            />
-         ) : mainTab === 'weather' ? (
-            <WeatherTab onSelectLocation={onSelectLocation} />
-         ) : (
-            <>
-         {/* Banner when pick-on-map is active */}
-         {pickingField && (
-            <div className="p-2.5 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between text-xs text-blue-900 animate-pulse">
-               <div className="flex items-center gap-1.5 font-semibold">
-                  <Map className="w-4 h-4 text-blue-600" />
-                  <span>
-                     Click trên bản đồ để chọn{' '}
-                     {pickingField === 'origin'
-                        ? 'Điểm xuất phát'
-                        : 'Điểm đến'}
-                  </span>
-               </div>
-               <button
-                  type="button"
-                  onClick={onCancelPickOnMap}
-                  className="text-[11px] font-bold text-blue-700 hover:underline ml-2"
-               >
-                  Hủy
-               </button>
-            </div>
-         )}
-
-         {/* Origin & Destination Inputs with Quick Pick buttons */}
-         <div className="space-y-2">
+          {/* Origin & Destination Inputs */}
+          <div className="space-y-2">
             {/* Origin Field */}
             <div className="relative">
-               <div className="flex items-center justify-between mb-1">
-                  <span className="text-[11px] font-bold text-gray-600 flex items-center gap-1">
-                     <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />{' '}
-                     Điểm xuất phát
-                  </span>
-                  <div className="flex items-center gap-1">
-                     <button
-                        type="button"
-                        onClick={handleGetCurrentLocation}
-                        disabled={gpsLoading}
-                        className="text-[10px] font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded-md flex items-center gap-1 transition"
-                        title="Lấy tọa độ vị trí hiện tại của bạn qua GPS"
-                     >
-                        <Crosshair className="w-3 h-3" />
-                        {gpsLoading ? 'Đang định vị...' : 'Vị trí của tôi'}
-                     </button>
-                     <button
-                        type="button"
-                        onClick={() => onStartPickOnMap('origin')}
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 transition ${
-                           pickingField === 'origin'
-                              ? 'bg-blue-600 text-white'
-                              : 'text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200'
-                        }`}
-                        title="Click trên bản đồ để ghim điểm xuất phát"
-                     >
-                        <Map className="w-3 h-3" />
-                        Ghim trên map
-                     </button>
-                  </div>
-               </div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[11px] font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-xs inline-block" />
+                  <span>Điểm xuất phát</span>
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    disabled={loading || gpsLoading}
+                    onClick={handleGetCurrentLocation}
+                    className="text-[10px] font-bold text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-md flex items-center gap-1 transition active:scale-95 disabled:opacity-50"
+                    title="Lấy vị trí GPS hiện tại"
+                  >
+                    {gpsLoading ? (
+                      <Loader2 className="w-3 h-3 animate-spin text-blue-600" />
+                    ) : (
+                      <Crosshair className="w-3 h-3 text-blue-600" />
+                    )}
+                    <span>{gpsLoading ? 'Đang lấy GPS...' : 'Vị trí của tôi'}</span>
+                  </button>
 
-               <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-xl border border-gray-200 focus-within:border-emerald-500 focus-within:bg-white transition">
-                  <MapPin className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                  <input
-                     type="text"
-                     value={
-                        activeField === 'origin' ? searchQuery : origin.label
-                     }
-                     onFocus={() => {
-                        setActiveField('origin');
-                        setSearchQuery(origin.label);
-                     }}
-                     onBlur={() =>
-                        setTimeout(() => {
-                           if (activeField === 'origin') setActiveField(null);
-                        }, 250)
-                     }
-                     onChange={(e) => {
-                        setSearchQuery(e.target.value);
-                        onChangeOrigin({
-                           label: e.target.value,
-                           lat: 0,
-                           lng: 0,
-                        });
-                     }}
-                     placeholder="Nhập địa chỉ nhà, tên đường, quận..."
-                     className="text-xs bg-transparent w-full outline-none font-medium text-gray-800 placeholder-gray-400"
-                  />
-                  {origin.label && (
-                     <button
-                        type="button"
-                        onClick={() => {
-                           onChangeOrigin({ label: '', lat: 0, lng: 0 });
-                           setSearchQuery('');
-                        }}
-                        className="text-gray-400 hover:text-gray-600 p-0.5"
-                     >
-                        <X className="w-3.5 h-3.5" />
-                     </button>
+                  <button
+                    type="button"
+                    disabled={loading}
+                    onClick={() => onStartPickOnMap('origin')}
+                    className={`text-[10px] font-bold px-2 py-1 rounded-md flex items-center gap-1 transition active:scale-95 disabled:opacity-50 ${
+                      pickingField === 'origin'
+                        ? 'bg-blue-600 text-white'
+                        : 'text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200'
+                    }`}
+                    title="Ghim điểm xuất phát trên bản đồ"
+                  >
+                    <Map className="w-3 h-3" />
+                    <span>Ghim trên map</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 p-2 bg-gray-50/80 rounded-xl border border-gray-200/90 focus-within:border-emerald-500 focus-within:bg-white transition">
+                <MapPin className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                <input
+                  type="text"
+                  disabled={loading}
+                  value={activeField === 'origin' ? searchQuery : origin.label}
+                  onFocus={() => {
+                    setActiveField('origin');
+                    setSearchQuery(origin.label);
+                  }}
+                  onBlur={() =>
+                    setTimeout(() => {
+                      if (activeField === 'origin') setActiveField(null);
+                    }, 250)
+                  }
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    onChangeOrigin({
+                      label: e.target.value,
+                      lat: 0,
+                      lng: 0,
+                    });
+                  }}
+                  placeholder="Nhập địa chỉ xuất phát..."
+                  className="text-xs bg-transparent w-full outline-none font-medium text-gray-800 placeholder-gray-400 disabled:opacity-50"
+                />
+                {origin.label && !loading && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onChangeOrigin({ label: '', lat: 0, lng: 0 });
+                      setSearchQuery('');
+                    }}
+                    className="text-gray-400 hover:text-gray-600 p-0.5 active:scale-90 transition"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Dropdown Suggestions for Origin */}
+              {activeField === 'origin' && (
+                <div className="absolute top-full left-0 right-0 z-50 bg-white border border-gray-200 rounded-xl shadow-2xl mt-1.5 max-h-56 overflow-y-auto divide-y divide-gray-100">
+                  <div className="p-2 bg-gray-50/95 backdrop-blur-sm text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center justify-between sticky top-0 z-10">
+                    <span className="flex items-center gap-1">
+                      <Search className="w-3 h-3 text-emerald-600" />
+                      Gợi ý địa chỉ
+                    </span>
+                    {searching && (
+                      <span className="text-emerald-600 lowercase font-normal flex items-center gap-1">
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        đang tìm...
+                      </span>
+                    )}
+                  </div>
+                  {suggestions.length === 0 && !searching && (
+                    <div className="p-3 text-xs text-gray-500 text-center">
+                      Không tìm thấy địa chỉ phù hợp.
+                    </div>
                   )}
-               </div>
-
-               {/* Dropdown Suggestions for Origin */}
-               {activeField === 'origin' && (
-                  <div className="absolute top-full left-0 right-0 z-50 bg-white border border-gray-200 rounded-xl shadow-2xl mt-1.5 max-h-56 overflow-y-auto divide-y divide-gray-100">
-                     <div className="p-2 bg-gray-50 text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center justify-between sticky top-0 bg-gray-50/95 backdrop-blur-sm z-10">
-                        <span className="flex items-center gap-1">
-                           <Search className="w-3 h-3 text-emerald-600" />
-                           Gợi ý điểm xuất phát
-                        </span>
-                        {searching && (
-                           <span className="text-emerald-600 lowercase font-normal">
-                              đang tìm...
-                           </span>
-                        )}
-                     </div>
-                     {suggestions.length === 0 && !searching && (
-                        <div className="p-3 text-xs text-gray-500 text-center">
-                           Không tìm thấy địa chỉ. Bạn có thể bấm{' '}
-                           <strong className="text-emerald-600">
-                              "Ghim trên map"
-                           </strong>{' '}
-                           hoặc{' '}
-                           <strong className="text-emerald-600">
-                              "Vị trí của tôi"
-                           </strong>{' '}
-                           để chọn điểm chuẩn xác.
+                  {suggestions.map((item, idx) => (
+                    <div
+                      key={idx}
+                      onMouseDown={() => handleSelectLocation(item)}
+                      className="p-2.5 text-xs text-gray-800 hover:bg-emerald-50 hover:text-emerald-800 cursor-pointer transition flex items-start gap-2"
+                    >
+                      <MapPin className="w-3.5 h-3.5 text-emerald-500 mt-0.5 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-gray-900 leading-snug">
+                          {item.label}
                         </div>
-                     )}
-                     {suggestions.map((item, idx) => (
-                        <div
-                           key={idx}
-                           onMouseDown={() => handleSelectLocation(item)}
-                           className="p-2.5 text-xs text-gray-800 hover:bg-emerald-50 hover:text-emerald-700 cursor-pointer transition flex items-start gap-2"
-                        >
-                           <MapPin className="w-3.5 h-3.5 text-emerald-500 mt-0.5 flex-shrink-0" />
-                           <div className="flex-1">
-                              <div className="font-medium text-gray-900 leading-snug">
-                                 {item.label}
-                              </div>
-                              <div className="text-[10px] text-gray-400 mt-0.5 font-mono">
-                                 Tọa độ: {item.lat.toFixed(4)},{' '}
-                                 {item.lng.toFixed(4)}
-                              </div>
-                           </div>
+                        <div className="text-[10px] text-gray-400 mt-0.5 font-mono">
+                          {item.lat.toFixed(4)}, {item.lng.toFixed(4)}
                         </div>
-                     ))}
-                  </div>
-               )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Swap button */}
-            <div className="flex justify-center -my-1 z-10 relative">
-               <button
-                  type="button"
-                  onClick={handleSwap}
-                  title="Đảo ngược điểm đi và điểm đến"
-                  className="p-1.5 bg-white border border-gray-200 text-gray-600 hover:text-blue-600 rounded-full shadow-sm hover:shadow transition"
-               >
-                  <ArrowUpDown className="w-3.5 h-3.5" />
-               </button>
+            <div className="flex justify-center -my-1.5 z-10 relative">
+              <button
+                type="button"
+                disabled={loading}
+                onClick={handleSwap}
+                title="Đảo chiều điểm đi và điểm đến"
+                className="group p-1.5 bg-white border border-gray-200/90 text-gray-600 hover:text-blue-600 rounded-full shadow-sm hover:shadow transition active:scale-90 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ArrowUpDown className="w-3.5 h-3.5 group-hover:rotate-180 transition-transform duration-300" />
+              </button>
             </div>
 
             {/* Destination Field */}
             <div className="relative">
-               <div className="flex items-center justify-between mb-1">
-                  <span className="text-[11px] font-bold text-gray-600 flex items-center gap-1">
-                     <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />{' '}
-                     Điểm đến
-                  </span>
-                  <button
-                     type="button"
-                     onClick={() => onStartPickOnMap('dest')}
-                     className={`text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 transition ${
-                        pickingField === 'dest'
-                           ? 'bg-blue-600 text-white'
-                           : 'text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200'
-                     }`}
-                     title="Click trên bản đồ để ghim điểm đến"
-                  >
-                     <Map className="w-3 h-3" />
-                     Ghim trên map
-                  </button>
-               </div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[11px] font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-xs inline-block" />
+                  <span>Điểm đến</span>
+                </span>
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={() => onStartPickOnMap('dest')}
+                  className={`text-[10px] font-bold px-2 py-1 rounded-md flex items-center gap-1 transition active:scale-95 disabled:opacity-50 ${
+                    pickingField === 'dest'
+                      ? 'bg-rose-600 text-white'
+                      : 'text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200'
+                  }`}
+                  title="Ghim điểm đến trên bản đồ"
+                >
+                  <Map className="w-3 h-3" />
+                  <span>Ghim trên map</span>
+                </button>
+              </div>
 
-               <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-xl border border-gray-200 focus-within:border-blue-500 focus-within:bg-white transition">
-                  <Navigation className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                  <input
-                     type="text"
-                     value={
-                        activeField === 'dest' ? searchQuery : destination.label
-                     }
-                     onFocus={() => {
-                        setActiveField('dest');
-                        setSearchQuery(destination.label);
-                     }}
-                     onBlur={() =>
-                        setTimeout(() => {
-                           if (activeField === 'dest') setActiveField(null);
-                        }, 250)
-                     }
-                     onChange={(e) => {
-                        setSearchQuery(e.target.value);
-                        onChangeDestination({
-                           label: e.target.value,
-                           lat: 0,
-                           lng: 0,
-                        });
-                     }}
-                     placeholder="Nhập số nhà, tên đường, quận..."
-                     className="text-xs bg-transparent w-full outline-none font-medium text-gray-800 placeholder-gray-400"
-                  />
-                  {destination.label && (
-                     <button
-                        type="button"
-                        onClick={() => {
-                           onChangeDestination({ label: '', lat: 0, lng: 0 });
-                           setSearchQuery('');
-                        }}
-                        className="text-gray-400 hover:text-gray-600 p-0.5"
-                     >
-                        <X className="w-3.5 h-3.5" />
-                     </button>
-                  )}
-               </div>
-
-               {/* Dropdown Suggestions for Destination */}
-               {activeField === 'dest' && (
-                  <div className="absolute top-full left-0 right-0 z-50 bg-white border border-gray-200 rounded-xl shadow-2xl mt-1.5 max-h-56 overflow-y-auto divide-y divide-gray-100">
-                     <div className="p-2 bg-gray-50 text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center justify-between sticky top-0 bg-gray-50/95 backdrop-blur-sm z-10">
-                        <span className="flex items-center gap-1">
-                           <Search className="w-3 h-3 text-blue-600" />
-                           Gợi ý điểm đến
-                        </span>
-                        {searching && (
-                           <span className="text-blue-600 lowercase font-normal">
-                              đang tìm...
-                           </span>
-                        )}
-                     </div>
-                     {suggestions.length === 0 && !searching && (
-                        <div className="p-3 text-xs text-gray-500 text-center">
-                           Không tìm thấy địa chỉ. Bạn có thể bấm{' '}
-                           <strong className="text-blue-600">
-                              "Ghim trên map"
-                           </strong>{' '}
-                           để chọn điểm chuẩn xác.
-                        </div>
-                     )}
-                     {suggestions.map((item, idx) => (
-                        <div
-                           key={idx}
-                           onMouseDown={() => handleSelectLocation(item)}
-                           className="p-2.5 text-xs text-gray-800 hover:bg-blue-50 hover:text-blue-700 cursor-pointer transition flex items-start gap-2"
-                        >
-                           <MapPin className="w-3.5 h-3.5 text-blue-500 mt-0.5 flex-shrink-0" />
-                           <div className="flex-1">
-                              <div className="font-medium text-gray-900 leading-snug">
-                                 {item.label}
-                              </div>
-                              <div className="text-[10px] text-gray-400 mt-0.5 font-mono">
-                                 Tọa độ: {item.lat.toFixed(4)},{' '}
-                                 {item.lng.toFixed(4)}
-                              </div>
-                           </div>
-                        </div>
-                     ))}
-                  </div>
-               )}
-            </div>
-
-            {/* Grab/Shopee-style Doorstep Precision Hint */}
-            <div className="bg-sky-50/80 border border-sky-100 rounded-xl p-2 text-[11px] text-sky-800 flex items-start gap-2">
-               <span className="text-sm">📍</span>
-               <div className="leading-tight">
-                  <span className="font-bold">Định vị chuẩn xác cửa nhà:</span>{' '}
-                  Bạn có thể{' '}
-                  <strong>kéo thả ghim trên bản đồ</strong> để đặt chính xác vị
-                  trí.
-               </div>
-            </div>
-         </div>
-
-         <VehicleSelector vehicle={vehicle} onChange={setVehicle} />
-         <TimeSelector
-            selectedTime={targetTime}
-            onChange={(t) => {
-               setTargetTime(t);
-               if (onRefreshFloods) onRefreshFloods(t);
-            }}
-         />
-
-         <button
-            onClick={handleSearch}
-            disabled={loading || !origin.label || !destination.label}
-            className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg transition flex items-center justify-center gap-2 text-xs disabled:opacity-50"
-         >
-            {loading ? 'Đang phân tích vùng ngập...' : 'Tìm Lộ Trình Né Ngập'}
-         </button>
-
-         {routeData && (
-            <div className="space-y-2.5 pt-2 border-t border-gray-100">
-               {/* Visual Flood Detection Alert Banner */}
-               {routeData.safe_route.isFlooded ? (
-                  <div className="p-2.5 bg-red-50 border border-red-200 rounded-xl text-xs space-y-0.5">
-                     <div className="flex items-center gap-1.5 font-bold text-red-900">
-                        <span>🚨</span>
-                        <span>
-                           Lộ trình có đoạn ngập sâu {routeData.safe_route.maxFloodDepthCm} cm, dài {routeData.safe_route.floodedDistanceMeters} m
-                        </span>
-                     </div>
-                     <p className="text-red-700 text-[11px]">
-                        Các lối đi quanh khu vực này hiện đều ngập. Chú ý an toàn khi di chuyển.
-                     </p>
-                  </div>
-               ) : routeData.fastest_route.isFlooded ? (
-                  <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-xs space-y-0.5">
-                     <div className="flex items-center gap-1.5 font-bold text-amber-900">
-                        <span>⚠️</span>
-                        <span>
-                           Tuyến nhanh nhất ngập {routeData.fastest_route.maxFloodDepthCm} cm, dài {routeData.fastest_route.floodedDistanceMeters} m
-                        </span>
-                     </div>
-                     <p className="text-emerald-800 font-semibold text-[11px]">
-                        Đã chuyển sang tuyến né ngập an toàn.
-                     </p>
-                  </div>
-               ) : null}
-               <RouteComparisonCard
-                  type="safe"
-                  distanceMeters={routeData.safe_route.distanceMeters}
-                  durationSeconds={routeData.safe_route.durationSeconds}
-                  isFlooded={routeData.safe_route.isFlooded}
-                  maxFloodDepthCm={routeData.safe_route.maxFloodDepthCm}
-                  floodedDistanceMeters={routeData.safe_route.floodedDistanceMeters}
-                  hasAvoidedFlood={routeData.fastest_route.isFlooded && !routeData.safe_route.isFlooded}
-                  isSelected={selectedRouteType === 'safe'}
-                  onSelect={() => onSelectRouteType('safe')}
-               />
-               <RouteComparisonCard
-                  type="fastest"
-                  distanceMeters={routeData.fastest_route.distanceMeters}
-                  durationSeconds={routeData.fastest_route.durationSeconds}
-                  isFlooded={routeData.fastest_route.isFlooded}
-                  maxFloodDepthCm={routeData.fastest_route.maxFloodDepthCm}
-                  floodedDistanceMeters={
-                     routeData.fastest_route.floodedDistanceMeters
+              <div className="flex items-center gap-2 p-2 bg-gray-50/80 rounded-xl border border-gray-200/90 focus-within:border-rose-500 focus-within:bg-white transition">
+                <Target className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                <input
+                  type="text"
+                  disabled={loading}
+                  value={activeField === 'dest' ? searchQuery : destination.label}
+                  onFocus={() => {
+                    setActiveField('dest');
+                    setSearchQuery(destination.label);
+                  }}
+                  onBlur={() =>
+                    setTimeout(() => {
+                      if (activeField === 'dest') setActiveField(null);
+                    }, 250)
                   }
-                  isSelected={selectedRouteType === 'fastest'}
-                  onSelect={() => onSelectRouteType('fastest')}
-               />
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    onChangeDestination({
+                      label: e.target.value,
+                      lat: 0,
+                      lng: 0,
+                    });
+                  }}
+                  placeholder="Nhập địa chỉ điểm đến..."
+                  className="text-xs bg-transparent w-full outline-none font-medium text-gray-800 placeholder-gray-400 disabled:opacity-50"
+                />
+                {destination.label && !loading && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onChangeDestination({ label: '', lat: 0, lng: 0 });
+                      setSearchQuery('');
+                    }}
+                    className="text-gray-400 hover:text-gray-600 p-0.5 active:scale-90 transition"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Dropdown Suggestions for Destination */}
+              {activeField === 'dest' && (
+                <div className="absolute top-full left-0 right-0 z-50 bg-white border border-gray-200 rounded-xl shadow-2xl mt-1.5 max-h-56 overflow-y-auto divide-y divide-gray-100">
+                  <div className="p-2 bg-gray-50/95 backdrop-blur-sm text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center justify-between sticky top-0 z-10">
+                    <span className="flex items-center gap-1">
+                      <Search className="w-3 h-3 text-rose-600" />
+                      Gợi ý địa chỉ
+                    </span>
+                    {searching && (
+                      <span className="text-rose-600 lowercase font-normal flex items-center gap-1">
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        đang tìm...
+                      </span>
+                    )}
+                  </div>
+                  {suggestions.length === 0 && !searching && (
+                    <div className="p-3 text-xs text-gray-500 text-center">
+                      Không tìm thấy địa chỉ phù hợp.
+                    </div>
+                  )}
+                  {suggestions.map((item, idx) => (
+                    <div
+                      key={idx}
+                      onMouseDown={() => handleSelectLocation(item)}
+                      className="p-2.5 text-xs text-gray-800 hover:bg-rose-50 hover:text-rose-800 cursor-pointer transition flex items-start gap-2"
+                    >
+                      <Target className="w-3.5 h-3.5 text-rose-500 mt-0.5 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-gray-900 leading-snug">
+                          {item.label}
+                        </div>
+                        <div className="text-[10px] text-gray-400 mt-0.5 font-mono">
+                          {item.lat.toFixed(4)}, {item.lng.toFixed(4)}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-         )}
-         </>
-         )}
-      </div>
-   );
+          </div>
+
+          <VehicleSelector vehicle={vehicle} onChange={setVehicle} disabled={loading} />
+          <TimeSelector
+            selectedTime={targetTime}
+            disabled={loading}
+            onChange={(t) => {
+              setTargetTime(t);
+              if (onRefreshFloods) onRefreshFloods(t);
+            }}
+          />
+
+          {/* Primary CTA button with locking and loading state */}
+          <button
+            type="button"
+            onClick={handleSearch}
+            disabled={isFindRouteDisabled}
+            className="w-full py-3.5 min-h-[46px] bg-blue-600 hover:bg-blue-700 active:bg-blue-800 active:scale-[0.98] text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 text-xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin text-white" />
+                <span>Đang tính toán lộ trình né ngập...</span>
+              </>
+            ) : (
+              <>
+                <Navigation className="w-4 h-4 fill-current text-white" />
+                <span>Tìm lộ trình an toàn</span>
+              </>
+            )}
+          </button>
+
+          {/* Route Results Comparison Section */}
+          {routeData && (
+            <div className="space-y-2.5 pt-2 border-t border-gray-100">
+              {/* Visual Flood Detection Alert Banner */}
+              {routeData.safe_route.isFlooded ? (
+                <div className="p-3 bg-red-50 border border-red-200/90 rounded-xl text-xs space-y-1">
+                  <div className="flex items-center gap-1.5 font-bold text-red-900">
+                    <span>🚨</span>
+                    <span>
+                      Mọi ngả đường đều ngập sâu {routeData.safe_route.maxFloodDepthCm} cm ({routeData.safe_route.floodedDistanceMeters} m)
+                    </span>
+                  </div>
+                  <p className="text-red-700 text-[11px] leading-tight">
+                    Khu vực xung quanh ngập sâu diện rộng. Vui lòng cân nhắc đổi thời gian di chuyển.
+                  </p>
+                </div>
+              ) : routeData.fastest_route.isFlooded ? (
+                <div className="p-3 bg-emerald-50 border border-emerald-200/90 rounded-xl text-xs space-y-1">
+                  <div className="flex items-center gap-1.5 font-bold text-emerald-900">
+                    <span>🛡️</span>
+                    <span>
+                      Đã tự động né ngập thành công
+                    </span>
+                  </div>
+                  <p className="text-emerald-700 text-[11px] leading-tight">
+                    Tuyến nhanh nhất ngập {routeData.fastest_route.maxFloodDepthCm} cm ({routeData.fastest_route.floodedDistanceMeters} m). Đã chuyển sang lộ trình khô ráo.
+                  </p>
+                </div>
+              ) : null}
+
+              <RouteComparisonCard
+                type="safe"
+                distanceMeters={routeData.safe_route.distanceMeters}
+                durationSeconds={routeData.safe_route.durationSeconds}
+                isFlooded={routeData.safe_route.isFlooded}
+                maxFloodDepthCm={routeData.safe_route.maxFloodDepthCm}
+                floodedDistanceMeters={routeData.safe_route.floodedDistanceMeters}
+                hasAvoidedFlood={routeData.fastest_route.isFlooded && !routeData.safe_route.isFlooded}
+                isSelected={selectedRouteType === 'safe'}
+                onSelect={() => onSelectRouteType('safe')}
+              />
+
+              <RouteComparisonCard
+                type="fastest"
+                distanceMeters={routeData.fastest_route.distanceMeters}
+                durationSeconds={routeData.fastest_route.durationSeconds}
+                isFlooded={routeData.fastest_route.isFlooded}
+                maxFloodDepthCm={routeData.fastest_route.maxFloodDepthCm}
+                floodedDistanceMeters={routeData.fastest_route.floodedDistanceMeters}
+                isSelected={selectedRouteType === 'fastest'}
+                onSelect={() => onSelectRouteType('fastest')}
+              />
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
 };
+
+export default RoutePlannerPanel;

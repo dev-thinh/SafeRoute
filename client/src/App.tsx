@@ -8,7 +8,7 @@ import { RoutePlannerPanel, LocationItem } from './components/Navigation/RoutePl
 import { ReportFloodModal, SelectedReportLocation } from './components/Reporting/ReportFloodModal';
 import { ReportLocationPinOverlay } from './components/Reporting/ReportLocationPinOverlay';
 import { getActiveFloods, reverseGeocode } from './services/api';
-import { Droplet } from 'lucide-react';
+import { Droplet, PanelLeftOpen, MapPin, Target } from 'lucide-react';
 import { NavigateResponse, FloodEvent, UserReport } from './types';
 
 export const App: React.FC = () => {
@@ -16,6 +16,9 @@ export const App: React.FC = () => {
   const [selectedRouteType, setSelectedRouteType] = useState<'safe' | 'fastest'>('safe');
   const [floodEvents, setFloodEvents] = useState<FloodEvent[]>([]);
   const [reports, setReports] = useState<UserReport[]>([]);
+
+  // Panel Collapsible State for responsive layout
+  const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
 
   // Zoom handlers ref from MapView
   const zoomHandlersRef = useRef<{ zoomIn: () => void; zoomOut: () => void } | null>(null);
@@ -32,16 +35,16 @@ export const App: React.FC = () => {
   const [isLoadingAddress, setIsLoadingAddress] = useState(false);
   const [selectedReportLocation, setSelectedReportLocation] = useState<SelectedReportLocation | null>(null);
 
-  // Origin & Destination state
+  // Origin & Destination state (starts empty)
   const [origin, setOrigin] = useState<LocationItem>({
-    label: 'ĐH Khoa Học Tự Nhiên, 227 Nguyễn Văn Cừ, Quận 5',
-    lat: 10.7626,
-    lng: 106.6823,
+    label: '',
+    lat: 0,
+    lng: 0,
   });
   const [destination, setDestination] = useState<LocationItem>({
-    label: 'KĐT Phú Mỹ Hưng, Quận 7',
-    lat: 10.7303,
-    lng: 106.7075,
+    label: '',
+    lat: 0,
+    lng: 0,
   });
 
   // Pick on map state for route: 'origin' | 'dest' | null
@@ -164,19 +167,19 @@ export const App: React.FC = () => {
         },
         (err) => {
           console.warn('Geolocation error:', err);
-          alert('Không thể xác định vị trí GPS. Vui lòng cấp quyền vị trí trên trình duyệt của bạn!');
+          alert('Không thể xác định vị trí GPS. Vui lòng cấp quyền vị trí trên trình duyệt.');
         },
         { enableHighAccuracy: true, timeout: 8000 }
       );
     } else {
-      alert('Trình duyệt của bạn không hỗ trợ định vị GPS!');
+      alert('Trình duyệt không hỗ trợ định vị GPS.');
     }
   };
 
   return (
     <div className="relative w-screen h-screen overflow-hidden font-sans">
       {/* 1. Left Sidebar Navigation Panel (Hidden during report pin mode) */}
-      {!isPinningReport && (
+      {!isPinningReport && !isPanelCollapsed && (
         <RoutePlannerPanel
           origin={origin}
           destination={destination}
@@ -190,7 +193,25 @@ export const App: React.FC = () => {
           onCancelPickOnMap={() => setPickingField(null)}
           onRefreshFloods={loadFloods}
           onSelectLocation={(lat, lng) => setMapCenter([lat, lng])}
+          onToggleCollapse={() => setIsPanelCollapsed(true)}
         />
+      )}
+
+      {/* Floating expand pill if panel is collapsed */}
+      {!isPinningReport && isPanelCollapsed && (
+        <button
+          type="button"
+          onClick={() => setIsPanelCollapsed(false)}
+          className="absolute top-4 left-4 z-[1000] flex items-center gap-2 px-4 py-2.5 bg-white/95 backdrop-blur-md border border-gray-200/80 rounded-2xl shadow-xl hover:shadow-2xl hover:bg-white text-gray-800 font-bold text-xs active:scale-95 transition-all cursor-pointer min-h-[44px]"
+          aria-label="Mở bảng điều khiển SafeRoute"
+        >
+          <PanelLeftOpen className="w-4 h-4 text-blue-600" />
+          <span className="text-base leading-none">🌊</span>
+          <span>Bảng điều khiển</span>
+          <span className="text-[10px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-bold border border-blue-100">
+            Mở
+          </span>
+        </button>
       )}
 
       {/* 2. Interactive Map View */}
@@ -203,6 +224,7 @@ export const App: React.FC = () => {
         onDragOrigin={handleDragOrigin}
         onDragDestination={handleDragDestination}
         isPickingLocation={pickingField !== null}
+        pickingField={pickingField}
         isPinningReport={isPinningReport}
         onMapCenterChange={(lat, lng) => setCenterCoord({ lat, lng })}
         onMapMovingChange={setIsMapMoving}
@@ -223,6 +245,38 @@ export const App: React.FC = () => {
         )}
       </MapView>
 
+      {/* Floating Picking Notification Banner */}
+      {pickingField && (
+        <div className="absolute top-5 left-1/2 -translate-x-1/2 z-[1100] bg-white/95 backdrop-blur-md px-4 py-2.5 rounded-2xl shadow-2xl border border-gray-200/90 flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+          <div
+            className={`w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-xs ${
+              pickingField === 'origin' ? 'bg-emerald-600' : 'bg-rose-600'
+            }`}
+          >
+            {pickingField === 'origin' ? (
+              <MapPin className="w-4 h-4" />
+            ) : (
+              <Target className="w-4 h-4" />
+            )}
+          </div>
+          <div>
+            <div className="text-xs font-bold text-gray-900">
+              {pickingField === 'origin' ? 'Ghim điểm xuất phát' : 'Ghim điểm đến'}
+            </div>
+            <div className="text-[11px] text-gray-500">
+              Chạm hoặc click vị trí trên bản đồ để ghim
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setPickingField(null)}
+            className="ml-2 px-3 py-1.5 text-xs font-bold text-gray-700 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-xl transition active:scale-95 cursor-pointer"
+          >
+            Hủy
+          </button>
+        </div>
+      )}
+
       {/* 3. Floating Flood Depth Legend Bar (Hidden during report pin mode) */}
       {!isPinningReport && <FloodDepthLegend />}
 
@@ -230,10 +284,12 @@ export const App: React.FC = () => {
       {!isPinningReport && (
         <div className="absolute bottom-6 right-6 z-[1000]">
           <button
+            type="button"
             onClick={handleStartReportPinning}
-            className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-full shadow-xl transition hover:shadow-2xl hover:scale-105 active:scale-95 cursor-pointer"
+            className="flex items-center gap-2 px-5 py-3 min-h-[44px] bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-bold rounded-full shadow-xl transition-all hover:shadow-2xl hover:scale-105 active:scale-95 cursor-pointer"
+            title="Báo ngập tại vị trí"
           >
-            <Droplet className="w-4 h-4 fill-current" />
+            <Droplet className="w-4 h-4 fill-current text-white" />
             <span>Báo ngập tại đây</span>
           </button>
         </div>

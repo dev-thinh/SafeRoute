@@ -153,7 +153,7 @@ export async function getAllQuadrantsPrecipitation(
 }
 
 import { HCMC_VULNERABLE_CORRIDORS } from './vulnerableRoads';
-import { getSaigonTideStatus, calculateAstronomicalTideDepth } from './tideService';
+import { getSaigonTideStatus, calculateAstronomicalTideDepth, TideStatus } from './tideService';
 import { evaluateCompoundFloodRisk, FloodRiskTier } from './predictionEngine';
 
 export interface QuadrantWeatherStatus {
@@ -189,6 +189,7 @@ export interface WeatherDashboardData {
   quadrants: QuadrantWeatherStatus[];
   hourlyTimeline: HourlyForecastItem[];
   corridorsAtRisk: CorridorRiskStatus[];
+  tideStatus?: TideStatus;
   fetchedAt: string;
 }
 
@@ -303,6 +304,7 @@ export async function getWeatherDashboardData(targetDate: Date = new Date()): Pr
     quadrants,
     hourlyTimeline,
     corridorsAtRisk,
+    tideStatus,
     fetchedAt: new Date().toISOString(),
   };
 }
