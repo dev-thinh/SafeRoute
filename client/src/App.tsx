@@ -6,9 +6,8 @@ import { FloodDepthLegend } from './components/Map/FloodDepthLegend';
 import { ReportMarker } from './components/Map/ReportMarker';
 import { RoutePlannerPanel, LocationItem } from './components/Navigation/RoutePlannerPanel';
 import { ReportFloodModal } from './components/Reporting/ReportFloodModal';
-import { AdminArticleIngestion } from './components/Admin/AdminArticleIngestion';
 import { getActiveFloods, reverseGeocode } from './services/api';
-import { Droplet, Newspaper } from 'lucide-react';
+import { Droplet } from 'lucide-react';
 import { NavigateResponse, FloodEvent, UserReport } from './types';
 
 export const App: React.FC = () => {
@@ -17,7 +16,6 @@ export const App: React.FC = () => {
   const [floodEvents, setFloodEvents] = useState<FloodEvent[]>([]);
   const [reports, setReports] = useState<UserReport[]>([]);
   const [isReportOpen, setIsReportOpen] = useState(false);
-  const [isAdminOpen, setIsAdminOpen] = useState(false);
 
   // Origin & Destination state
   const [origin, setOrigin] = useState<LocationItem>({
@@ -143,15 +141,8 @@ export const App: React.FC = () => {
       {/* Floating Flood Depth Legend Bar (Yellow -> Orange -> Red -> Prohibited) */}
       <FloodDepthLegend />
 
-      {/* Floating Action Buttons */}
-      <div className="absolute bottom-6 right-6 z-[1000] flex flex-col gap-2.5">
-        <button
-          onClick={() => setIsAdminOpen(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-white/90 hover:bg-white text-gray-800 text-xs font-bold rounded-full shadow-lg border border-gray-200 transition backdrop-blur-sm"
-        >
-          <Newspaper className="w-4 h-4 text-purple-600" />
-          Phân tích tin tức (AI)
-        </button>
+      {/* Floating Action Button */}
+      <div className="absolute bottom-6 right-6 z-[1000]">
         <button
           onClick={() => setIsReportOpen(true)}
           className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-full shadow-xl transition"
@@ -165,12 +156,6 @@ export const App: React.FC = () => {
         isOpen={isReportOpen}
         onClose={() => setIsReportOpen(false)}
         onReportSubmitted={loadFloods}
-      />
-
-      <AdminArticleIngestion
-        isOpen={isAdminOpen}
-        onClose={() => setIsAdminOpen(false)}
-        onSuccess={loadFloods}
       />
     </div>
   );

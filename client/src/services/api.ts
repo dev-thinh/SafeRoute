@@ -79,9 +79,6 @@ export const submitReport = (data: {
 export const voteReport = (id: string, type: 'upvote' | 'resolved') =>
   api.post(`/reports/${id}/vote`, { type }).then((r) => r.data);
 
-export const parseArticle = (data: { url?: string; raw_text?: string }) =>
-  api.post('/admin/articles/parse', data).then((r) => r.data);
-
 export const getNewsArticles = () =>
   api.get('/news').then((r) => r.data);
 

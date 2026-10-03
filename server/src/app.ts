@@ -3,7 +3,6 @@ import cors from 'cors';
 import { routesRouter } from './routes/routesRouter';
 import { floodsRouter } from './routes/floodsRouter';
 import { reportsRouter } from './routes/reportsRouter';
-import { adminRouter } from './routes/adminRouter';
 import { geocodingRouter } from './routes/geocodingRouter';
 import { newsRouter } from './routes/newsRouter';
 import { weatherRouter } from './routes/weatherRouter';
@@ -20,7 +19,6 @@ export function createApp() {
   app.use(['/api/routes', '/routes'], routesRouter);
   app.use(['/api/floods', '/floods'], floodsRouter);
   app.use(['/api/reports', '/reports'], reportsRouter);
-  app.use(['/api/admin', '/admin'], adminRouter);
   app.use(['/api/geocoding', '/geocoding'], geocodingRouter);
   app.use(['/api/news', '/news'], newsRouter);
   app.use(['/api/weather', '/weather'], weatherRouter);
