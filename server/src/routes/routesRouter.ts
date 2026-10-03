@@ -6,200 +6,31 @@ import { inMemoryReports } from './reportsRouter';
 
 export const routesRouter = Router();
 
-/**
- * Returns dynamic realistic flood hotspots across HCMC aligned with targetDate's diurnal cycle.
- * In HCMC, semi-diurnal tides produce 2 peaks daily (06:00 morning & 17:45 evening rush hour).
- * Rainfall storms typically occur between 16:30 and 19:00.
- */
-export function getActiveFloodEventsForTargetTime(targetDate: Date): FloodEvent[] {
-  const y = targetDate.getFullYear();
-  const m = targetDate.getMonth();
-  const d = targetDate.getDate();
-
-  // Morning tide peak window (04:30 -> 06:15 peak -> 08:30)
-  const morningStart = new Date(y, m, d, 4, 30, 0);
-  const morningPeak = new Date(y, m, d, 6, 15, 0);
-  const morningEnd = new Date(y, m, d, 8, 30, 0);
-
-  // Evening tide peak window (16:00 -> 17:45 peak -> 20:30)
-  const eveningStart = new Date(y, m, d, 16, 0, 0);
-  const eveningPeak = new Date(y, m, d, 17, 45, 0);
-  const eveningEnd = new Date(y, m, d, 20, 30, 0);
-
-  // Determine closest tide window to targetDate
-  const isMorning =
-    Math.abs(targetDate.getTime() - morningPeak.getTime()) <
-    Math.abs(targetDate.getTime() - eveningPeak.getTime());
-  const tideStart = isMorning ? morningStart : eveningStart;
-  const tidePeak = isMorning ? morningPeak : eveningPeak;
-  const tideEnd = isMorning ? morningEnd : eveningEnd;
-
-  // Afternoon storm rain window (16:30 -> 17:30 peak -> 19:30)
-  const rainStart = new Date(y, m, d, 16, 30, 0);
-  const rainPeak = new Date(y, m, d, 17, 30, 0);
-  const rainEnd = new Date(y, m, d, 19, 30, 0);
-
-  return [
-    {
-      id: 'hcmc-flood-1',
-      title: 'Triều cường đường Trần Xuân Soạn',
-      sourceType: 'tide_forecast',
-      cause: 'high_tide',
-      streetName: 'Trần Xuân Soạn',
-      district: 'Quận 7',
-      city: 'TP. Hồ Chí Minh',
-      startTime: tideStart,
-      peakTime: tidePeak,
-      endTime: tideEnd,
-      estimatedDepthCm: 45,
-      confidenceScore: 0.95,
-      geometry: { type: 'Point', coordinates: [106.7082, 10.7485] },
-    },
-    {
-      id: 'hcmc-flood-2',
-      title: 'Ngập úng đường Nguyễn Thị Thập',
-      sourceType: 'tide_forecast',
-      cause: 'high_tide',
-      streetName: 'Nguyễn Thị Thập',
-      district: 'Quận 7',
-      city: 'TP. Hồ Chí Minh',
-      startTime: tideStart,
-      peakTime: tidePeak,
-      endTime: tideEnd,
-      estimatedDepthCm: 40,
-      confidenceScore: 0.95,
-      geometry: { type: 'Point', coordinates: [106.6960, 10.7390] },
-    },
-    {
-      id: 'hcmc-flood-3',
-      title: 'Triều cường đường Dương Bá Trạc',
-      sourceType: 'tide_forecast',
-      cause: 'high_tide',
-      streetName: 'Dương Bá Trạc',
-      district: 'Quận 8',
-      city: 'TP. Hồ Chí Minh',
-      startTime: tideStart,
-      peakTime: tidePeak,
-      endTime: tideEnd,
-      estimatedDepthCm: 35,
-      confidenceScore: 0.92,
-      geometry: { type: 'Point', coordinates: [106.6883, 10.7489] },
-    },
-    {
-      id: 'hcmc-flood-4',
-      title: 'Triều cường đường Huỳnh Tấn Phát',
-      sourceType: 'tide_forecast',
-      cause: 'high_tide',
-      streetName: 'Huỳnh Tấn Phát',
-      district: 'Quận 7 / Nhà Bè',
-      city: 'TP. Hồ Chí Minh',
-      startTime: tideStart,
-      peakTime: tidePeak,
-      endTime: tideEnd,
-      estimatedDepthCm: 50,
-      confidenceScore: 0.95,
-      geometry: { type: 'Point', coordinates: [106.7325, 10.7349] },
-    },
-    {
-      id: 'hcmc-flood-5',
-      title: 'Triều cường đường Lê Văn Lương',
-      sourceType: 'tide_forecast',
-      cause: 'high_tide',
-      streetName: 'Lê Văn Lương',
-      district: 'Quận 7 / Nhà Bè',
-      city: 'TP. Hồ Chí Minh',
-      startTime: tideStart,
-      peakTime: tidePeak,
-      endTime: tideEnd,
-      estimatedDepthCm: 45,
-      confidenceScore: 0.92,
-      geometry: { type: 'Point', coordinates: [106.7011, 10.7412] },
-    },
-    {
-      id: 'hcmc-flood-6',
-      title: 'Triều cường đường Quốc Hương',
-      sourceType: 'tide_forecast',
-      cause: 'high_tide',
-      streetName: 'Quốc Hương',
-      district: 'TP. Thủ Đức',
-      city: 'TP. Hồ Chí Minh',
-      startTime: tideStart,
-      peakTime: tidePeak,
-      endTime: tideEnd,
-      estimatedDepthCm: 40,
-      confidenceScore: 0.95,
-      geometry: { type: 'Point', coordinates: [106.7326, 10.8038] },
-    },
-    {
-      id: 'hcmc-flood-7',
-      title: 'Ngập úng đường Nguyễn Hữu Cảnh',
-      sourceType: 'news_crawler',
-      cause: 'high_tide',
-      streetName: 'Nguyễn Hữu Cảnh',
-      district: 'Bình Thạnh',
-      city: 'TP. Hồ Chí Minh',
-      startTime: tideStart,
-      peakTime: tidePeak,
-      endTime: tideEnd,
-      estimatedDepthCm: 45,
-      confidenceScore: 0.90,
-      geometry: { type: 'Point', coordinates: [106.7180, 10.7915] },
-    },
-    {
-      id: 'hcmc-flood-8',
-      title: 'Ngập do mưa lớn đường Nguyễn Văn Quá',
-      sourceType: 'news_crawler',
-      cause: 'heavy_rain',
-      streetName: 'Nguyễn Văn Quá',
-      district: 'Quận 12',
-      city: 'TP. Hồ Chí Minh',
-      startTime: rainStart,
-      peakTime: rainPeak,
-      endTime: rainEnd,
-      estimatedDepthCm: 50,
-      confidenceScore: 0.93,
-      geometry: { type: 'Point', coordinates: [106.6273, 10.8415] },
-    },
-    {
-      id: 'hcmc-flood-9',
-      title: 'Ngập do mưa lớn đường Võ Văn Ngân',
-      sourceType: 'news_crawler',
-      cause: 'heavy_rain',
-      streetName: 'Võ Văn Ngân',
-      district: 'TP. Thủ Đức',
-      city: 'TP. Hồ Chí Minh',
-      startTime: rainStart,
-      peakTime: rainPeak,
-      endTime: rainEnd,
-      estimatedDepthCm: 45,
-      confidenceScore: 0.94,
-      geometry: { type: 'Point', coordinates: [106.7570, 10.8520] },
-    },
-    {
-      id: 'hcmc-flood-10',
-      title: 'Triều cường bến Phú Định',
-      sourceType: 'tide_forecast',
-      cause: 'high_tide',
-      streetName: 'Bến Phú Định',
-      district: 'Quận 8',
-      city: 'TP. Hồ Chí Minh',
-      startTime: tideStart,
-      peakTime: tidePeak,
-      endTime: tideEnd,
-      estimatedDepthCm: 45,
-      confidenceScore: 0.90,
-      geometry: { type: 'Point', coordinates: [106.6280, 10.7250] },
-    },
-  ];
-}
-
 import { inMemoryFloodEvents, getDynamicFloodEvents } from '../db/floodsRepo';
 import { getActiveReports } from '../db/reportsRepo';
 import { getAllQuadrantsRollingPrecipitation, RollingPrecipitation } from '../services/weatherService';
-import { evaluateMultiSourceHotspots, getRainInducedFloodEvents } from '../services/vulnerableRoads';
+import { evaluateMultiSourceHotspots } from '../services/vulnerableRoads';
 import { getActiveNewsFloodEvents } from '../services/newsCrawler';
 import { getSaigonTideStatus } from '../services/tideService';
 export { inMemoryFloodEvents };
+
+/**
+ * Dynamically computes active and potential flood events across HCMC
+ * based on real-time/forecast rolling precipitation and astronomical lunar tide.
+ * Replaces the legacy hardcoded 10-point static array.
+ */
+export async function getActiveFloodEventsForTargetTime(
+  targetDate: Date,
+  includeAllCorridors: boolean = false
+): Promise<FloodEvent[]> {
+  try {
+    const rollingPrecip = await getAllQuadrantsRollingPrecipitation(targetDate);
+    return evaluateMultiSourceHotspots(targetDate, rollingPrecip, includeAllCorridors);
+  } catch (err) {
+    console.warn('Failed to calculate dynamic flood events:', err);
+    return [];
+  }
+}
 
 routesRouter.post('/navigate', async (req, res) => {
   try {
@@ -211,13 +42,10 @@ routesRouter.post('/navigate', async (req, res) => {
     const targetDate = target_time ? new Date(target_time) : new Date();
     const vehicle: VehicleType = vehicle_type === 'car' ? 'car' : 'motorbike';
 
-    // 1. Dynamic baseline HCMC hotspots aligned to user's selected date/time
-    const baselineEvents = getActiveFloodEventsForTargetTime(targetDate);
-
-    // 2. Astronomical lunar tide status
+    // 1. Astronomical lunar tide status
     const tideStatus = getSaigonTideStatus(targetDate);
 
-    // 3. Real-time meteorological rainfall observation & 3h rolling accumulation
+    // 2. Real-time meteorological rainfall observation & 3h rolling accumulation
     let rainPrecipitation: Record<string, number> = { center: 0, south: 0, east: 0, northwest: 0 };
     let predictiveHotspots: FloodEvent[] = [];
     try {
@@ -228,16 +56,17 @@ routesRouter.post('/navigate', async (req, res) => {
         east: rollingPrecip.east.currentMm,
         northwest: rollingPrecip.northwest.currentMm,
       };
-      predictiveHotspots = evaluateMultiSourceHotspots(targetDate, rollingPrecip);
+      // For routing, return active and potential hazards (depth >= 10cm)
+      predictiveHotspots = evaluateMultiSourceHotspots(targetDate, rollingPrecip, false);
     } catch (weatherErr) {
       console.warn('Weather service query failed:', weatherErr);
     }
 
-    // 4. Active news events (applying 3-hour temporal decay for incident reports, advance scheduling for forecasts)
+    // 3. Active news events (applying 3-hour temporal decay for incident reports, advance scheduling for forecasts)
     const dynamicAdminEvents = await getDynamicFloodEvents();
     const activeNewsEvents = getActiveNewsFloodEvents(dynamicAdminEvents, targetDate);
 
-    // 5. Live crowdsourced user reports converted to flood hazard obstacles
+    // 4. Live crowdsourced user reports converted to flood hazard obstacles
     const activeReports = await getActiveReports();
     const crowdsourcedEvents: FloodEvent[] = activeReports
       .filter((r) => r.status === 'active')
@@ -257,8 +86,8 @@ routesRouter.post('/navigate', async (req, res) => {
         geometry: { type: 'Point', coordinates: [r.coordinate.lng, r.coordinate.lat] },
       }));
 
+    // Combined multi-source events: 100% dynamic predictive + news + reports
     const combinedEvents = [
-      ...baselineEvents,
       ...predictiveHotspots,
       ...activeNewsEvents,
       ...crowdsourcedEvents,

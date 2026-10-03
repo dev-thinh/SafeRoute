@@ -1035,10 +1035,13 @@ export function getRainInducedFloodEvents(
 /**
  * Advanced Multi-Source Flood Evaluator: Combines rolling 3h precipitation,
  * astronomical lunar tide, and tide-locking coupling across all 68+ HCMC corridors.
+ * When includeAllCorridors is true, returns all corridors with their live/forecast depth (0 if dry).
+ * When false (default), returns only active hazards (potential or critical, depth >= 10cm).
  */
 export function evaluateMultiSourceHotspots(
   targetDate: Date,
-  rainByQuadrant: Record<HcmcQuadrant, RollingPrecipitation>
+  rainByQuadrant: Record<HcmcQuadrant, RollingPrecipitation>,
+  includeAllCorridors: boolean = false
 ): FloodEvent[] {
   const events: FloodEvent[] = [];
   const tideStatus = getSaigonTideStatus(targetDate);
@@ -1054,14 +1057,14 @@ export function evaluateMultiSourceHotspots(
     const rainAccumMm = quadData?.effectiveAccumulationMm || 0;
     const rainProb = quadData?.rainProbability || 0;
 
-    // Calculate rain depth
+    // Calculate rain depth based on rolling accumulation vs threshold
     let rainDepthCm = 0;
     if (rainAccumMm >= corridor.rainThresholdMm * 0.7) {
       const ratio = rainAccumMm / corridor.rainThresholdMm;
       rainDepthCm = Math.round(corridor.baseDepthCm * Math.sqrt(Math.max(0.2, ratio)));
     }
 
-    // Calculate tide depth
+    // Calculate astronomical tide depth for this exact date & time
     const tideDepthCm = calculateAstronomicalTideDepth(
       corridor.tideThresholdM,
       targetDate,
@@ -1078,8 +1081,9 @@ export function evaluateMultiSourceHotspots(
       isRiverine
     );
 
-    // Only create event if hazard is at least potential (warning tier) or critical
-    if (assessment.riskTier !== 'safe' && assessment.estimatedDepthCm >= 10) {
+    const isFlooded = assessment.riskTier !== 'safe' && assessment.estimatedDepthCm >= 10;
+
+    if (isFlooded || includeAllCorridors) {
       const startTime = new Date(targetDate.getTime() - 45 * 60 * 1000);
       const peakTime = new Date(targetDate.getTime());
       const endTime = new Date(targetDate.getTime() + 120 * 60 * 1000);
@@ -1088,9 +1092,16 @@ export function evaluateMultiSourceHotspots(
         ? 'combined'
         : (tideDepthCm > 0 ? 'high_tide' : 'heavy_rain');
 
+      let title = `Khô ráo: ${corridor.streetName} (${corridor.district})`;
+      if (assessment.riskTier === 'critical') {
+        title = `🚨 Ngập sâu: ${corridor.streetName} (${corridor.district})`;
+      } else if (assessment.riskTier === 'potential') {
+        title = `⚠️ Có khả năng ngập: ${corridor.streetName} (${corridor.district})`;
+      }
+
       events.push({
         id: `predictive-${corridor.id}`,
-        title: `${assessment.riskTier === 'critical' ? '🚨 Ngập sâu' : '⚠️ Có khả năng ngập'}: ${corridor.streetName} (${corridor.district})`,
+        title,
         sourceType: 'weather_radar',
         cause,
         streetName: corridor.streetName,
@@ -1100,6 +1111,7 @@ export function evaluateMultiSourceHotspots(
         peakTime,
         endTime,
         estimatedDepthCm: assessment.estimatedDepthCm,
+        current_depth_cm: assessment.estimatedDepthCm,
         confidenceScore: assessment.compoundProbability,
         geometry: {
           type: 'Point',

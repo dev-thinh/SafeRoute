@@ -125,41 +125,10 @@ export const crawledArticlesStore: ScrapedArticle[] = [
 ];
 
 export function seedInitialFloodEvents(): void {
-  const now = new Date();
-  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-  const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
-
-  for (const article of crawledArticlesStore) {
-    if (!article.extractedLocations) continue;
-    for (const loc of article.extractedLocations) {
-      if (loc.lat && loc.lng) {
-        const exists = inMemoryFloodEvents.some(
-          (e) => e.streetName === loc.streetName && e.district === loc.district
-        );
-        if (!exists) {
-          inMemoryFloodEvents.push({
-            id: `seeded-${loc.streetName.toLowerCase().replace(/\s+/g, '-')}`,
-            title: `Báo chí: ${article.title}`,
-            sourceType: 'news_crawler',
-            cause: loc.cause || article.cause || 'combined',
-            streetName: loc.streetName,
-            district: loc.district,
-            city: 'TP. Hồ Chí Minh',
-            startTime: startOfDay,
-            peakTime: now,
-            endTime: endOfDay,
-            estimatedDepthCm: loc.depthCm,
-            confidenceScore: 0.95,
-            geometry: { type: 'Point', coordinates: [loc.lng, loc.lat] },
-          });
-        }
-      }
-    }
-  }
+  // Archive articles are preserved in crawledArticlesStore for historical reference,
+  // but we do NOT seed artificial 24-hour obstacles into the live navigation database.
+  // Live obstacles only come from dynamic weather/hydrology and verified active reports.
 }
-
-// Auto-seed initially
-seedInitialFloodEvents();
 
 export async function fetchArticleContent(url: string): Promise<{ title: string; content: string }> {
   const response = await axios.get(url, {

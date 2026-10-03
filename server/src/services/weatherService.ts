@@ -153,6 +153,8 @@ export async function getAllQuadrantsPrecipitation(
 }
 
 import { HCMC_VULNERABLE_CORRIDORS } from './vulnerableRoads';
+import { getSaigonTideStatus, calculateAstronomicalTideDepth } from './tideService';
+import { evaluateCompoundFloodRisk, FloodRiskTier } from './predictionEngine';
 
 export interface QuadrantWeatherStatus {
   id: HcmcQuadrant;
@@ -169,20 +171,24 @@ export interface HourlyForecastItem {
   precipitationMm: number;
 }
 
+export interface CorridorRiskStatus {
+  id: string;
+  streetName: string;
+  district: string;
+  rainThresholdMm: number;
+  currentRainMm: number;
+  estimatedDepthCm: number;
+  coordinate: [number, number];
+  description: string;
+  isCurrentlyFlooded: boolean;
+  riskTier?: FloodRiskTier;
+  compoundProbability?: number;
+}
+
 export interface WeatherDashboardData {
   quadrants: QuadrantWeatherStatus[];
   hourlyTimeline: HourlyForecastItem[];
-  corridorsAtRisk: Array<{
-    id: string;
-    streetName: string;
-    district: string;
-    rainThresholdMm: number;
-    currentRainMm: number;
-    estimatedDepthCm: number;
-    coordinate: [number, number];
-    description: string;
-    isCurrentlyFlooded: boolean;
-  }>;
+  corridorsAtRisk: CorridorRiskStatus[];
   fetchedAt: string;
 }
 
@@ -190,7 +196,14 @@ export interface WeatherDashboardData {
  * Aggregates complete weather forecast and flood vulnerability analytics for HCMC.
  */
 export async function getWeatherDashboardData(targetDate: Date = new Date()): Promise<WeatherDashboardData> {
-  const rainByQuadrant = await getAllQuadrantsPrecipitation(targetDate);
+  const allRolling = await getAllQuadrantsRollingPrecipitation(targetDate);
+  const rainByQuadrant: Record<HcmcQuadrant, number> = {
+    center: allRolling.center.currentMm,
+    south: allRolling.south.currentMm,
+    east: allRolling.east.currentMm,
+    northwest: allRolling.northwest.currentMm,
+  };
+  const tideStatus = getSaigonTideStatus(targetDate);
 
   const quadrants: QuadrantWeatherStatus[] = (['center', 'south', 'east', 'northwest'] as HcmcQuadrant[]).map((q) => {
     const loc = HCMC_QUADRANTS[q];
@@ -232,26 +245,57 @@ export async function getWeatherDashboardData(targetDate: Date = new Date()): Pr
     }
   }
 
-  // Cross-reference with all calibrated vulnerable corridors
-  const corridorsAtRisk = HCMC_VULNERABLE_CORRIDORS.map((corridor) => {
-    let rainMm = rainByQuadrant[corridor.quadrant] || 0;
+  // Cross-reference with all calibrated vulnerable corridors using compound flood model
+  const corridorsAtRisk: CorridorRiskStatus[] = HCMC_VULNERABLE_CORRIDORS.map((corridor) => {
+    let quadData = allRolling[corridor.quadrant];
     if (corridor.district === 'Bình Thạnh') {
-      rainMm = Math.max(rainByQuadrant.center || 0, rainByQuadrant.east || 0);
+      const c = allRolling.center?.effectiveAccumulationMm || 0;
+      const e = allRolling.east?.effectiveAccumulationMm || 0;
+      quadData = c >= e ? allRolling.center : allRolling.east;
     }
-    const isFlooded = rainMm >= corridor.rainThresholdMm;
-    const ratio = rainMm > 0 ? rainMm / corridor.rainThresholdMm : 0;
-    const estimatedDepth = isFlooded ? Math.min(75, Math.round(corridor.baseDepthCm * Math.sqrt(ratio))) : 0;
+
+    const rainAccumMm = quadData?.effectiveAccumulationMm || 0;
+    const rainProb = quadData?.rainProbability || 0;
+
+    let rainDepthCm = 0;
+    if (rainAccumMm >= corridor.rainThresholdMm * 0.7) {
+      const ratio = rainAccumMm / corridor.rainThresholdMm;
+      rainDepthCm = Math.round(corridor.baseDepthCm * Math.sqrt(Math.max(0.2, ratio)));
+    }
+
+    const tideDepthCm = calculateAstronomicalTideDepth(
+      corridor.tideThresholdM,
+      targetDate,
+      corridor.baseDepthCm
+    );
+
+    const isRiverine =
+      corridor.drainageBasin === 'Nam Sài Gòn' ||
+      corridor.district === 'Bình Thạnh' ||
+      corridor.drainageBasin === 'Đông Sài Gòn';
+
+    const assessment = evaluateCompoundFloodRisk(
+      rainProb,
+      tideStatus.tideProbability,
+      rainDepthCm,
+      tideDepthCm,
+      isRiverine
+    );
+
+    const isFlooded = assessment.riskTier !== 'safe' && assessment.estimatedDepthCm >= 10;
 
     return {
       id: corridor.id,
       streetName: corridor.streetName,
       district: corridor.district,
       rainThresholdMm: corridor.rainThresholdMm,
-      currentRainMm: rainMm,
-      estimatedDepthCm: estimatedDepth,
+      currentRainMm: quadData?.currentMm || 0,
+      estimatedDepthCm: assessment.estimatedDepthCm,
       coordinate: corridor.coordinate,
       description: corridor.description,
       isCurrentlyFlooded: isFlooded,
+      riskTier: assessment.riskTier,
+      compoundProbability: assessment.compoundProbability,
     };
   });
 
