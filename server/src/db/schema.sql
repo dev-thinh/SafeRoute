@@ -1,6 +1,11 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "postgis";
-CREATE EXTENSION IF NOT EXISTS "pgrouting";
+DO $$ 
+BEGIN 
+  CREATE EXTENSION IF NOT EXISTS "pgrouting"; 
+EXCEPTION WHEN OTHERS THEN 
+  RAISE NOTICE 'pgrouting extension not available in this environment, skipping.'; 
+END $$;
 
 CREATE TABLE IF NOT EXISTS flood_events (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
