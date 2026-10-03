@@ -195,9 +195,10 @@ export function getActiveFloodEventsForTargetTime(targetDate: Date): FloodEvent[
 
 import { inMemoryFloodEvents, getDynamicFloodEvents } from '../db/floodsRepo';
 import { getActiveReports } from '../db/reportsRepo';
-import { getAllQuadrantsPrecipitation } from '../services/weatherService';
-import { getRainInducedFloodEvents } from '../services/vulnerableRoads';
+import { getAllQuadrantsRollingPrecipitation, RollingPrecipitation } from '../services/weatherService';
+import { evaluateMultiSourceHotspots, getRainInducedFloodEvents } from '../services/vulnerableRoads';
 import { getActiveNewsFloodEvents } from '../services/newsCrawler';
+import { getSaigonTideStatus } from '../services/tideService';
 export { inMemoryFloodEvents };
 
 routesRouter.post('/navigate', async (req, res) => {
@@ -213,21 +214,30 @@ routesRouter.post('/navigate', async (req, res) => {
     // 1. Dynamic baseline HCMC hotspots aligned to user's selected date/time
     const baselineEvents = getActiveFloodEventsForTargetTime(targetDate);
 
-    // 2. Real-time meteorological rainfall observation & vulnerable corridors
+    // 2. Astronomical lunar tide status
+    const tideStatus = getSaigonTideStatus(targetDate);
+
+    // 3. Real-time meteorological rainfall observation & 3h rolling accumulation
     let rainPrecipitation: Record<string, number> = { center: 0, south: 0, east: 0, northwest: 0 };
-    let rainInducedEvents: FloodEvent[] = [];
+    let predictiveHotspots: FloodEvent[] = [];
     try {
-      rainPrecipitation = await getAllQuadrantsPrecipitation(targetDate);
-      rainInducedEvents = getRainInducedFloodEvents(targetDate, rainPrecipitation as any);
+      const rollingPrecip = await getAllQuadrantsRollingPrecipitation(targetDate);
+      rainPrecipitation = {
+        center: rollingPrecip.center.currentMm,
+        south: rollingPrecip.south.currentMm,
+        east: rollingPrecip.east.currentMm,
+        northwest: rollingPrecip.northwest.currentMm,
+      };
+      predictiveHotspots = evaluateMultiSourceHotspots(targetDate, rollingPrecip);
     } catch (weatherErr) {
       console.warn('Weather service query failed:', weatherErr);
     }
 
-    // 3. Active news events (applying 3-hour temporal decay for navigation obstacles)
+    // 4. Active news events (applying 3-hour temporal decay for incident reports, advance scheduling for forecasts)
     const dynamicAdminEvents = await getDynamicFloodEvents();
     const activeNewsEvents = getActiveNewsFloodEvents(dynamicAdminEvents, targetDate);
 
-    // 4. Live crowdsourced user reports converted to flood hazard obstacles
+    // 5. Live crowdsourced user reports converted to flood hazard obstacles
     const activeReports = await getActiveReports();
     const crowdsourcedEvents: FloodEvent[] = activeReports
       .filter((r) => r.status === 'active')
@@ -249,10 +259,18 @@ routesRouter.post('/navigate', async (req, res) => {
 
     const combinedEvents = [
       ...baselineEvents,
-      ...rainInducedEvents,
+      ...predictiveHotspots,
       ...activeNewsEvents,
       ...crowdsourcedEvents,
     ];
+
+    // Compute risk summary metrics
+    const criticalEvents = combinedEvents.filter(
+      (e) => e.estimatedDepthCm >= (vehicle === 'car' ? 35 : 20) || e.title.includes('🚨')
+    );
+    const potentialEvents = combinedEvents.filter(
+      (e) => !criticalEvents.includes(e) && (e.estimatedDepthCm >= 10 || e.title.includes('⚠️'))
+    );
 
     // 1. Prioritize native pgRouting engine on local PostGIS (100% natural Dijkstra flood avoidance)
     let result = null;
@@ -273,8 +291,14 @@ routesRouter.post('/navigate', async (req, res) => {
       target_time: targetDate.toISOString(),
       vehicle_type: vehicle,
       precipitation_by_quadrant: rainPrecipitation,
+      tide_status: tideStatus,
+      risk_summary: {
+        critical_count: criticalEvents.length,
+        potential_count: potentialEvents.length,
+      },
     });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }
 });
+

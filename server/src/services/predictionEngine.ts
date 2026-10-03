@@ -82,7 +82,7 @@ export function isHazardActive(
  * Calculates flood depth for any FloodEvent, respecting its source type and temporal model.
  */
 export function calculateEventDepth(event: FloodEvent, targetTime: Date): number {
-  if (event.sourceType === 'news_crawler' || event.sourceType === 'admin_manual') {
+  if (event.sourceType === 'weather_radar' || event.sourceType === 'news_crawler' || event.sourceType === 'admin_manual') {
     const t = targetTime.getTime();
     const tStart = event.startTime.getTime();
     const tEnd = event.endTime.getTime();

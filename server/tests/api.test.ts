@@ -26,6 +26,11 @@ describe('SafeRoute REST API', () => {
     expect(res.body.fastest_route).toBeDefined();
     expect(res.body.safe_route.geometry).toBeDefined();
     expect(res.body.precipitation_by_quadrant).toBeDefined();
+    expect(res.body.tide_status).toBeDefined();
+    expect(res.body.tide_status.lunarDay).toBeGreaterThanOrEqual(1);
+    expect(res.body.risk_summary).toBeDefined();
+    expect(typeof res.body.risk_summary.critical_count).toBe('number');
+    expect(typeof res.body.risk_summary.potential_count).toBe('number');
   }, 15000);
 
   it('POST /api/reports should accept crowdsourced flood report', async () => {
