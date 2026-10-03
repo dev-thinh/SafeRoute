@@ -1,0 +1,61 @@
+services:
+  postgres:
+    image: pgrouting/pgrouting-extra:16-3.5-3.8.0
+    container_name: saferoute-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-saferoute}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./server/src/db/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d saferoute"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - saferoute-net
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: saferoute-server
+    restart: always
+    environment:
+      PORT: 5000
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-saferoute}
+      GOONG_API_KEY: ${GOONG_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - saferoute-net
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: saferoute-client
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - server
+    networks:
+      - saferoute-net
+
+volumes:
+  pgdata:
+    driver: local
+
+networks:
+  saferoute-net:
+    driver: bridge
