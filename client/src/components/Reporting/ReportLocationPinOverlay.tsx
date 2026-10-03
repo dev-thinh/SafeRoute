@@ -47,8 +47,12 @@ export const ReportLocationPinOverlay: React.FC<ReportLocationPinOverlayProps> =
           >
             {/* Tooltip badge */}
             <div className="mb-1.5 px-3 py-1 bg-gray-900/90 text-white text-[11px] font-semibold rounded-full shadow-lg border border-gray-700 whitespace-nowrap flex items-center gap-1.5 backdrop-blur-sm">
-              <span className={`w-2 h-2 rounded-full ${isMoving ? 'bg-amber-400 animate-ping' : 'bg-blue-400'}`} />
-              <span>{isMoving ? 'Thả để chọn điểm này' : 'Điểm ngập cần báo'}</span>
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  isMoving ? 'bg-amber-400 animate-ping' : 'bg-blue-400'
+                }`}
+              />
+              <span>{isMoving ? 'Đang chọn vị trí...' : 'Vị trí báo ngập'}</span>
             </div>
 
             {/* Pin Graphic */}
@@ -70,18 +74,18 @@ export const ReportLocationPinOverlay: React.FC<ReportLocationPinOverlayProps> =
         </div>
       </div>
 
-      {/* 2. Top Instructions and Address Preview Card */}
+      {/* 2. Top Address Card */}
       <div className="pointer-events-auto absolute top-5 left-1/2 -translate-x-1/2 z-[1200] w-[92%] max-w-lg bg-white/95 backdrop-blur-md p-3.5 px-4 rounded-2xl shadow-2xl border border-gray-200/80 transition-all duration-200">
         <div className="flex items-center gap-2.5 mb-2">
-          <div className="w-7 h-7 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+          <div className="w-7 h-7 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
             <Droplet className="w-4 h-4 fill-current" />
           </div>
           <div>
             <h4 className="text-xs font-bold text-gray-900 leading-tight">
-              Kéo bản đồ để đặt tâm vào điểm ngập
+              Điểm báo ngập trên bản đồ
             </h4>
             <p className="text-[11px] text-gray-500 leading-tight">
-              Di chuyển hoặc phóng to thu nhỏ bản đồ để chấm đúng vị trí trên đường
+              Tọa độ được tự động đồng bộ theo tâm màn hình
             </p>
           </div>
         </div>
@@ -100,8 +104,8 @@ export const ReportLocationPinOverlay: React.FC<ReportLocationPinOverlayProps> =
                 {address || `Tọa độ: ${coord.lat.toFixed(5)}, ${coord.lng.toFixed(5)}`}
               </p>
             )}
-            <p className="text-[10px] text-gray-400 font-mono">
-              Tọa độ: {coord.lat.toFixed(5)}, {coord.lng.toFixed(5)}
+            <p className="text-[10px] text-gray-400 font-mono mt-0.5">
+              {coord.lat.toFixed(5)}, {coord.lng.toFixed(5)}
             </p>
           </div>
         </div>
@@ -113,7 +117,7 @@ export const ReportLocationPinOverlay: React.FC<ReportLocationPinOverlayProps> =
         <button
           type="button"
           onClick={onCancel}
-          className="flex items-center justify-center gap-1.5 px-4 py-3 bg-white/95 hover:bg-white text-gray-700 text-xs font-bold rounded-xl border border-gray-200 shadow-xl transition backdrop-blur-sm hover:text-gray-900"
+          className="flex items-center justify-center gap-1.5 px-4 py-3 min-h-[44px] bg-white/95 hover:bg-white text-gray-700 text-xs font-bold rounded-xl border border-gray-200 shadow-xl transition-all backdrop-blur-sm hover:text-gray-900 active:scale-95 cursor-pointer"
         >
           <X className="w-4 h-4" />
           <span>Hủy</span>
@@ -124,7 +128,7 @@ export const ReportLocationPinOverlay: React.FC<ReportLocationPinOverlayProps> =
           type="button"
           onClick={onLocateMe}
           title="Di chuyển đến vị trí hiện tại của tôi"
-          className="flex items-center justify-center gap-1.5 px-3.5 py-3 bg-white/95 hover:bg-white text-blue-600 text-xs font-bold rounded-xl border border-gray-200 shadow-xl transition backdrop-blur-sm hover:bg-blue-50"
+          className="flex items-center justify-center gap-1.5 px-3.5 py-3 min-h-[44px] bg-white/95 hover:bg-white text-blue-600 text-xs font-bold rounded-xl border border-gray-200 shadow-xl transition-all backdrop-blur-sm hover:bg-blue-50 active:scale-95 cursor-pointer"
         >
           <Navigation className="w-4 h-4" />
           <span className="hidden sm:inline">Vị trí của tôi</span>
@@ -134,11 +138,11 @@ export const ReportLocationPinOverlay: React.FC<ReportLocationPinOverlayProps> =
         <button
           type="button"
           onClick={onConfirm}
-          disabled={isMoving}
-          className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-bold rounded-xl shadow-xl transition disabled:opacity-60 disabled:cursor-not-allowed"
+          disabled={isMoving || isLoadingAddress}
+          className="flex-1 flex items-center justify-center gap-2 py-3 px-4 min-h-[44px] bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-bold rounded-xl shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 cursor-pointer"
         >
           <Check className="w-4 h-4" />
-          <span>Xác nhận vị trí này</span>
+          <span>Xác nhận vị trí</span>
         </button>
       </div>
 
@@ -150,7 +154,7 @@ export const ReportLocationPinOverlay: React.FC<ReportLocationPinOverlayProps> =
               type="button"
               onClick={onZoomIn}
               title="Phóng to tâm bản đồ (+)"
-              className="w-10 h-10 flex items-center justify-center text-gray-700 hover:text-blue-600 hover:bg-blue-50 transition font-bold active:scale-90 cursor-pointer"
+              className="w-11 h-11 flex items-center justify-center text-gray-700 hover:text-blue-600 hover:bg-blue-50 transition font-bold active:scale-90 cursor-pointer"
             >
               <Plus className="w-5 h-5" />
             </button>
@@ -161,7 +165,7 @@ export const ReportLocationPinOverlay: React.FC<ReportLocationPinOverlayProps> =
               type="button"
               onClick={onZoomOut}
               title="Thu nhỏ tâm bản đồ (-)"
-              className="w-10 h-10 flex items-center justify-center text-gray-700 hover:text-blue-600 hover:bg-blue-50 transition font-bold active:scale-90 cursor-pointer"
+              className="w-11 h-11 flex items-center justify-center text-gray-700 hover:text-blue-600 hover:bg-blue-50 transition font-bold active:scale-90 cursor-pointer"
             >
               <Minus className="w-5 h-5" />
             </button>
@@ -171,3 +175,5 @@ export const ReportLocationPinOverlay: React.FC<ReportLocationPinOverlayProps> =
     </>
   );
 };
+
+export default ReportLocationPinOverlay;

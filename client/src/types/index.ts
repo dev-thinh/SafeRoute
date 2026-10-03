@@ -103,10 +103,20 @@ export interface CorridorRiskStatus {
   isCurrentlyFlooded: boolean;
 }
 
+export interface TideStatus {
+  lunarDay: number;
+  peakTideHeightM: number;
+  morningPeak: string;
+  eveningPeak: string;
+  isSpringTide: boolean;
+  tideProbability: number;
+}
+
 export interface WeatherDashboardData {
   quadrants: QuadrantWeatherStatus[];
   hourlyTimeline: HourlyForecastItem[];
   corridorsAtRisk: CorridorRiskStatus[];
+  tideStatus?: TideStatus;
   fetchedAt: string;
 }
 

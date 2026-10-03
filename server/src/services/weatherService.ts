@@ -189,6 +189,7 @@ export interface WeatherDashboardData {
   quadrants: QuadrantWeatherStatus[];
   hourlyTimeline: HourlyForecastItem[];
   corridorsAtRisk: CorridorRiskStatus[];
+  tideStatus?: TideStatus;
   fetchedAt: string;
 }
 
@@ -303,6 +304,7 @@ export async function getWeatherDashboardData(targetDate: Date = new Date()): Pr
     quadrants,
     hourlyTimeline,
     corridorsAtRisk,
+    tideStatus,
     fetchedAt: new Date().toISOString(),
   };
 }

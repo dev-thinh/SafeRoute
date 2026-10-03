@@ -8,7 +8,7 @@ import { RoutePlannerPanel, LocationItem } from './components/Navigation/RoutePl
 import { ReportFloodModal, SelectedReportLocation } from './components/Reporting/ReportFloodModal';
 import { ReportLocationPinOverlay } from './components/Reporting/ReportLocationPinOverlay';
 import { getActiveFloods, reverseGeocode } from './services/api';
-import { Droplet } from 'lucide-react';
+import { Droplet, PanelLeftOpen } from 'lucide-react';
 import { NavigateResponse, FloodEvent, UserReport } from './types';
 
 export const App: React.FC = () => {
@@ -16,6 +16,9 @@ export const App: React.FC = () => {
   const [selectedRouteType, setSelectedRouteType] = useState<'safe' | 'fastest'>('safe');
   const [floodEvents, setFloodEvents] = useState<FloodEvent[]>([]);
   const [reports, setReports] = useState<UserReport[]>([]);
+
+  // Panel Collapsible State for responsive layout
+  const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
 
   // Zoom handlers ref from MapView
   const zoomHandlersRef = useRef<{ zoomIn: () => void; zoomOut: () => void } | null>(null);
@@ -164,19 +167,19 @@ export const App: React.FC = () => {
         },
         (err) => {
           console.warn('Geolocation error:', err);
-          alert('Không thể xác định vị trí GPS. Vui lòng cấp quyền vị trí trên trình duyệt của bạn!');
+          alert('Không thể xác định vị trí GPS. Vui lòng cấp quyền vị trí trên trình duyệt.');
         },
         { enableHighAccuracy: true, timeout: 8000 }
       );
     } else {
-      alert('Trình duyệt của bạn không hỗ trợ định vị GPS!');
+      alert('Trình duyệt không hỗ trợ định vị GPS.');
     }
   };
 
   return (
     <div className="relative w-screen h-screen overflow-hidden font-sans">
       {/* 1. Left Sidebar Navigation Panel (Hidden during report pin mode) */}
-      {!isPinningReport && (
+      {!isPinningReport && !isPanelCollapsed && (
         <RoutePlannerPanel
           origin={origin}
           destination={destination}
@@ -190,7 +193,25 @@ export const App: React.FC = () => {
           onCancelPickOnMap={() => setPickingField(null)}
           onRefreshFloods={loadFloods}
           onSelectLocation={(lat, lng) => setMapCenter([lat, lng])}
+          onToggleCollapse={() => setIsPanelCollapsed(true)}
         />
+      )}
+
+      {/* Floating expand pill if panel is collapsed */}
+      {!isPinningReport && isPanelCollapsed && (
+        <button
+          type="button"
+          onClick={() => setIsPanelCollapsed(false)}
+          className="absolute top-4 left-4 z-[1000] flex items-center gap-2 px-4 py-2.5 bg-white/95 backdrop-blur-md border border-gray-200/80 rounded-2xl shadow-xl hover:shadow-2xl hover:bg-white text-gray-800 font-bold text-xs active:scale-95 transition-all cursor-pointer min-h-[44px]"
+          aria-label="Mở bảng điều khiển SafeRoute"
+        >
+          <PanelLeftOpen className="w-4 h-4 text-blue-600" />
+          <span className="text-base leading-none">🌊</span>
+          <span>Bảng điều khiển</span>
+          <span className="text-[10px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-bold border border-blue-100">
+            Mở
+          </span>
+        </button>
       )}
 
       {/* 2. Interactive Map View */}
@@ -230,10 +251,12 @@ export const App: React.FC = () => {
       {!isPinningReport && (
         <div className="absolute bottom-6 right-6 z-[1000]">
           <button
+            type="button"
             onClick={handleStartReportPinning}
-            className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-full shadow-xl transition hover:shadow-2xl hover:scale-105 active:scale-95 cursor-pointer"
+            className="flex items-center gap-2 px-5 py-3 min-h-[44px] bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-bold rounded-full shadow-xl transition-all hover:shadow-2xl hover:scale-105 active:scale-95 cursor-pointer"
+            title="Báo ngập tại vị trí"
           >
-            <Droplet className="w-4 h-4 fill-current" />
+            <Droplet className="w-4 h-4 fill-current text-white" />
             <span>Báo ngập tại đây</span>
           </button>
         </div>
