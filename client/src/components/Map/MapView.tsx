@@ -17,6 +17,7 @@ interface MapViewProps {
   isPinningReport?: boolean;
   onMapCenterChange?: (lat: number, lng: number) => void;
   onMapMovingChange?: (isMoving: boolean) => void;
+  onRegisterZoomHandlers?: (handlers: { zoomIn: () => void; zoomOut: () => void }) => void;
 }
 
 const MapNavigationController: React.FC<{
@@ -156,7 +157,8 @@ const MapPinTracker: React.FC<{
   active?: boolean;
   onCenterChange?: (lat: number, lng: number) => void;
   onMovingChange?: (isMoving: boolean) => void;
-}> = ({ active, onCenterChange, onMovingChange }) => {
+  onRegisterZoomHandlers?: (handlers: { zoomIn: () => void; zoomOut: () => void }) => void;
+}> = ({ active, onCenterChange, onMovingChange, onRegisterZoomHandlers }) => {
   const map = useMapEvents({
     movestart() {
       if (active && onMovingChange) {
@@ -178,7 +180,46 @@ const MapPinTracker: React.FC<{
         }
       }
     },
+    zoomstart() {
+      if (active && onMovingChange) {
+        onMovingChange(true);
+      }
+    },
+    zoomend() {
+      if (active) {
+        if (onMovingChange) onMovingChange(false);
+        if (onCenterChange) {
+          const c = map.getCenter();
+          onCenterChange(c.lat, c.lng);
+        }
+      }
+    },
   });
+
+  // Dynamically set Leaflet zoom options to 'center' so mouse wheel and touch zoom
+  // always zoom into the center pin being marked instead of the mouse cursor.
+  React.useEffect(() => {
+    if (!map) return;
+    if (active) {
+      map.options.scrollWheelZoom = 'center';
+      map.options.doubleClickZoom = 'center';
+      map.options.touchZoom = 'center';
+    } else {
+      map.options.scrollWheelZoom = true;
+      map.options.doubleClickZoom = true;
+      map.options.touchZoom = true;
+    }
+  }, [active, map]);
+
+  // Expose zoomIn and zoomOut methods to parent/UI buttons
+  React.useEffect(() => {
+    if (onRegisterZoomHandlers) {
+      onRegisterZoomHandlers({
+        zoomIn: () => map.zoomIn(),
+        zoomOut: () => map.zoomOut(),
+      });
+    }
+  }, [map, onRegisterZoomHandlers]);
 
   React.useEffect(() => {
     if (active && onCenterChange) {
@@ -186,7 +227,7 @@ const MapPinTracker: React.FC<{
       onCenterChange(c.lat, c.lng);
       if (onMovingChange) onMovingChange(false);
     }
-  }, [active, map]);
+  }, [active]);
 
   return null;
 };
@@ -229,6 +270,7 @@ export const MapView: React.FC<MapViewProps> = ({
   isPinningReport,
   onMapCenterChange,
   onMapMovingChange,
+  onRegisterZoomHandlers,
 }) => {
   const defaultCenter: [number, number] = [10.7626, 106.6823];
   // Pure OpenStreetMap raster tiles - 100% free and no API key required
@@ -264,6 +306,7 @@ export const MapView: React.FC<MapViewProps> = ({
           active={isPinningReport}
           onCenterChange={onMapCenterChange}
           onMovingChange={onMapMovingChange}
+          onRegisterZoomHandlers={onRegisterZoomHandlers}
         />
         <MapClickHandler onMapClick={onMapClick} />
 
