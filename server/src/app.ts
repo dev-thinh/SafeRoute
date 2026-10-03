@@ -13,17 +13,17 @@ export function createApp() {
   app.use(cors());
   app.use(express.json());
 
-  app.get('/api/health', (req, res) => {
+  app.get(['/api/health', '/health'], (req, res) => {
     res.json({ status: 'ok', service: 'SafeRoute Backend' });
   });
 
-  app.use('/api/routes', routesRouter);
-  app.use('/api/floods', floodsRouter);
-  app.use('/api/reports', reportsRouter);
-  app.use('/api/admin', adminRouter);
-  app.use('/api/geocoding', geocodingRouter);
-  app.use('/api/news', newsRouter);
-  app.use('/api/weather', weatherRouter);
+  app.use(['/api/routes', '/routes'], routesRouter);
+  app.use(['/api/floods', '/floods'], floodsRouter);
+  app.use(['/api/reports', '/reports'], reportsRouter);
+  app.use(['/api/admin', '/admin'], adminRouter);
+  app.use(['/api/geocoding', '/geocoding'], geocodingRouter);
+  app.use(['/api/news', '/news'], newsRouter);
+  app.use(['/api/weather', '/weather'], weatherRouter);
 
   return app;
 }
