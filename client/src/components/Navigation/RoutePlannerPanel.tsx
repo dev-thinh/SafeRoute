@@ -7,6 +7,7 @@ import {
   X,
   Crosshair,
   Map,
+  Flag,
   Newspaper,
   CloudRain,
   Loader2,
@@ -269,9 +270,19 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
         <>
           {/* Banner when pick-on-map is active */}
           {pickingField && (
-            <div className="p-2.5 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between text-xs text-blue-900">
+            <div
+              className={`p-2.5 rounded-xl flex items-center justify-between text-xs border ${
+                pickingField === 'origin'
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                  : 'bg-rose-50 border-rose-200 text-rose-900'
+              }`}
+            >
               <div className="flex items-center gap-2 font-semibold">
-                <Map className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                {pickingField === 'origin' ? (
+                  <MapPin className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                ) : (
+                  <Flag className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                )}
                 <span>
                   {pickingField === 'origin'
                     ? 'Chấm chọn Điểm xuất phát'
@@ -281,7 +292,11 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
               <button
                 type="button"
                 onClick={onCancelPickOnMap}
-                className="text-xs font-bold text-blue-700 hover:underline px-1.5 py-0.5"
+                className={`text-xs font-bold hover:underline px-1.5 py-0.5 ${
+                  pickingField === 'origin'
+                    ? 'text-emerald-700 hover:text-emerald-900'
+                    : 'text-rose-700 hover:text-rose-900'
+                }`}
               >
                 Hủy
               </button>
@@ -428,7 +443,7 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
             <div className="relative">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-[11px] font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-blue-600 shadow-xs inline-block" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-xs inline-block" />
                   <span>Điểm đến</span>
                 </span>
                 <button
@@ -437,7 +452,7 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                   onClick={() => onStartPickOnMap('dest')}
                   className={`text-[10px] font-bold px-2 py-1 rounded-md flex items-center gap-1 transition active:scale-95 disabled:opacity-50 ${
                     pickingField === 'dest'
-                      ? 'bg-blue-600 text-white'
+                      ? 'bg-rose-600 text-white'
                       : 'text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200'
                   }`}
                   title="Ghim điểm đến trên bản đồ"
@@ -447,8 +462,8 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                 </button>
               </div>
 
-              <div className="flex items-center gap-2 p-2 bg-gray-50/80 rounded-xl border border-gray-200/90 focus-within:border-blue-500 focus-within:bg-white transition">
-                <Navigation className="w-4 h-4 text-blue-600 flex-shrink-0" />
+              <div className="flex items-center gap-2 p-2 bg-gray-50/80 rounded-xl border border-gray-200/90 focus-within:border-rose-500 focus-within:bg-white transition">
+                <Flag className="w-4 h-4 text-rose-600 flex-shrink-0" />
                 <input
                   type="text"
                   disabled={loading}
@@ -492,11 +507,11 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                 <div className="absolute top-full left-0 right-0 z-50 bg-white border border-gray-200 rounded-xl shadow-2xl mt-1.5 max-h-56 overflow-y-auto divide-y divide-gray-100">
                   <div className="p-2 bg-gray-50/95 backdrop-blur-sm text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center justify-between sticky top-0 z-10">
                     <span className="flex items-center gap-1">
-                      <Search className="w-3 h-3 text-blue-600" />
+                      <Search className="w-3 h-3 text-rose-600" />
                       Gợi ý địa chỉ
                     </span>
                     {searching && (
-                      <span className="text-blue-600 lowercase font-normal flex items-center gap-1">
+                      <span className="text-rose-600 lowercase font-normal flex items-center gap-1">
                         <Loader2 className="w-3 h-3 animate-spin" />
                         đang tìm...
                       </span>
@@ -511,9 +526,9 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                     <div
                       key={idx}
                       onMouseDown={() => handleSelectLocation(item)}
-                      className="p-2.5 text-xs text-gray-800 hover:bg-blue-50 hover:text-blue-800 cursor-pointer transition flex items-start gap-2"
+                      className="p-2.5 text-xs text-gray-800 hover:bg-rose-50 hover:text-rose-800 cursor-pointer transition flex items-start gap-2"
                     >
-                      <MapPin className="w-3.5 h-3.5 text-blue-500 mt-0.5 flex-shrink-0" />
+                      <Flag className="w-3.5 h-3.5 text-rose-500 mt-0.5 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
                         <div className="font-semibold text-gray-900 leading-snug">
                           {item.label}

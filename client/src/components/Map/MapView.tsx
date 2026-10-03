@@ -313,7 +313,7 @@ const originIcon = L.divIcon({
   popupAnchor: [0, -36],
 });
 
-// 2. Destination Pin: Compact Blue Location Pin with Finish Flag (26x36px)
+// 2. Destination Pin: Compact Ruby Rose Location Pin with Centered Finish Flag (26x36px)
 const destIcon = L.divIcon({
   className: 'custom-dest-pin',
   html: `
@@ -321,12 +321,15 @@ const destIcon = L.divIcon({
       <svg width="26" height="36" viewBox="0 0 26 36" fill="none" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <linearGradient id="destGrad" x1="13" y1="1" x2="13" y2="35" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stop-color="#3B82F6" />
-            <stop offset="100%" stop-color="#1D4ED8" />
+            <stop offset="0%" stop-color="#F43F5E" />
+            <stop offset="100%" stop-color="#BE123C" />
           </linearGradient>
         </defs>
         <path d="M13 1C6.373 1 1 6.373 1 13c0 8.8 10.8 20.8 11.4 21.4.3.3.9.3 1.2 0 .6-.6 11.4-12.6 11.4-21.4C25 6.373 19.627 1 13 1z" fill="url(#destGrad)" stroke="white" stroke-width="2" stroke-linejoin="round"/>
-        <path d="M9.5 8h6l-1 2.2 1 2.2h-6v4.5H8.2V8h1.3z" fill="white"/>
+        <!-- Perfectly Centered Finish Flag -->
+        <circle cx="9" cy="7.2" r="1.1" fill="white" />
+        <line x1="9" y1="7.2" x2="9" y2="18.8" stroke="white" stroke-width="1.6" stroke-linecap="round" />
+        <path d="M9 7.8h7.5l-1.8 2.6 1.8 2.6H9z" fill="white" stroke="white" stroke-width="0.6" stroke-linejoin="round" />
       </svg>
     </div>
   `,
@@ -360,16 +363,19 @@ const ghostOriginIcon = L.divIcon({
 const ghostDestIcon = L.divIcon({
   className: 'ghost-dest-pin',
   html: `
-    <div style="filter: drop-shadow(0 0 10px rgba(37,99,235,0.85)); pointer-events: none; opacity: 0.92; transform: scale(1.1); display: flex; align-items: center; justify-content: center;">
+    <div style="filter: drop-shadow(0 0 10px rgba(244,63,94,0.85)); pointer-events: none; opacity: 0.92; transform: scale(1.1); display: flex; align-items: center; justify-content: center;">
       <svg width="26" height="36" viewBox="0 0 26 36" fill="none" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <linearGradient id="ghostDestGrad" x1="13" y1="1" x2="13" y2="35" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stop-color="#3B82F6" />
-            <stop offset="100%" stop-color="#1D4ED8" />
+            <stop offset="0%" stop-color="#F43F5E" />
+            <stop offset="100%" stop-color="#BE123C" />
           </linearGradient>
         </defs>
         <path d="M13 1C6.373 1 1 6.373 1 13c0 8.8 10.8 20.8 11.4 21.4.3.3.9.3 1.2 0 .6-.6 11.4-12.6 11.4-21.4C25 6.373 19.627 1 13 1z" fill="url(#ghostDestGrad)" stroke="white" stroke-width="2" stroke-linejoin="round"/>
-        <path d="M9.5 8h6l-1 2.2 1 2.2h-6v4.5H8.2V8h1.3z" fill="white"/>
+        <!-- Perfectly Centered Finish Flag -->
+        <circle cx="9" cy="7.2" r="1.1" fill="white" />
+        <line x1="9" y1="7.2" x2="9" y2="18.8" stroke="white" stroke-width="1.6" stroke-linecap="round" />
+        <path d="M9 7.8h7.5l-1.8 2.6 1.8 2.6H9z" fill="white" stroke="white" stroke-width="0.6" stroke-linejoin="round" />
       </svg>
     </div>
   `,
@@ -518,8 +524,8 @@ export const MapView: React.FC<MapViewProps> = ({
           >
             <Popup>
               <div className="p-1 text-xs max-w-[200px]">
-                <div className="flex items-center gap-1.5 font-bold text-blue-700">
-                  <span className="w-2 h-2 rounded-full bg-blue-600" />
+                <div className="flex items-center gap-1.5 font-bold text-rose-700">
+                  <span className="w-2 h-2 rounded-full bg-rose-500" />
                   <span>Điểm đến</span>
                 </div>
                 <p className="mt-1 text-gray-800 font-medium leading-snug">{destination.label}</p>
