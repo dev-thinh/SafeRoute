@@ -33,28 +33,57 @@ export function parseGeminiExtractionResponse(rawText: string): ExtractedFloodDa
   };
 }
 
+import { HCMC_VULNERABLE_CORRIDORS } from './vulnerableRoads';
+
+export function extractWithRuleBasedFallback(articleText: string): ExtractedFloodData {
+  const matchedLocations: ExtractedLocation[] = [];
+  const textLower = articleText.toLowerCase();
+
+  const isRain = textLower.includes('mưa') || textLower.includes('dông');
+  const isTide = textLower.includes('triều cường') || textLower.includes('thủy triều') || textLower.includes('triều dâng');
+  const cause: 'high_tide' | 'heavy_rain' | 'combined' =
+    isRain && isTide ? 'combined' : isTide ? 'high_tide' : 'heavy_rain';
+
+  const isForecast =
+    textLower.includes('dự báo') ||
+    textLower.includes('cảnh báo') ||
+    textLower.includes('sắp tới') ||
+    textLower.includes('khả năng ngập');
+  const article_type = isForecast ? 'forecast_warning' : 'incident_report';
+
+  for (const corridor of HCMC_VULNERABLE_CORRIDORS) {
+    if (textLower.includes(corridor.streetName.toLowerCase())) {
+      matchedLocations.push({
+        street_name: corridor.streetName,
+        district: corridor.district,
+        city: corridor.city,
+        estimated_depth_cm: corridor.baseDepthCm,
+        start_time: new Date().toISOString(),
+        peak_time: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        end_time: new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString(),
+        is_future_forecast: isForecast,
+        confidence: 0.85,
+      });
+    }
+  }
+
+  const summary =
+    matchedLocations.length > 0
+      ? `Trích xuất tự động qua phân tích từ khóa: Ghi nhận ngập tại ${matchedLocations.map((l) => l.street_name).slice(0, 3).join(', ')} do ${cause === 'high_tide' ? 'triều cường' : cause === 'heavy_rain' ? 'mưa lớn' : 'triều kết hợp mưa'}.`
+      : `Bản tin khí tượng ngập lụt TP.HCM do ${cause === 'high_tide' ? 'triều cường' : 'mưa lớn'}.`;
+
+  return {
+    article_type,
+    summary,
+    cause,
+    confidence_overall: 0.8,
+    locations: matchedLocations,
+  };
+}
+
 export async function extractFloodEventsWithGemini(articleText: string): Promise<ExtractedFloodData> {
   if (!ENV.GEMINI_API_KEY) {
-    // Mock response when API key is not configured for local development
-    return {
-      article_type: 'forecast_warning',
-      summary: 'Dự báo triều cường gây ngập đường Trần Xuân Soạn',
-      cause: 'high_tide',
-      confidence_overall: 0.9,
-      locations: [
-        {
-          street_name: 'Trần Xuân Soạn',
-          district: 'Quận 7',
-          city: 'TP. Hồ Chí Minh',
-          estimated_depth_cm: 40,
-          start_time: new Date(Date.now() + 2 * 3600000).toISOString(),
-          peak_time: new Date(Date.now() + 3.5 * 3600000).toISOString(),
-          end_time: new Date(Date.now() + 5 * 3600000).toISOString(),
-          is_future_forecast: true,
-          confidence: 0.9,
-        },
-      ],
-    };
+    return extractWithRuleBasedFallback(articleText);
   }
 
   const genAI = new GoogleGenerativeAI(ENV.GEMINI_API_KEY);
@@ -83,7 +112,7 @@ Hãy phân loại bài viết và trích xuất danh sách các điểm ngập d
 Nội dung bài viết:
 ${articleText}`;
 
-  const candidateModels = ['gemini-3.5-flash', 'gemini-3.8-flash'];
+  const candidateModels = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.8-flash'];
   let lastError: any = null;
 
   for (const modelName of candidateModels) {
@@ -101,12 +130,6 @@ ${articleText}`;
     }
   }
 
-  console.warn('Gemini AI extraction failed with all candidate models:', lastError?.message);
-  return {
-    article_type: 'incident_report',
-    summary: 'Không thể phân tích tự động bài báo qua AI',
-    cause: 'combined',
-    confidence_overall: 0.5,
-    locations: [],
-  };
+  console.warn('Gemini AI extraction quota exceeded or unavailable. Falling back to rule-based NLP extraction:', lastError?.message);
+  return extractWithRuleBasedFallback(articleText);
 }
