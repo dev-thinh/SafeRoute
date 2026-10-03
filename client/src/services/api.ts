@@ -1,8 +1,17 @@
 import axios from 'axios';
 import { NavigateResponse, WeatherDashboardData } from '../types';
 
+function getBaseUrl(): string {
+  let url = (import.meta.env.VITE_API_URL || '/api').trim();
+  url = url.replace(/\/+$/, '');
+  if (url.startsWith('http') && !url.endsWith('/api')) {
+    url += '/api';
+  }
+  return url;
+}
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+  baseURL: getBaseUrl(),
 });
 
 export const HCMC_PRESETS = [
