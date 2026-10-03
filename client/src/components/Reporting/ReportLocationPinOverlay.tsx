@@ -33,31 +33,13 @@ export const ReportLocationPinOverlay: React.FC<ReportLocationPinOverlayProps> =
       {/* 1. Center Crosshair and Pin Marker (Fixed to screen/map center) */}
       <div className="pointer-events-none absolute inset-0 z-[1100] flex items-center justify-center">
         <div className="relative">
-          {/* High-Visibility Precision Radar Target Reticle at exact center (0, 0) */}
-          {/* 1. Outer Pulse Sonar Ring */}
-          <div className="absolute -top-12 -left-12 w-24 h-24 rounded-full border border-blue-500/40 bg-blue-500/10 animate-ping pointer-events-none" />
+          {/* Spreading Ripple Effect emanating from center ("spread lan lan ra") */}
+          <div className="absolute -top-7 -left-7 w-14 h-14 rounded-full border-2 border-blue-500/50 bg-blue-500/15 animate-ping pointer-events-none" />
 
-          {/* 2. Main Outer Reticle with High-Contrast White Halo & Blue Ring */}
-          <div className="absolute -top-10 -left-10 w-20 h-20 rounded-full border-2 border-blue-600 bg-blue-600/15 shadow-[0_0_0_2px_rgba(255,255,255,0.9),0_0_25px_rgba(37,99,235,0.6)] backdrop-blur-[0.5px] flex items-center justify-center">
-            {/* 3. Inner Concentric Dashed Ring */}
-            <div className="w-12 h-12 rounded-full border-2 border-dashed border-blue-700/80 bg-white/40 flex items-center justify-center shadow-inner relative">
-              {/* Precision Crosshair Lines */}
-              <div className="w-full h-[1.5px] bg-blue-600/60 absolute left-0" />
-              <div className="h-full w-[1.5px] bg-blue-600/60 absolute top-0" />
-              {/* 4. Center Bullseye Dot */}
-              <div className="w-3.5 h-3.5 rounded-full bg-blue-600 ring-2 ring-white shadow-lg z-10 flex items-center justify-center">
-                <div className="w-1.5 h-1.5 rounded-full bg-white" />
-              </div>
-            </div>
+          {/* 1 Tiny Center Circle ("vòng tròn nhỏ xíu ở giữa") */}
+          <div className="absolute -top-1.5 -left-1.5 w-3 h-3 rounded-full bg-blue-600 ring-2 ring-white shadow-md z-10" />
 
-            {/* 4 Cardinal Direction Ticks */}
-            <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 w-1 h-2.5 bg-blue-700 rounded-full shadow-xs" />
-            <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-1 h-2.5 bg-blue-700 rounded-full shadow-xs" />
-            <div className="absolute top-1/2 -left-2.5 -translate-y-1/2 h-1 w-2.5 bg-blue-700 rounded-full shadow-xs" />
-            <div className="absolute top-1/2 -right-2.5 -translate-y-1/2 h-1 w-2.5 bg-blue-700 rounded-full shadow-xs" />
-          </div>
-
-          {/* Floating Pin right above center tip */}
+          {/* Floating Location Pin Shape with Pointy Bottom Tip */}
           <div
             className={`absolute bottom-0 left-1/2 -translate-x-1/2 flex flex-col items-center transition-all duration-200 origin-bottom ${
               isMoving ? '-translate-y-5 scale-105' : 'translate-y-0 scale-100'
@@ -73,20 +55,43 @@ export const ReportLocationPinOverlay: React.FC<ReportLocationPinOverlayProps> =
               <span>{isMoving ? 'Đang chọn vị trí...' : 'Vị trí báo ngập'}</span>
             </div>
 
-            {/* Pin Graphic */}
-            <div className="relative flex flex-col items-center">
-              <div className="w-10 h-10 bg-gradient-to-tr from-blue-600 to-cyan-500 rounded-full flex items-center justify-center text-white shadow-2xl border-2 border-white ring-4 ring-blue-500/25">
-                <Droplet className="w-5 h-5 fill-current" />
-              </div>
-              {/* Pointer triangle needle pointing directly at center */}
-              <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-cyan-500 -mt-0.5" />
+            {/* Seamless Location Pin SVG with Pointy Tip */}
+            <div className="relative flex flex-col items-center -mb-0.5">
+              <svg
+                width="36"
+                height="48"
+                viewBox="0 0 36 48"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                className="drop-shadow-xl"
+              >
+                <defs>
+                  <linearGradient id="reportPinGrad" x1="18" y1="1" x2="18" y2="47" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stopColor="#3B82F6" />
+                    <stop offset="100%" stopColor="#1D4ED8" />
+                  </linearGradient>
+                </defs>
+                {/* Location Pin Shape with pointy tip at bottom (18, 47) */}
+                <path
+                  d="M18 1C8.611 1 1 8.611 1 18c0 12.5 15.6 27.5 16.3 28.2a1 1 0 0 0 1.4 0C19.4 45.5 35 30.5 35 18 35 8.611 27.389 1 18 1z"
+                  fill="url(#reportPinGrad)"
+                  stroke="white"
+                  strokeWidth="2.5"
+                  strokeLinejoin="round"
+                />
+                {/* Water droplet icon inside */}
+                <path
+                  d="M18 9c-3.2 4.2-6.5 7.2-6.5 10a6.5 6.5 0 0 0 13 0c0-2.8-3.3-5.8-6.5-10z"
+                  fill="white"
+                />
+              </svg>
             </div>
           </div>
 
           {/* Ground contact shadow */}
           <div
-            className={`absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-8 h-2 bg-blue-950/50 rounded-full blur-[2px] transition-all duration-200 ${
-              isMoving ? 'scale-75 opacity-30' : 'scale-100 opacity-80'
+            className={`absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-6 h-2 bg-blue-950/40 rounded-full blur-[1px] transition-all duration-200 ${
+              isMoving ? 'scale-75 opacity-25' : 'scale-100 opacity-70'
             }`}
           />
         </div>

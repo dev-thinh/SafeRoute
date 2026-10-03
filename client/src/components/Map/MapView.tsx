@@ -290,83 +290,91 @@ const MapPinTracker: React.FC<{
   return null;
 };
 
-// 1. Origin Pin: Modern Emerald Teardrop Pin with Center Bullseye (No Letter A)
+// 1. Origin Pin: Compact Emerald Location Pin with Departure Bullseye (26x36px)
 const originIcon = L.divIcon({
   className: 'custom-origin-pin',
   html: `
-    <div style="position: relative; width: 36px; height: 44px; display: flex; flex-direction: column; align-items: center; cursor: grab; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.35));">
-      <div style="width: 36px; height: 36px; border-radius: 50% 50% 50% 0; background: linear-gradient(135deg, #10B981, #059669); transform: rotate(-45deg); display: flex; align-items: center; justify-content: center; border: 2.5px solid white;">
-        <div style="transform: rotate(45deg); display: flex; align-items: center; justify-content: center; color: white;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="6" fill="white" stroke="white" />
-            <circle cx="12" cy="12" r="2.5" fill="#059669" />
-          </svg>
-        </div>
-      </div>
-      <div style="width: 10px; height: 4px; background: rgba(0,0,0,0.35); border-radius: 50%; margin-top: -1px; filter: blur(0.8px);"></div>
+    <div style="filter: drop-shadow(0 3px 6px rgba(0,0,0,0.35)); cursor: grab; display: flex; align-items: center; justify-content: center;">
+      <svg width="26" height="36" viewBox="0 0 26 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="origGrad" x1="13" y1="1" x2="13" y2="35" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#10B981" />
+            <stop offset="100%" stop-color="#047857" />
+          </linearGradient>
+        </defs>
+        <path d="M13 1C6.373 1 1 6.373 1 13c0 8.8 10.8 20.8 11.4 21.4.3.3.9.3 1.2 0 .6-.6 11.4-12.6 11.4-21.4C25 6.373 19.627 1 13 1z" fill="url(#origGrad)" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+        <circle cx="13" cy="13" r="5" fill="white" />
+        <circle cx="13" cy="13" r="2.2" fill="#047857" />
+      </svg>
     </div>
   `,
-  iconSize: [36, 44],
-  iconAnchor: [18, 44],
-  popupAnchor: [0, -44],
+  iconSize: [26, 36],
+  iconAnchor: [13, 35],
+  popupAnchor: [0, -36],
 });
 
-// 2. Destination Pin: Modern Blue Teardrop Pin with Destination Flag (No Letter B)
+// 2. Destination Pin: Compact Blue Location Pin with Finish Flag (26x36px)
 const destIcon = L.divIcon({
   className: 'custom-dest-pin',
   html: `
-    <div style="position: relative; width: 36px; height: 44px; display: flex; flex-direction: column; align-items: center; cursor: grab; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.35));">
-      <div style="width: 36px; height: 36px; border-radius: 50% 50% 50% 0; background: linear-gradient(135deg, #3B82F6, #1D4ED8); transform: rotate(-45deg); display: flex; align-items: center; justify-content: center; border: 2.5px solid white;">
-        <div style="transform: rotate(45deg); display: flex; align-items: center; justify-content: center; color: white;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" fill="white" stroke="white" />
-            <line x1="4" y1="22" x2="4" y2="15" stroke="white" stroke-width="2.5" />
-          </svg>
-        </div>
-      </div>
-      <div style="width: 10px; height: 4px; background: rgba(0,0,0,0.35); border-radius: 50%; margin-top: -1px; filter: blur(0.8px);"></div>
+    <div style="filter: drop-shadow(0 3px 6px rgba(0,0,0,0.35)); cursor: grab; display: flex; align-items: center; justify-content: center;">
+      <svg width="26" height="36" viewBox="0 0 26 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="destGrad" x1="13" y1="1" x2="13" y2="35" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#3B82F6" />
+            <stop offset="100%" stop-color="#1D4ED8" />
+          </linearGradient>
+        </defs>
+        <path d="M13 1C6.373 1 1 6.373 1 13c0 8.8 10.8 20.8 11.4 21.4.3.3.9.3 1.2 0 .6-.6 11.4-12.6 11.4-21.4C25 6.373 19.627 1 13 1z" fill="url(#destGrad)" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M9.5 8h6l-1 2.2 1 2.2h-6v4.5H8.2V8h1.3z" fill="white"/>
+      </svg>
     </div>
   `,
-  iconSize: [36, 44],
-  iconAnchor: [18, 44],
-  popupAnchor: [0, -44],
+  iconSize: [26, 36],
+  iconAnchor: [13, 35],
+  popupAnchor: [0, -36],
 });
 
 // 3. Ghost Hover Icons when user is picking on the map
 const ghostOriginIcon = L.divIcon({
   className: 'ghost-origin-pin',
   html: `
-    <div style="position: relative; width: 36px; height: 44px; display: flex; flex-direction: column; align-items: center; pointer-events: none; opacity: 0.9; filter: drop-shadow(0 0 12px rgba(16,185,129,0.8)); transform: scale(1.1);">
-      <div style="width: 36px; height: 36px; border-radius: 50% 50% 50% 0; background: linear-gradient(135deg, #10B981, #059669); transform: rotate(-45deg); display: flex; align-items: center; justify-content: center; border: 2.5px solid white;">
-        <div style="transform: rotate(45deg); display: flex; align-items: center; justify-content: center; color: white;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="6" fill="white" stroke="white" />
-            <circle cx="12" cy="12" r="2.5" fill="#059669" />
-          </svg>
-        </div>
-      </div>
+    <div style="filter: drop-shadow(0 0 10px rgba(16,185,129,0.85)); pointer-events: none; opacity: 0.92; transform: scale(1.1); display: flex; align-items: center; justify-content: center;">
+      <svg width="26" height="36" viewBox="0 0 26 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="ghostOrigGrad" x1="13" y1="1" x2="13" y2="35" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#10B981" />
+            <stop offset="100%" stop-color="#047857" />
+          </linearGradient>
+        </defs>
+        <path d="M13 1C6.373 1 1 6.373 1 13c0 8.8 10.8 20.8 11.4 21.4.3.3.9.3 1.2 0 .6-.6 11.4-12.6 11.4-21.4C25 6.373 19.627 1 13 1z" fill="url(#ghostOrigGrad)" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+        <circle cx="13" cy="13" r="5" fill="white" />
+        <circle cx="13" cy="13" r="2.2" fill="#047857" />
+      </svg>
     </div>
   `,
-  iconSize: [36, 44],
-  iconAnchor: [18, 44],
+  iconSize: [26, 36],
+  iconAnchor: [13, 35],
 });
 
 const ghostDestIcon = L.divIcon({
   className: 'ghost-dest-pin',
   html: `
-    <div style="position: relative; width: 36px; height: 44px; display: flex; flex-direction: column; align-items: center; pointer-events: none; opacity: 0.9; filter: drop-shadow(0 0 12px rgba(37,99,235,0.8)); transform: scale(1.1);">
-      <div style="width: 36px; height: 36px; border-radius: 50% 50% 50% 0; background: linear-gradient(135deg, #3B82F6, #1D4ED8); transform: rotate(-45deg); display: flex; align-items: center; justify-content: center; border: 2.5px solid white;">
-        <div style="transform: rotate(45deg); display: flex; align-items: center; justify-content: center; color: white;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" fill="white" stroke="white" />
-            <line x1="4" y1="22" x2="4" y2="15" stroke="white" stroke-width="2.5" />
-          </svg>
-        </div>
-      </div>
+    <div style="filter: drop-shadow(0 0 10px rgba(37,99,235,0.85)); pointer-events: none; opacity: 0.92; transform: scale(1.1); display: flex; align-items: center; justify-content: center;">
+      <svg width="26" height="36" viewBox="0 0 26 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="ghostDestGrad" x1="13" y1="1" x2="13" y2="35" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#3B82F6" />
+            <stop offset="100%" stop-color="#1D4ED8" />
+          </linearGradient>
+        </defs>
+        <path d="M13 1C6.373 1 1 6.373 1 13c0 8.8 10.8 20.8 11.4 21.4.3.3.9.3 1.2 0 .6-.6 11.4-12.6 11.4-21.4C25 6.373 19.627 1 13 1z" fill="url(#ghostDestGrad)" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M9.5 8h6l-1 2.2 1 2.2h-6v4.5H8.2V8h1.3z" fill="white"/>
+      </svg>
     </div>
   `,
-  iconSize: [36, 44],
-  iconAnchor: [18, 44],
+  iconSize: [26, 36],
+  iconAnchor: [13, 35],
 });
 
 const MapCursorPinFollower: React.FC<{
