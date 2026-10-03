@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MapView } from './components/Map/MapView';
 import { FloodLayer } from './components/Map/FloodLayer';
 import { RoutePolyline } from './components/Map/RoutePolyline';
@@ -16,6 +16,9 @@ export const App: React.FC = () => {
   const [selectedRouteType, setSelectedRouteType] = useState<'safe' | 'fastest'>('safe');
   const [floodEvents, setFloodEvents] = useState<FloodEvent[]>([]);
   const [reports, setReports] = useState<UserReport[]>([]);
+
+  // Zoom handlers ref from MapView
+  const zoomHandlersRef = useRef<{ zoomIn: () => void; zoomOut: () => void } | null>(null);
 
   // Modal & Pinning Mode State
   const [isReportOpen, setIsReportOpen] = useState(false);
@@ -203,6 +206,9 @@ export const App: React.FC = () => {
         isPinningReport={isPinningReport}
         onMapCenterChange={(lat, lng) => setCenterCoord({ lat, lng })}
         onMapMovingChange={setIsMapMoving}
+        onRegisterZoomHandlers={(handlers) => {
+          zoomHandlersRef.current = handlers;
+        }}
       >
         <FloodLayer events={floodEvents} />
         <ReportMarker reports={reports} />
@@ -243,6 +249,8 @@ export const App: React.FC = () => {
         onConfirm={handleConfirmReportLocation}
         onCancel={() => setIsPinningReport(false)}
         onLocateMe={handleLocateMe}
+        onZoomIn={() => zoomHandlersRef.current?.zoomIn()}
+        onZoomOut={() => zoomHandlersRef.current?.zoomOut()}
       />
 
       {/* 6. Report Flood Form Modal with marked location details */}

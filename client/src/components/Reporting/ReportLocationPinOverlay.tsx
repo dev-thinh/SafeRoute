@@ -1,5 +1,5 @@
 import React from 'react';
-import { Droplet, MapPin, X, Check, Navigation, Loader2 } from 'lucide-react';
+import { Droplet, MapPin, X, Check, Navigation, Loader2, Plus, Minus } from 'lucide-react';
 
 interface ReportLocationPinOverlayProps {
   isPinning: boolean;
@@ -10,6 +10,8 @@ interface ReportLocationPinOverlayProps {
   onConfirm: () => void;
   onCancel: () => void;
   onLocateMe: () => void;
+  onZoomIn?: () => void;
+  onZoomOut?: () => void;
 }
 
 export const ReportLocationPinOverlay: React.FC<ReportLocationPinOverlayProps> = ({
@@ -21,6 +23,8 @@ export const ReportLocationPinOverlay: React.FC<ReportLocationPinOverlayProps> =
   onConfirm,
   onCancel,
   onLocateMe,
+  onZoomIn,
+  onZoomOut,
 }) => {
   if (!isPinning) return null;
 
@@ -137,6 +141,33 @@ export const ReportLocationPinOverlay: React.FC<ReportLocationPinOverlayProps> =
           <span>Xác nhận vị trí này</span>
         </button>
       </div>
+
+      {/* 4. Floating Zoom Controls (+ / -) for easy zooming directly at center pin */}
+      {(onZoomIn || onZoomOut) && (
+        <div className="pointer-events-auto absolute right-5 top-1/2 -translate-y-1/2 z-[1200] flex flex-col shadow-2xl rounded-2xl overflow-hidden border border-gray-200/90 bg-white/95 backdrop-blur-md">
+          {onZoomIn && (
+            <button
+              type="button"
+              onClick={onZoomIn}
+              title="Phóng to tâm bản đồ (+)"
+              className="w-10 h-10 flex items-center justify-center text-gray-700 hover:text-blue-600 hover:bg-blue-50 transition font-bold active:scale-90 cursor-pointer"
+            >
+              <Plus className="w-5 h-5" />
+            </button>
+          )}
+          {onZoomIn && onZoomOut && <div className="h-px bg-gray-200" />}
+          {onZoomOut && (
+            <button
+              type="button"
+              onClick={onZoomOut}
+              title="Thu nhỏ tâm bản đồ (-)"
+              className="w-10 h-10 flex items-center justify-center text-gray-700 hover:text-blue-600 hover:bg-blue-50 transition font-bold active:scale-90 cursor-pointer"
+            >
+              <Minus className="w-5 h-5" />
+            </button>
+          )}
+        </div>
+      )}
     </>
   );
 };
