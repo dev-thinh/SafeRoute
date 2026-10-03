@@ -104,3 +104,63 @@ export function calculateEventDepth(event: FloodEvent, targetTime: Date): number
   }
   return calculateRainDepth(event, targetTime);
 }
+
+export type FloodRiskTier = 'safe' | 'potential' | 'critical';
+
+export interface CompoundRiskAssessment {
+  rainProbability: number;
+  tideProbability: number;
+  compoundProbability: number;
+  estimatedDepthCm: number;
+  riskTier: FloodRiskTier;
+  isHazardActiveForMotorbike: boolean;
+  isHazardActiveForCar: boolean;
+}
+
+/**
+ * Couples rain and astronomical tide probabilities with tide-locking effect in riverine basins.
+ * Evaluates 3-tier risk:
+ * - 🟢 'safe': P < 0.30 or depth < 10cm
+ * - 🟡 'potential': 0.30 <= P < 0.60 or 10cm <= depth <= 20cm
+ * - 🔴 'critical': P >= 0.60 or depth > 20cm (motorbike) / > 35cm (car)
+ */
+export function evaluateCompoundFloodRisk(
+  rainProbability: number,
+  tideProbability: number,
+  rainDepthCm: number,
+  tideDepthCm: number,
+  isRiverineBasin: boolean = false
+): CompoundRiskAssessment {
+  // Independent joint probability: P_base = 1 - (1 - P_r) * (1 - P_t)
+  const pBase = 1 - (1 - Math.max(0, Math.min(1, rainProbability))) * (1 - Math.max(0, Math.min(1, tideProbability)));
+  
+  // Coupling booster when rain and tide coincide: tide-locking traps gravity outfall water
+  const couplingFactor = isRiverineBasin ? 0.35 : 0.15;
+  const booster = couplingFactor * rainProbability * tideProbability;
+  const compoundProbability = Math.round(Math.min(1.0, pBase + booster) * 100) / 100;
+
+  // Compound depth formulation with synergistic backwater volume
+  const interaction = (rainDepthCm > 0 && tideDepthCm > 0) ? 0.30 * Math.sqrt(rainDepthCm * tideDepthCm) : 0;
+  const estimatedDepthCm = Math.round(rainDepthCm + tideDepthCm + interaction);
+
+  let riskTier: FloodRiskTier = 'safe';
+  if (compoundProbability >= 0.60 || estimatedDepthCm > 20) {
+    riskTier = 'critical';
+  } else if (compoundProbability >= 0.30 || estimatedDepthCm >= 10) {
+    riskTier = 'potential';
+  }
+
+  const isHazardActiveForMotorbike = estimatedDepthCm >= VEHICLE_THRESHOLDS.motorbike.avoid || riskTier === 'potential' || riskTier === 'critical';
+  const isHazardActiveForCar = estimatedDepthCm >= VEHICLE_THRESHOLDS.car.avoid || (riskTier === 'critical' && estimatedDepthCm >= 35);
+
+  return {
+    rainProbability,
+    tideProbability,
+    compoundProbability,
+    estimatedDepthCm,
+    riskTier,
+    isHazardActiveForMotorbike,
+    isHazardActiveForCar,
+  };
+}
+

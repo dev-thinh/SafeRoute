@@ -4,6 +4,7 @@ import {
   calculateRainDepth,
   calculateReportConfidence,
   isHazardActive,
+  evaluateCompoundFloodRisk,
 } from '../src/services/predictionEngine';
 import { FloodEvent, UserReport } from '../src/types';
 
@@ -78,4 +79,29 @@ describe('PredictionEngine Mathematical Functions', () => {
     expect(isHazardActive(22, 0.8, 'motorbike')).toBe(true);
     expect(isHazardActive(22, 0.8, 'car')).toBe(false);
   });
+
+  describe('Compound Flood & 3-Tier Risk Evaluation', () => {
+    it('should apply tide-locking coupling booster (0.35x) in riverine basins when rain and tide coincide', () => {
+      const assessment = evaluateCompoundFloodRisk(0.6, 0.6, 25, 30, true);
+      // P_base = 1 - (1-0.6)*(1-0.6) = 0.84
+      // Coupling booster = 0.35 * 0.6 * 0.6 = 0.126 -> P_compound = min(1.0, 0.84 + 0.126) = 0.966
+      expect(assessment.compoundProbability).toBeGreaterThan(0.95);
+      expect(assessment.riskTier).toBe('critical');
+      expect(assessment.estimatedDepthCm).toBeGreaterThan(55);
+    });
+
+    it('should classify hazard as potential (warning tier) when probability is between 0.3 and 0.6', () => {
+      const assessment = evaluateCompoundFloodRisk(0.35, 0.1, 14, 0, false);
+      expect(assessment.riskTier).toBe('potential');
+      expect(assessment.isHazardActiveForMotorbike).toBe(true);
+      expect(assessment.isHazardActiveForCar).toBe(false);
+    });
+
+    it('should classify hazard as safe when probability < 0.3 and depth < 10cm', () => {
+      const assessment = evaluateCompoundFloodRisk(0.1, 0.05, 5, 0, false);
+      expect(assessment.riskTier).toBe('safe');
+      expect(assessment.isHazardActiveForMotorbike).toBe(false);
+    });
+  });
 });
+
