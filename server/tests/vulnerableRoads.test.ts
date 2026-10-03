@@ -60,4 +60,22 @@ describe('Vulnerable Roads Registry', () => {
     expect(voVanNganInt).toBeDefined();
     expect(voVanNganInt!.estimatedDepthCm).toBeGreaterThan(voVanNganMod!.estimatedDepthCm);
   });
+
+  it('should contain at least 65 calibrated HCMC flood corridors across all 5 drainage basins', () => {
+    expect(HCMC_VULNERABLE_CORRIDORS.length).toBeGreaterThanOrEqual(65);
+    const basins = new Set(HCMC_VULNERABLE_CORRIDORS.map((c) => c.drainageBasin));
+    expect(basins.has('Nam Sài Gòn')).toBe(true);
+    expect(basins.has('Đông Sài Gòn')).toBe(true);
+    expect(basins.has('Tây Bắc')).toBe(true);
+    expect(basins.has('Tây Nam')).toBe(true);
+    expect(basins.has('Trung tâm')).toBe(true);
+
+    for (const c of HCMC_VULNERABLE_CORRIDORS) {
+      expect(c.coordinate[0]).toBeGreaterThan(106.50); // lng
+      expect(c.coordinate[0]).toBeLessThan(106.85);
+      expect(c.coordinate[1]).toBeGreaterThan(10.65); // lat
+      expect(c.coordinate[1]).toBeLessThan(10.95);
+    }
+  });
 });
+
