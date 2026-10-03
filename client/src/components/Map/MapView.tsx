@@ -196,27 +196,93 @@ const MapPinTracker: React.FC<{
     },
   });
 
-  // Dynamically set Leaflet zoom options to 'center' so mouse wheel and touch zoom
-  // always zoom into the center pin being marked instead of the mouse cursor.
+  // When active (pinning report mode), we completely bypass Leaflet's mouse-cursor-centric zoom
+  // by intercepting wheel and dblclick events at the capture phase.
+  // This guarantees that zooming zooms 100% strictly into Point A (the center pin),
+  // completely ignoring where the cursor (Point B) is hovering.
   React.useEffect(() => {
     if (!map) return;
-    if (active) {
-      map.options.scrollWheelZoom = 'center';
-      map.options.doubleClickZoom = 'center';
-      map.options.touchZoom = 'center';
-    } else {
-      map.options.scrollWheelZoom = true;
-      map.options.doubleClickZoom = true;
-      map.options.touchZoom = true;
-    }
-  }, [active, map]);
+    const container = map.getContainer();
 
-  // Expose zoomIn and zoomOut methods to parent/UI buttons
+    if (!active) {
+      map.scrollWheelZoom?.enable();
+      map.doubleClickZoom?.enable();
+      return;
+    }
+
+    // Disable default Leaflet handlers so they cannot zoom around mouse cursor
+    map.scrollWheelZoom?.disable();
+    map.doubleClickZoom?.disable();
+
+    let accumulatedDelta = 0;
+    let wheelTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const handleWheel = (e: WheelEvent) => {
+      // Prevent browser native scrolling and prevent Leaflet from processing cursor zoom
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+
+      if (onMovingChange) onMovingChange(true);
+
+      // Invert deltaY: negative is wheel up (zoom in), positive is wheel down (zoom out)
+      accumulatedDelta -= e.deltaY;
+
+      if (wheelTimer) clearTimeout(wheelTimer);
+      wheelTimer = setTimeout(() => {
+        if (Math.abs(accumulatedDelta) < 10) {
+          accumulatedDelta = 0;
+          if (onMovingChange) onMovingChange(false);
+          return;
+        }
+
+        const delta = accumulatedDelta > 0 ? 1 : -1;
+        accumulatedDelta = 0;
+
+        const currentZoom = map.getZoom();
+        const minZoom = map.getMinZoom();
+        const maxZoom = map.getMaxZoom();
+        const nextZoom = Math.min(Math.max(currentZoom + delta, minZoom), maxZoom);
+
+        if (nextZoom !== currentZoom) {
+          // Point A: Always zoom directly into the center of the map/screen
+          map.setView(map.getCenter(), nextZoom, { animate: true });
+        } else {
+          if (onMovingChange) onMovingChange(false);
+        }
+      }, 35);
+    };
+
+    const handleDblClick = (e: MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      const currentZoom = map.getZoom();
+      const maxZoom = map.getMaxZoom();
+      if (currentZoom < maxZoom) {
+        map.setView(map.getCenter(), currentZoom + 1, { animate: true });
+      }
+    };
+
+    // Attach in capture phase to intercept before Leaflet or any child overlay
+    container.addEventListener('wheel', handleWheel, { capture: true, passive: false });
+    container.addEventListener('dblclick', handleDblClick, { capture: true });
+
+    return () => {
+      if (wheelTimer) clearTimeout(wheelTimer);
+      container.removeEventListener('wheel', handleWheel, { capture: true } as any);
+      container.removeEventListener('dblclick', handleDblClick, { capture: true } as any);
+      map.scrollWheelZoom?.enable();
+      map.doubleClickZoom?.enable();
+    };
+  }, [active, map, onMovingChange]);
+
+  // Expose zoomIn and zoomOut methods to parent / UI buttons
   React.useEffect(() => {
     if (onRegisterZoomHandlers) {
       onRegisterZoomHandlers({
-        zoomIn: () => map.zoomIn(),
-        zoomOut: () => map.zoomOut(),
+        zoomIn: () => map.setView(map.getCenter(), Math.min(map.getZoom() + 1, map.getMaxZoom()), { animate: true }),
+        zoomOut: () => map.setView(map.getCenter(), Math.max(map.getZoom() - 1, map.getMinZoom()), { animate: true }),
       });
     }
   }, [map, onRegisterZoomHandlers]);
