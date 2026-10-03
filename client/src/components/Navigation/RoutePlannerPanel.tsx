@@ -7,7 +7,7 @@ import {
   X,
   Crosshair,
   Map,
-  Flag,
+  Target,
   Newspaper,
   CloudRain,
   Loader2,
@@ -281,7 +281,7 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                 {pickingField === 'origin' ? (
                   <MapPin className="w-4 h-4 text-emerald-600 flex-shrink-0" />
                 ) : (
-                  <Flag className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                  <Target className="w-4 h-4 text-rose-600 flex-shrink-0" />
                 )}
                 <span>
                   {pickingField === 'origin'
@@ -463,7 +463,7 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
               </div>
 
               <div className="flex items-center gap-2 p-2 bg-gray-50/80 rounded-xl border border-gray-200/90 focus-within:border-rose-500 focus-within:bg-white transition">
-                <Flag className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                <Target className="w-4 h-4 text-rose-600 flex-shrink-0" />
                 <input
                   type="text"
                   disabled={loading}
@@ -528,7 +528,7 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                       onMouseDown={() => handleSelectLocation(item)}
                       className="p-2.5 text-xs text-gray-800 hover:bg-rose-50 hover:text-rose-800 cursor-pointer transition flex items-start gap-2"
                     >
-                      <Flag className="w-3.5 h-3.5 text-rose-500 mt-0.5 flex-shrink-0" />
+                      <Target className="w-3.5 h-3.5 text-rose-500 mt-0.5 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
                         <div className="font-semibold text-gray-900 leading-snug">
                           {item.label}

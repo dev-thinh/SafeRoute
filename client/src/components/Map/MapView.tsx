@@ -313,7 +313,7 @@ const originIcon = L.divIcon({
   popupAnchor: [0, -36],
 });
 
-// 2. Destination Pin: Compact Ruby Rose Location Pin with Centered Finish Flag (26x36px)
+// 2. Destination Pin: Compact Ruby Rose Location Pin with Precision Target (26x36px)
 const destIcon = L.divIcon({
   className: 'custom-dest-pin',
   html: `
@@ -326,10 +326,13 @@ const destIcon = L.divIcon({
           </linearGradient>
         </defs>
         <path d="M13 1C6.373 1 1 6.373 1 13c0 8.8 10.8 20.8 11.4 21.4.3.3.9.3 1.2 0 .6-.6 11.4-12.6 11.4-21.4C25 6.373 19.627 1 13 1z" fill="url(#destGrad)" stroke="white" stroke-width="2" stroke-linejoin="round"/>
-        <!-- Perfectly Centered Finish Flag -->
-        <circle cx="9" cy="7.2" r="1.1" fill="white" />
-        <line x1="9" y1="7.2" x2="9" y2="18.8" stroke="white" stroke-width="1.6" stroke-linecap="round" />
-        <path d="M9 7.8h7.5l-1.8 2.6 1.8 2.6H9z" fill="white" stroke="white" stroke-width="0.6" stroke-linejoin="round" />
+        <!-- High-Precision Radial Target Reticle (Centered at 13, 13) -->
+        <circle cx="13" cy="13" r="5.5" stroke="white" stroke-width="1.6" fill="none" />
+        <circle cx="13" cy="13" r="2.2" fill="white" />
+        <line x1="13" y1="5.2" x2="13" y2="7.5" stroke="white" stroke-width="1.5" stroke-linecap="round" />
+        <line x1="13" y1="18.5" x2="13" y2="20.8" stroke="white" stroke-width="1.5" stroke-linecap="round" />
+        <line x1="5.2" y1="13" x2="7.5" y2="13" stroke="white" stroke-width="1.5" stroke-linecap="round" />
+        <line x1="18.5" y1="13" x2="20.8" y2="13" stroke="white" stroke-width="1.5" stroke-linecap="round" />
       </svg>
     </div>
   `,
@@ -372,10 +375,13 @@ const ghostDestIcon = L.divIcon({
           </linearGradient>
         </defs>
         <path d="M13 1C6.373 1 1 6.373 1 13c0 8.8 10.8 20.8 11.4 21.4.3.3.9.3 1.2 0 .6-.6 11.4-12.6 11.4-21.4C25 6.373 19.627 1 13 1z" fill="url(#ghostDestGrad)" stroke="white" stroke-width="2" stroke-linejoin="round"/>
-        <!-- Perfectly Centered Finish Flag -->
-        <circle cx="9" cy="7.2" r="1.1" fill="white" />
-        <line x1="9" y1="7.2" x2="9" y2="18.8" stroke="white" stroke-width="1.6" stroke-linecap="round" />
-        <path d="M9 7.8h7.5l-1.8 2.6 1.8 2.6H9z" fill="white" stroke="white" stroke-width="0.6" stroke-linejoin="round" />
+        <!-- High-Precision Radial Target Reticle (Centered at 13, 13) -->
+        <circle cx="13" cy="13" r="5.5" stroke="white" stroke-width="1.6" fill="none" />
+        <circle cx="13" cy="13" r="2.2" fill="white" />
+        <line x1="13" y1="5.2" x2="13" y2="7.5" stroke="white" stroke-width="1.5" stroke-linecap="round" />
+        <line x1="13" y1="18.5" x2="13" y2="20.8" stroke="white" stroke-width="1.5" stroke-linecap="round" />
+        <line x1="5.2" y1="13" x2="7.5" y2="13" stroke="white" stroke-width="1.5" stroke-linecap="round" />
+        <line x1="18.5" y1="13" x2="20.8" y2="13" stroke="white" stroke-width="1.5" stroke-linecap="round" />
       </svg>
     </div>
   `,

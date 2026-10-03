@@ -8,7 +8,7 @@ import { RoutePlannerPanel, LocationItem } from './components/Navigation/RoutePl
 import { ReportFloodModal, SelectedReportLocation } from './components/Reporting/ReportFloodModal';
 import { ReportLocationPinOverlay } from './components/Reporting/ReportLocationPinOverlay';
 import { getActiveFloods, reverseGeocode } from './services/api';
-import { Droplet, PanelLeftOpen, MapPin, Flag } from 'lucide-react';
+import { Droplet, PanelLeftOpen, MapPin, Target } from 'lucide-react';
 import { NavigateResponse, FloodEvent, UserReport } from './types';
 
 export const App: React.FC = () => {
@@ -256,7 +256,7 @@ export const App: React.FC = () => {
             {pickingField === 'origin' ? (
               <MapPin className="w-4 h-4" />
             ) : (
-              <Flag className="w-4 h-4" />
+              <Target className="w-4 h-4" />
             )}
           </div>
           <div>
