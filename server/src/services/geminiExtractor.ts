@@ -103,6 +103,7 @@ ${articleText}`;
 
   console.warn('Gemini AI extraction failed with all candidate models:', lastError?.message);
   return {
+    article_type: 'incident_report',
     summary: 'Không thể phân tích tự động bài báo qua AI',
     cause: 'combined',
     confidence_overall: 0.5,
