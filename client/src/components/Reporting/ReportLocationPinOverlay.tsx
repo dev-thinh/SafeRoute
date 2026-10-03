@@ -33,16 +33,34 @@ export const ReportLocationPinOverlay: React.FC<ReportLocationPinOverlayProps> =
       {/* 1. Center Crosshair and Pin Marker (Fixed to screen/map center) */}
       <div className="pointer-events-none absolute inset-0 z-[1100] flex items-center justify-center">
         <div className="relative">
-          {/* Target crosshair rings at exact center (0, 0) */}
-          <div className="absolute -top-4 -left-4 w-8 h-8 rounded-full border-2 border-dashed border-blue-500/60 animate-pulse flex items-center justify-center">
-            {/* Center crosshair dot */}
-            <div className="w-1.5 h-1.5 bg-blue-600 rounded-full shadow" />
+          {/* High-Visibility Precision Radar Target Reticle at exact center (0, 0) */}
+          {/* 1. Outer Pulse Sonar Ring */}
+          <div className="absolute -top-12 -left-12 w-24 h-24 rounded-full border border-blue-500/40 bg-blue-500/10 animate-ping pointer-events-none" />
+
+          {/* 2. Main Outer Reticle with High-Contrast White Halo & Blue Ring */}
+          <div className="absolute -top-10 -left-10 w-20 h-20 rounded-full border-2 border-blue-600 bg-blue-600/15 shadow-[0_0_0_2px_rgba(255,255,255,0.9),0_0_25px_rgba(37,99,235,0.6)] backdrop-blur-[0.5px] flex items-center justify-center">
+            {/* 3. Inner Concentric Dashed Ring */}
+            <div className="w-12 h-12 rounded-full border-2 border-dashed border-blue-700/80 bg-white/40 flex items-center justify-center shadow-inner relative">
+              {/* Precision Crosshair Lines */}
+              <div className="w-full h-[1.5px] bg-blue-600/60 absolute left-0" />
+              <div className="h-full w-[1.5px] bg-blue-600/60 absolute top-0" />
+              {/* 4. Center Bullseye Dot */}
+              <div className="w-3.5 h-3.5 rounded-full bg-blue-600 ring-2 ring-white shadow-lg z-10 flex items-center justify-center">
+                <div className="w-1.5 h-1.5 rounded-full bg-white" />
+              </div>
+            </div>
+
+            {/* 4 Cardinal Direction Ticks */}
+            <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 w-1 h-2.5 bg-blue-700 rounded-full shadow-xs" />
+            <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-1 h-2.5 bg-blue-700 rounded-full shadow-xs" />
+            <div className="absolute top-1/2 -left-2.5 -translate-y-1/2 h-1 w-2.5 bg-blue-700 rounded-full shadow-xs" />
+            <div className="absolute top-1/2 -right-2.5 -translate-y-1/2 h-1 w-2.5 bg-blue-700 rounded-full shadow-xs" />
           </div>
 
           {/* Floating Pin right above center tip */}
           <div
             className={`absolute bottom-0 left-1/2 -translate-x-1/2 flex flex-col items-center transition-all duration-200 origin-bottom ${
-              isMoving ? '-translate-y-4 scale-105' : 'translate-y-0 scale-100'
+              isMoving ? '-translate-y-5 scale-105' : 'translate-y-0 scale-100'
             }`}
           >
             {/* Tooltip badge */}
@@ -67,8 +85,8 @@ export const ReportLocationPinOverlay: React.FC<ReportLocationPinOverlayProps> =
 
           {/* Ground contact shadow */}
           <div
-            className={`absolute -bottom-1 left-1/2 -translate-x-1/2 w-4 h-1.5 bg-black/40 rounded-full blur-[1px] transition-all duration-200 ${
-              isMoving ? 'scale-75 opacity-25' : 'scale-100 opacity-70'
+            className={`absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-8 h-2 bg-blue-950/50 rounded-full blur-[2px] transition-all duration-200 ${
+              isMoving ? 'scale-75 opacity-30' : 'scale-100 opacity-80'
             }`}
           />
         </div>

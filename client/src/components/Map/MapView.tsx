@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -14,6 +14,7 @@ interface MapViewProps {
   onDragOrigin?: (lat: number, lng: number) => void;
   onDragDestination?: (lat: number, lng: number) => void;
   isPickingLocation?: boolean;
+  pickingField?: 'origin' | 'dest' | null;
   isPinningReport?: boolean;
   onMapCenterChange?: (lat: number, lng: number) => void;
   onMapMovingChange?: (isMoving: boolean) => void;
@@ -27,20 +28,20 @@ const MapNavigationController: React.FC<{
   routes?: NavigateResponse | null;
 }> = ({ origin, destination, center, routes }) => {
   const map = useMap();
-  const prevOriginRef = React.useRef<{ lat: number; lng: number } | null>(null);
-  const prevDestRef = React.useRef<{ lat: number; lng: number } | null>(null);
-  const prevRoutesRef = React.useRef<NavigateResponse | null>(null);
-  const isInitialMount = React.useRef(true);
+  const prevOriginRef = useRef<{ lat: number; lng: number } | null>(null);
+  const prevDestRef = useRef<{ lat: number; lng: number } | null>(null);
+  const prevRoutesRef = useRef<NavigateResponse | null>(null);
+  const isInitialMount = useRef(true);
 
   // 1. Explicit Center focus (e.g. clicking a flood news item in News tab)
-  React.useEffect(() => {
+  useEffect(() => {
     if (center && center[0] && center[1]) {
       map.flyTo(center, 15, { duration: 1.0 });
     }
   }, [center, map]);
 
-  // 2. Focus on Origin A when user selects or moves A
-  React.useEffect(() => {
+  // 2. Focus on Origin when user selects or moves origin
+  useEffect(() => {
     if (!origin || !origin.lat || !origin.lng) return;
     const prev = prevOriginRef.current;
     const changed = !prev || Math.abs(prev.lat - origin.lat) > 0.0001 || Math.abs(prev.lng - origin.lng) > 0.0001;
@@ -55,8 +56,8 @@ const MapNavigationController: React.FC<{
     }
   }, [origin?.lat, origin?.lng, map]);
 
-  // 3. Focus on Destination B when user selects or moves B
-  React.useEffect(() => {
+  // 3. Focus on Destination when user selects or moves destination
+  useEffect(() => {
     if (!destination || !destination.lat || !destination.lng) return;
     const prev = prevDestRef.current;
     const changed = !prev || Math.abs(prev.lat - destination.lat) > 0.0001 || Math.abs(prev.lng - destination.lng) > 0.0001;
@@ -72,8 +73,8 @@ const MapNavigationController: React.FC<{
     }
   }, [destination?.lat, destination?.lng, map]);
 
-  // 4. Zoom out to fit both A, B & Route once routes are calculated
-  React.useEffect(() => {
+  // 4. Zoom out to fit both Origin, Destination & Route once routes are calculated
+  useEffect(() => {
     if (!routes || (!routes.fastest_route && !routes.safe_route)) return;
     if (prevRoutesRef.current === routes) return;
     prevRoutesRef.current = routes;
@@ -144,7 +145,7 @@ const FitRouteButton: React.FC<{
         type="button"
         onClick={handleFit}
         title="Thu nhỏ để xem toàn cảnh lộ trình"
-        className="bg-white/95 hover:bg-white text-gray-800 font-bold px-3 py-2 rounded-xl shadow-lg border border-gray-200 text-xs flex items-center gap-1.5 transition backdrop-blur-sm cursor-pointer hover:shadow-xl"
+        className="bg-white/95 hover:bg-white text-gray-800 font-bold px-3 py-2 rounded-xl shadow-lg border border-gray-200 text-xs flex items-center gap-1.5 transition backdrop-blur-sm cursor-pointer hover:shadow-xl active:scale-95"
       >
         <span>🗺️</span>
         <span>Toàn bộ lộ trình</span>
@@ -196,11 +197,8 @@ const MapPinTracker: React.FC<{
     },
   });
 
-  // When active (pinning report mode), we completely bypass Leaflet's mouse-cursor-centric zoom
-  // by intercepting wheel and dblclick events at the capture phase.
-  // This guarantees that zooming zooms 100% strictly into Point A (the center pin),
-  // completely ignoring where the cursor (Point B) is hovering.
-  React.useEffect(() => {
+  // When active (pinning report mode), zoom strictly into the center pin
+  useEffect(() => {
     if (!map) return;
     const container = map.getContainer();
 
@@ -210,7 +208,6 @@ const MapPinTracker: React.FC<{
       return;
     }
 
-    // Disable default Leaflet handlers so they cannot zoom around mouse cursor
     map.scrollWheelZoom?.disable();
     map.doubleClickZoom?.disable();
 
@@ -218,14 +215,12 @@ const MapPinTracker: React.FC<{
     let wheelTimer: ReturnType<typeof setTimeout> | null = null;
 
     const handleWheel = (e: WheelEvent) => {
-      // Prevent browser native scrolling and prevent Leaflet from processing cursor zoom
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
 
       if (onMovingChange) onMovingChange(true);
 
-      // Invert deltaY: negative is wheel up (zoom in), positive is wheel down (zoom out)
       accumulatedDelta -= e.deltaY;
 
       if (wheelTimer) clearTimeout(wheelTimer);
@@ -245,7 +240,6 @@ const MapPinTracker: React.FC<{
         const nextZoom = Math.min(Math.max(currentZoom + delta, minZoom), maxZoom);
 
         if (nextZoom !== currentZoom) {
-          // Point A: Always zoom directly into the center of the map/screen
           map.setView(map.getCenter(), nextZoom, { animate: true });
         } else {
           if (onMovingChange) onMovingChange(false);
@@ -264,7 +258,6 @@ const MapPinTracker: React.FC<{
       }
     };
 
-    // Attach in capture phase to intercept before Leaflet or any child overlay
     container.addEventListener('wheel', handleWheel, { capture: true, passive: false });
     container.addEventListener('dblclick', handleDblClick, { capture: true });
 
@@ -277,8 +270,7 @@ const MapPinTracker: React.FC<{
     };
   }, [active, map, onMovingChange]);
 
-  // Expose zoomIn and zoomOut methods to parent / UI buttons
-  React.useEffect(() => {
+  useEffect(() => {
     if (onRegisterZoomHandlers) {
       onRegisterZoomHandlers({
         zoomIn: () => map.setView(map.getCenter(), Math.min(map.getZoom() + 1, map.getMaxZoom()), { animate: true }),
@@ -287,7 +279,7 @@ const MapPinTracker: React.FC<{
     }
   }, [map, onRegisterZoomHandlers]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (active && onCenterChange) {
       const c = map.getCenter();
       onCenterChange(c.lat, c.lng);
@@ -298,19 +290,111 @@ const MapPinTracker: React.FC<{
   return null;
 };
 
+// 1. Origin Pin: Modern Emerald Teardrop Pin with Center Bullseye (No Letter A)
 const originIcon = L.divIcon({
-  className: 'custom-origin-icon',
-  html: `<div style="background-color: #10B981; color: white; border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 15px; border: 3px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.4); cursor: grab;">A</div>`,
-  iconSize: [34, 34],
-  iconAnchor: [17, 17],
+  className: 'custom-origin-pin',
+  html: `
+    <div style="position: relative; width: 36px; height: 44px; display: flex; flex-direction: column; align-items: center; cursor: grab; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.35));">
+      <div style="width: 36px; height: 36px; border-radius: 50% 50% 50% 0; background: linear-gradient(135deg, #10B981, #059669); transform: rotate(-45deg); display: flex; align-items: center; justify-content: center; border: 2.5px solid white;">
+        <div style="transform: rotate(45deg); display: flex; align-items: center; justify-content: center; color: white;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="6" fill="white" stroke="white" />
+            <circle cx="12" cy="12" r="2.5" fill="#059669" />
+          </svg>
+        </div>
+      </div>
+      <div style="width: 10px; height: 4px; background: rgba(0,0,0,0.35); border-radius: 50%; margin-top: -1px; filter: blur(0.8px);"></div>
+    </div>
+  `,
+  iconSize: [36, 44],
+  iconAnchor: [18, 44],
+  popupAnchor: [0, -44],
 });
 
+// 2. Destination Pin: Modern Blue Teardrop Pin with Destination Flag (No Letter B)
 const destIcon = L.divIcon({
-  className: 'custom-dest-icon',
-  html: `<div style="background-color: #2563EB; color: white; border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 15px; border: 3px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.4); cursor: grab;">B</div>`,
-  iconSize: [34, 34],
-  iconAnchor: [17, 17],
+  className: 'custom-dest-pin',
+  html: `
+    <div style="position: relative; width: 36px; height: 44px; display: flex; flex-direction: column; align-items: center; cursor: grab; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.35));">
+      <div style="width: 36px; height: 36px; border-radius: 50% 50% 50% 0; background: linear-gradient(135deg, #3B82F6, #1D4ED8); transform: rotate(-45deg); display: flex; align-items: center; justify-content: center; border: 2.5px solid white;">
+        <div style="transform: rotate(45deg); display: flex; align-items: center; justify-content: center; color: white;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" fill="white" stroke="white" />
+            <line x1="4" y1="22" x2="4" y2="15" stroke="white" stroke-width="2.5" />
+          </svg>
+        </div>
+      </div>
+      <div style="width: 10px; height: 4px; background: rgba(0,0,0,0.35); border-radius: 50%; margin-top: -1px; filter: blur(0.8px);"></div>
+    </div>
+  `,
+  iconSize: [36, 44],
+  iconAnchor: [18, 44],
+  popupAnchor: [0, -44],
 });
+
+// 3. Ghost Hover Icons when user is picking on the map
+const ghostOriginIcon = L.divIcon({
+  className: 'ghost-origin-pin',
+  html: `
+    <div style="position: relative; width: 36px; height: 44px; display: flex; flex-direction: column; align-items: center; pointer-events: none; opacity: 0.9; filter: drop-shadow(0 0 12px rgba(16,185,129,0.8)); transform: scale(1.1);">
+      <div style="width: 36px; height: 36px; border-radius: 50% 50% 50% 0; background: linear-gradient(135deg, #10B981, #059669); transform: rotate(-45deg); display: flex; align-items: center; justify-content: center; border: 2.5px solid white;">
+        <div style="transform: rotate(45deg); display: flex; align-items: center; justify-content: center; color: white;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="6" fill="white" stroke="white" />
+            <circle cx="12" cy="12" r="2.5" fill="#059669" />
+          </svg>
+        </div>
+      </div>
+    </div>
+  `,
+  iconSize: [36, 44],
+  iconAnchor: [18, 44],
+});
+
+const ghostDestIcon = L.divIcon({
+  className: 'ghost-dest-pin',
+  html: `
+    <div style="position: relative; width: 36px; height: 44px; display: flex; flex-direction: column; align-items: center; pointer-events: none; opacity: 0.9; filter: drop-shadow(0 0 12px rgba(37,99,235,0.8)); transform: scale(1.1);">
+      <div style="width: 36px; height: 36px; border-radius: 50% 50% 50% 0; background: linear-gradient(135deg, #3B82F6, #1D4ED8); transform: rotate(-45deg); display: flex; align-items: center; justify-content: center; border: 2.5px solid white;">
+        <div style="transform: rotate(45deg); display: flex; align-items: center; justify-content: center; color: white;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" fill="white" stroke="white" />
+            <line x1="4" y1="22" x2="4" y2="15" stroke="white" stroke-width="2.5" />
+          </svg>
+        </div>
+      </div>
+    </div>
+  `,
+  iconSize: [36, 44],
+  iconAnchor: [18, 44],
+});
+
+const MapCursorPinFollower: React.FC<{
+  pickingField?: 'origin' | 'dest' | null;
+}> = ({ pickingField }) => {
+  const [pos, setPos] = useState<[number, number] | null>(null);
+
+  useMapEvents({
+    mousemove(e) {
+      if (pickingField) {
+        setPos([e.latlng.lat, e.latlng.lng]);
+      }
+    },
+    mouseout() {
+      setPos(null);
+    },
+  });
+
+  if (!pickingField || !pos) return null;
+
+  return (
+    <Marker
+      position={pos}
+      icon={pickingField === 'origin' ? ghostOriginIcon : ghostDestIcon}
+      interactive={false}
+    />
+  );
+};
 
 const MapClickHandler: React.FC<{ onMapClick?: (lat: number, lng: number) => void }> = ({ onMapClick }) => {
   useMapEvents({
@@ -333,13 +417,13 @@ export const MapView: React.FC<MapViewProps> = ({
   onDragOrigin,
   onDragDestination,
   isPickingLocation,
+  pickingField,
   isPinningReport,
   onMapCenterChange,
   onMapMovingChange,
   onRegisterZoomHandlers,
 }) => {
   const defaultCenter: [number, number] = [10.7626, 106.6823];
-  // Pure OpenStreetMap raster tiles - 100% free and no API key required
   const tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
   const tileAttribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
@@ -375,8 +459,10 @@ export const MapView: React.FC<MapViewProps> = ({
           onRegisterZoomHandlers={onRegisterZoomHandlers}
         />
         <MapClickHandler onMapClick={onMapClick} />
+        <MapCursorPinFollower pickingField={pickingField} />
 
-        {origin && origin.lat !== 0 && (
+        {/* Origin Marker: Only render when origin has coordinates > 0 */}
+        {origin && origin.lat !== 0 && origin.lng !== 0 && (
           <Marker
             position={[origin.lat, origin.lng]}
             icon={originIcon}
@@ -392,18 +478,22 @@ export const MapView: React.FC<MapViewProps> = ({
             }}
           >
             <Popup>
-              <div className="p-1 text-xs">
-                <span className="font-bold text-emerald-700">🟢 Điểm xuất phát (A):</span>
-                <p className="mt-1 text-gray-800">{origin.label}</p>
-                <p className="mt-1.5 text-[10px] text-emerald-600 font-semibold bg-emerald-50 px-1.5 py-0.5 rounded">
-                  💡 Giữ & kéo ghim để chỉnh vị trí chính xác trước cửa nhà
+              <div className="p-1 text-xs max-w-[200px]">
+                <div className="flex items-center gap-1.5 font-bold text-emerald-700">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <span>Điểm xuất phát</span>
+                </div>
+                <p className="mt-1 text-gray-800 font-medium leading-snug">{origin.label}</p>
+                <p className="text-[10px] text-gray-400 font-mono mt-0.5">
+                  {origin.lat.toFixed(5)}, {origin.lng.toFixed(5)}
                 </p>
               </div>
             </Popup>
           </Marker>
         )}
 
-        {destination && destination.lat !== 0 && (
+        {/* Destination Marker: Only render when destination has coordinates > 0 */}
+        {destination && destination.lat !== 0 && destination.lng !== 0 && (
           <Marker
             position={[destination.lat, destination.lng]}
             icon={destIcon}
@@ -419,11 +509,14 @@ export const MapView: React.FC<MapViewProps> = ({
             }}
           >
             <Popup>
-              <div className="p-1 text-xs">
-                <span className="font-bold text-blue-700">🏁 Điểm đến (B):</span>
-                <p className="mt-1 text-gray-800">{destination.label}</p>
-                <p className="mt-1.5 text-[10px] text-blue-600 font-semibold bg-blue-50 px-1.5 py-0.5 rounded">
-                  💡 Giữ & kéo ghim để chỉnh vị trí chính xác trước cửa nhà
+              <div className="p-1 text-xs max-w-[200px]">
+                <div className="flex items-center gap-1.5 font-bold text-blue-700">
+                  <span className="w-2 h-2 rounded-full bg-blue-600" />
+                  <span>Điểm đến</span>
+                </div>
+                <p className="mt-1 text-gray-800 font-medium leading-snug">{destination.label}</p>
+                <p className="text-[10px] text-gray-400 font-mono mt-0.5">
+                  {destination.lat.toFixed(5)}, {destination.lng.toFixed(5)}
                 </p>
               </div>
             </Popup>
@@ -435,3 +528,5 @@ export const MapView: React.FC<MapViewProps> = ({
     </div>
   );
 };
+
+export default MapView;

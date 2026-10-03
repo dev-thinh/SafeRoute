@@ -274,8 +274,8 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                 <Map className="w-4 h-4 text-blue-600 flex-shrink-0" />
                 <span>
                   {pickingField === 'origin'
-                    ? 'Chấm chọn Điểm xuất phát (A)'
-                    : 'Chấm chọn Điểm đến (B)'}
+                    ? 'Chấm chọn Điểm xuất phát'
+                    : 'Chấm chọn Điểm đến'}
                 </span>
               </div>
               <button
@@ -294,8 +294,8 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
             <div className="relative">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-[11px] font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
-                  <span>Điểm xuất phát (A)</span>
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-xs inline-block" />
+                  <span>Điểm xuất phát</span>
                 </span>
                 <div className="flex items-center gap-1">
                   <button
@@ -417,7 +417,7 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                 type="button"
                 disabled={loading}
                 onClick={handleSwap}
-                title="Đảo chiều lộ trình"
+                title="Đảo chiều điểm đi và điểm đến"
                 className="group p-1.5 bg-white border border-gray-200/90 text-gray-600 hover:text-blue-600 rounded-full shadow-sm hover:shadow transition active:scale-90 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ArrowUpDown className="w-3.5 h-3.5 group-hover:rotate-180 transition-transform duration-300" />
@@ -428,8 +428,8 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
             <div className="relative">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-[11px] font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
-                  <span>Điểm đến (B)</span>
+                  <span className="w-2.5 h-2.5 rounded-full bg-blue-600 shadow-xs inline-block" />
+                  <span>Điểm đến</span>
                 </span>
                 <button
                   type="button"

@@ -8,7 +8,7 @@ import { RoutePlannerPanel, LocationItem } from './components/Navigation/RoutePl
 import { ReportFloodModal, SelectedReportLocation } from './components/Reporting/ReportFloodModal';
 import { ReportLocationPinOverlay } from './components/Reporting/ReportLocationPinOverlay';
 import { getActiveFloods, reverseGeocode } from './services/api';
-import { Droplet, PanelLeftOpen } from 'lucide-react';
+import { Droplet, PanelLeftOpen, MapPin, Navigation } from 'lucide-react';
 import { NavigateResponse, FloodEvent, UserReport } from './types';
 
 export const App: React.FC = () => {
@@ -35,16 +35,16 @@ export const App: React.FC = () => {
   const [isLoadingAddress, setIsLoadingAddress] = useState(false);
   const [selectedReportLocation, setSelectedReportLocation] = useState<SelectedReportLocation | null>(null);
 
-  // Origin & Destination state
+  // Origin & Destination state (starts empty)
   const [origin, setOrigin] = useState<LocationItem>({
-    label: 'ĐH Khoa Học Tự Nhiên, 227 Nguyễn Văn Cừ, Quận 5',
-    lat: 10.7626,
-    lng: 106.6823,
+    label: '',
+    lat: 0,
+    lng: 0,
   });
   const [destination, setDestination] = useState<LocationItem>({
-    label: 'KĐT Phú Mỹ Hưng, Quận 7',
-    lat: 10.7303,
-    lng: 106.7075,
+    label: '',
+    lat: 0,
+    lng: 0,
   });
 
   // Pick on map state for route: 'origin' | 'dest' | null
@@ -224,6 +224,7 @@ export const App: React.FC = () => {
         onDragOrigin={handleDragOrigin}
         onDragDestination={handleDragDestination}
         isPickingLocation={pickingField !== null}
+        pickingField={pickingField}
         isPinningReport={isPinningReport}
         onMapCenterChange={(lat, lng) => setCenterCoord({ lat, lng })}
         onMapMovingChange={setIsMapMoving}
@@ -243,6 +244,38 @@ export const App: React.FC = () => {
           />
         )}
       </MapView>
+
+      {/* Floating Picking Notification Banner */}
+      {pickingField && (
+        <div className="absolute top-5 left-1/2 -translate-x-1/2 z-[1100] bg-white/95 backdrop-blur-md px-4 py-2.5 rounded-2xl shadow-2xl border border-gray-200/90 flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+          <div
+            className={`w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-xs ${
+              pickingField === 'origin' ? 'bg-emerald-600' : 'bg-blue-600'
+            }`}
+          >
+            {pickingField === 'origin' ? (
+              <MapPin className="w-4 h-4" />
+            ) : (
+              <Navigation className="w-4 h-4" />
+            )}
+          </div>
+          <div>
+            <div className="text-xs font-bold text-gray-900">
+              {pickingField === 'origin' ? 'Ghim điểm xuất phát' : 'Ghim điểm đến'}
+            </div>
+            <div className="text-[11px] text-gray-500">
+              Chạm hoặc click vị trí trên bản đồ để ghim
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setPickingField(null)}
+            className="ml-2 px-3 py-1.5 text-xs font-bold text-gray-700 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-xl transition active:scale-95 cursor-pointer"
+          >
+            Hủy
+          </button>
+        </div>
+      )}
 
       {/* 3. Floating Flood Depth Legend Bar (Hidden during report pin mode) */}
       {!isPinningReport && <FloodDepthLegend />}
