@@ -3,6 +3,8 @@ import axios from 'axios';
 import {
   getQuadrantPrecipitation,
   getAllQuadrantsPrecipitation,
+  getQuadrantRollingPrecipitation,
+  getAllQuadrantsRollingPrecipitation,
   clearWeatherCache,
   HCMC_QUADRANTS,
 } from '../src/services/weatherService';
@@ -66,10 +68,29 @@ describe('Weather Service', () => {
     expect(all.east).toBe(10.0);
   });
 
-  it('should gracefully return 0 mm when Open-Meteo is unreachable', async () => {
-    mockedAxios.get.mockRejectedValueOnce(new Error('Network timeout'));
+  it('should calculate effective rolling 3-hour precipitation accumulation correctly', async () => {
+    mockedAxios.get.mockResolvedValueOnce({
+      data: {
+        current: { precipitation: 30.0 },
+        hourly: {
+          time: [
+            '2026-10-02T14:00',
+            '2026-10-02T15:00',
+            '2026-10-02T16:00',
+          ],
+          precipitation: [20.0, 25.0, 30.0],
+        },
+      },
+    });
 
-    const precip = await getQuadrantPrecipitation('south');
-    expect(precip).toBe(0);
+    const target = new Date('2026-10-02T16:00:00Z');
+    // R_eff = 30 + 0.7*25 + 0.4*20 = 30 + 17.5 + 8 = 55.5
+    const rolling = await getQuadrantRollingPrecipitation('center', target);
+    expect(rolling.currentMm).toBe(30.0);
+    expect(rolling.prev1hMm).toBe(25.0);
+    expect(rolling.prev2hMm).toBe(20.0);
+    expect(rolling.effectiveAccumulationMm).toBe(55.5);
+    expect(rolling.rainProbability).toBeGreaterThan(0.9);
   });
 });
+

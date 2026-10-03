@@ -25,6 +25,106 @@ interface CacheEntry {
 const weatherCache = new Map<HcmcQuadrant, CacheEntry>();
 const CACHE_TTL_MS = 15 * 60 * 1000;
 
+export interface RollingPrecipitation {
+  currentMm: number;
+  prev1hMm: number;
+  prev2hMm: number;
+  effectiveAccumulationMm: number;
+  rainProbability: number;
+}
+
+/**
+ * Calculates 3-hour rolling effective precipitation accumulation R_eff = R(T) + 0.7*R(T-1) + 0.4*R(T-2).
+ * Also computes rain-induced flood probability P_rain.
+ */
+export async function getQuadrantRollingPrecipitation(
+  quadrant: HcmcQuadrant,
+  targetDate: Date = new Date()
+): Promise<RollingPrecipitation> {
+  const now = Date.now();
+  let cached = weatherCache.get(quadrant);
+
+  // If cache is missing or stale, fetch fresh data
+  if (!cached || now - cached.timestamp >= CACHE_TTL_MS) {
+    const { lat, lng } = HCMC_QUADRANTS[quadrant];
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=precipitation,rain&hourly=precipitation,rain&timezone=Asia%2FBangkok`;
+
+    try {
+      const res = await axios.get(url, { timeout: 4000 });
+      const currentPrecip = parseFloat(res.data?.current?.precipitation || res.data?.current?.rain || '0');
+
+      const hourlyMap: Record<string, number> = {};
+      const times: string[] = res.data?.hourly?.time || [];
+      const precips: number[] = res.data?.hourly?.precipitation || res.data?.hourly?.rain || [];
+
+      for (let i = 0; i < times.length; i++) {
+        hourlyMap[times[i]] = parseFloat(String(precips[i] || 0));
+      }
+
+      cached = {
+        timestamp: now,
+        precipitationMm: currentPrecip,
+        hourlyMap,
+      };
+      weatherCache.set(quadrant, cached);
+    } catch (err: any) {
+      console.warn(`[Weather] Failed to fetch precipitation for ${quadrant}:`, err.message);
+      if (!cached) {
+        return {
+          currentMm: 0,
+          prev1hMm: 0,
+          prev2hMm: 0,
+          effectiveAccumulationMm: 0,
+          rainProbability: 0,
+        };
+      }
+    }
+  }
+
+  const currentHourKey = targetDate.toISOString().slice(0, 13) + ':00';
+  const prev1hDate = new Date(targetDate.getTime() - 60 * 60 * 1000);
+  const prev1hKey = prev1hDate.toISOString().slice(0, 13) + ':00';
+  const prev2hDate = new Date(targetDate.getTime() - 120 * 60 * 1000);
+  const prev2hKey = prev2hDate.toISOString().slice(0, 13) + ':00';
+
+  const hourly = cached.hourlyMap || {};
+  const currentMm = hourly[currentHourKey] !== undefined ? hourly[currentHourKey] : cached.precipitationMm;
+  const prev1hMm = hourly[prev1hKey] !== undefined ? hourly[prev1hKey] : currentMm * 0.7;
+  const prev2hMm = hourly[prev2hKey] !== undefined ? hourly[prev2hKey] : prev1hMm * 0.5;
+
+  const effectiveAccumulationMm = Math.round((currentMm + 0.7 * prev1hMm + 0.4 * prev2hMm) * 10) / 10;
+
+  // Logistic activation for rain probability with threshold 30mm design capacity
+  const k = 0.15;
+  const threshold = 30.0;
+  const rainProbability = Math.round((1 / (1 + Math.exp(-k * (effectiveAccumulationMm - threshold)))) * 100) / 100;
+
+  return {
+    currentMm,
+    prev1hMm,
+    prev2hMm,
+    effectiveAccumulationMm,
+    rainProbability,
+  };
+}
+
+/**
+ * Retrieves rolling precipitation for all 4 quadrants across HCMC simultaneously.
+ */
+export async function getAllQuadrantsRollingPrecipitation(
+  targetDate: Date = new Date()
+): Promise<Record<HcmcQuadrant, RollingPrecipitation>> {
+  const quadrants: HcmcQuadrant[] = ['center', 'south', 'east', 'northwest'];
+  const results = await Promise.all(
+    quadrants.map(async (q) => {
+      const rolling = await getQuadrantRollingPrecipitation(q, targetDate);
+      return [q, rolling] as const;
+    })
+  );
+
+  return Object.fromEntries(results) as Record<HcmcQuadrant, RollingPrecipitation>;
+}
+
 /**
  * Fetches precipitation (mm/h) for a specific HCMC quadrant from Open-Meteo.
  * Falls back gracefully to 0 mm if network or API error occurs.
@@ -33,49 +133,8 @@ export async function getQuadrantPrecipitation(
   quadrant: HcmcQuadrant,
   targetDate: Date = new Date()
 ): Promise<number> {
-  const now = Date.now();
-  const cached = weatherCache.get(quadrant);
-
-  // If cache is fresh, check hourly map or return current
-  if (cached && now - cached.timestamp < CACHE_TTL_MS) {
-    const hourKey = targetDate.toISOString().slice(0, 13) + ':00';
-    if (cached.hourlyMap[hourKey] !== undefined) {
-      return cached.hourlyMap[hourKey];
-    }
-    return cached.precipitationMm;
-  }
-
-  const { lat, lng } = HCMC_QUADRANTS[quadrant];
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=precipitation,rain&hourly=precipitation,rain&timezone=Asia%2FBangkok`;
-
-  try {
-    const res = await axios.get(url, { timeout: 4000 });
-    const currentPrecip = parseFloat(res.data?.current?.precipitation || res.data?.current?.rain || '0');
-
-    const hourlyMap: Record<string, number> = {};
-    const times: string[] = res.data?.hourly?.time || [];
-    const precips: number[] = res.data?.hourly?.precipitation || res.data?.hourly?.rain || [];
-
-    for (let i = 0; i < times.length; i++) {
-      hourlyMap[times[i]] = parseFloat(String(precips[i] || 0));
-    }
-
-    weatherCache.set(quadrant, {
-      timestamp: now,
-      precipitationMm: currentPrecip,
-      hourlyMap,
-    });
-
-    const hourKey = targetDate.toISOString().slice(0, 13) + ':00';
-    if (hourlyMap[hourKey] !== undefined) {
-      return hourlyMap[hourKey];
-    }
-    return currentPrecip;
-  } catch (err: any) {
-    console.warn(`[Weather] Failed to fetch precipitation for ${quadrant}:`, err.message);
-    if (cached) return cached.precipitationMm;
-    return 0;
-  }
+  const rolling = await getQuadrantRollingPrecipitation(quadrant, targetDate);
+  return rolling.currentMm;
 }
 
 /**
@@ -84,15 +143,13 @@ export async function getQuadrantPrecipitation(
 export async function getAllQuadrantsPrecipitation(
   targetDate: Date = new Date()
 ): Promise<Record<HcmcQuadrant, number>> {
-  const quadrants: HcmcQuadrant[] = ['center', 'south', 'east', 'northwest'];
-  const results = await Promise.all(
-    quadrants.map(async (q) => {
-      const mm = await getQuadrantPrecipitation(q, targetDate);
-      return [q, mm] as const;
-    })
-  );
-
-  return Object.fromEntries(results) as Record<HcmcQuadrant, number>;
+  const allRolling = await getAllQuadrantsRollingPrecipitation(targetDate);
+  return {
+    center: allRolling.center.currentMm,
+    south: allRolling.south.currentMm,
+    east: allRolling.east.currentMm,
+    northwest: allRolling.northwest.currentMm,
+  };
 }
 
 import { HCMC_VULNERABLE_CORRIDORS } from './vulnerableRoads';
