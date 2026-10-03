@@ -404,7 +404,8 @@ export async function crawlLatestFloodNews(): Promise<{
 
 /**
  * Filters flood events to only those actively causing road obstacles at targetDate.
- * Articles older than their active obstacle window (3 hours) will not block roads.
+ * For incident reports: respects the 3-hour active window.
+ * For forecast warnings: active across their designated prospective timeframe.
  */
 export function getActiveNewsFloodEvents(
   events: FloodEvent[],
@@ -418,4 +419,20 @@ export function getActiveNewsFloodEvents(
     return targetMs >= startMs && targetMs <= endMs;
   });
 }
+
+/**
+ * Calculates empirical historical prior risk multiplier W_history based on past news mentions.
+ * W_history = 1.0 + 0.10 * min(5, mentions) -> range [1.0, 1.5]
+ */
+export function calculateHistoricalPriorRisk(streetName: string): number {
+  const normalized = streetName.toLowerCase().trim();
+  let mentions = 0;
+  for (const article of crawledArticlesStore) {
+    if (article.extractedLocations?.some((loc) => loc.streetName.toLowerCase().includes(normalized))) {
+      mentions++;
+    }
+  }
+  return Math.round((1.0 + 0.10 * Math.min(5, mentions)) * 100) / 100;
+}
+
 

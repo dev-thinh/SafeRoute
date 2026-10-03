@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   getActiveNewsFloodEvents,
   crawledArticlesStore,
+  calculateHistoricalPriorRisk,
   HCMC_GEO_KEYWORDS,
   EXCLUSION_KEYWORDS,
   STREET_INDICATORS,
@@ -106,5 +107,16 @@ describe('Smart News Crawler & Deduplication', () => {
     expect(hasStreet1).toBe(true);
     expect(hasStreet2).toBe(false);
   });
+
+  it('should calculate historical prior risk based on past news mentions', () => {
+    // Trần Xuân Soạn is seeded in crawledArticlesStore
+    const risk = calculateHistoricalPriorRisk('Trần Xuân Soạn');
+    expect(risk).toBeGreaterThanOrEqual(1.10);
+
+    // An unknown street should have default base multiplier 1.0
+    const unknownRisk = calculateHistoricalPriorRisk('Đường Hoàn Toàn Mới Lạ 123');
+    expect(unknownRisk).toBe(1.0);
+  });
 });
+
 
