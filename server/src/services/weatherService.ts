@@ -153,7 +153,7 @@ export async function getAllQuadrantsPrecipitation(
 }
 
 import { HCMC_VULNERABLE_CORRIDORS } from './vulnerableRoads';
-import { getSaigonTideStatus, calculateAstronomicalTideDepth } from './tideService';
+import { getSaigonTideStatus, calculateAstronomicalTideDepth, TideStatus } from './tideService';
 import { evaluateCompoundFloodRisk, FloodRiskTier } from './predictionEngine';
 
 export interface QuadrantWeatherStatus {
