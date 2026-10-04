@@ -1,129 +1,107 @@
-# SafeRoute - Thiết kế Ô nhập địa chỉ thông minh cho tính năng Báo cáo ngập (Interactive Flood Report Location Input)
+# SafeRoute - Thiết kế Ô nhập địa chỉ thông minh trên giao diện Ghim điểm báo ngập (Interactive Location Input on Map Pin Overlay)
 
 ## 1. Bối cảnh & Mục tiêu (Context & Objectives)
 
-### 1.1. Hiện trạng
-Trước đây, luồng báo cáo ngập trong SafeRoute bắt buộc người dùng phải trải qua chế độ kéo tâm bản đồ toàn màn hình (`ReportLocationPinOverlay.tsx`):
-1. Người dùng bấm nút "Báo ngập tại đây".
-2. Bị chuyển sang giao diện toàn màn hình với tâm ngắm ở giữa bản đồ.
-3. Người dùng phải tự kéo/zoom bản đồ đến vị trí ngập, chờ reverse geocode.
-4. Bấm "Xác nhận vị trí" thì mới mở `ReportFloodModal.tsx` để chọn mức ngập và gửi.
-
-Hạn chế: Người dùng không thể nhập trực tiếp tên đường, địa chỉ hoặc địa danh cụ thể (ví dụ: *"Trần Xuân Soạn"*, *"Nguyễn Hữu Cảnh"*, *"227 Nguyễn Văn Cừ"*...), gây mất thời gian và giảm khả năng tiếp nhận báo cáo ngập tức thời từ cộng đồng.
-
-### 1.2. Mục tiêu
-- Biến phần chọn vị trí trong Modal báo cáo ngập thành một **ô nhập địa chỉ tương tác (Interactive Location Input)** hoàn chỉnh.
-- Tích hợp gợi ý tự động (Autocomplete Suggestions) thời gian thực tương tự như các ô nhập Điểm đi / Điểm đến trong `RoutePlannerPanel`.
-- Hỗ trợ nút **"Vị trí của tôi" (GPS 1-chạm)**: Tự động phát hiện vị trí hiện tại của thiết bị và điền thẳng địa chỉ + tọa độ vào ô input.
-- Giữ tùy chọn **"Ghim trên map"**: Người dùng có thể chuyển sang chế độ kéo tâm bản đồ trực quan nếu muốn; sau khi xác nhận, thông tin vị trí sẽ đồng bộ ngược lại vào ô input.
-- Cho phép mở Modal báo cáo ngập ngay khi bấm nút "Báo ngập tại đây" ngoài bản đồ, rút ngắn thời gian thao tác.
-- Tuân thủ 100% bộ 40 quy chuẩn UI/UX thiết kế của SafeRoute (nhất quán màu sắc, bo góc, micro-interactions, responsive, tiếng Việt tự nhiên).
+### 1.1. Mục tiêu tinh gọn theo yêu cầu
+- Giữ nguyên luồng tính năng báo ngập hiện tại: Vẫn giữ tâm ngắm định vị (`location pin`) ở chính giữa màn hình bản đồ (`ReportLocationPinOverlay`).
+- **Nâng cấp cốt lõi:** Thay thế thẻ hiển thị địa chỉ tĩnh ở khung trên cùng (`Top Address Card`) thành **một ô Input cho phép người dùng tự do nhập địa chỉ**.
+- **Tính năng của ô Input:**
+  1. **Tự động cập nhật khi kéo bản đồ (Giữ nguyên như hiện tại):** Khi người dùng rê/kéo map, địa chỉ giải mã (reverse geocoded) sẽ tự động điền và cập nhật vào ô input.
+  2. **Cho phép gõ địa chỉ trực tiếp:** Người dùng có thể click vào ô input để nhập tên đường, địa danh (VD: *"Trần Xuân Soạn"*, *"Nguyễn Hữu Cảnh"*, *"Landmark 81"*...).
+  3. **Gợi ý tự động (Autocomplete Suggestions):** Khi gõ, hiển thị dropdown gợi ý địa điểm tương tự như ô tìm kiếm điểm đi/đến.
+  4. **Tự động bay map đến địa chỉ được chọn:** Khi người dùng chọn một mục trong danh sách gợi ý, bản đồ sẽ tự động di chuyển (pan / flyTo) tâm đến tọa độ của địa chỉ đó, đưa tâm ghim chính xác vào vị trí vừa chọn, đồng thời cập nhật nội dung ô input.
+  5. **Định vị GPS:** Nút *"Vị trí của tôi"* vẫn hoạt động để kéo bản đồ về vị trí GPS hiện tại và tự động cập nhật vào ô input.
+  6. **Không phát sinh thêm nút "Ghim trên map" phụ:** Tránh làm phức tạp hóa giao diện, giữ trải nghiệm liền mạch và tự nhiên nhất.
 
 ---
 
-## 2. Kiến trúc & Luồng tương tác (Architecture & User Flows)
+## 2. Kiến trúc giao diện & Luồng tương tác (UI Architecture & Interaction Flow)
 
-### 2.1. Luồng trải nghiệm người dùng (User Flows)
+### 2.1. Luồng trải nghiệm người dùng (User Flow)
 
 ```
 [Bấm 'Báo ngập tại đây' trên bản đồ]
                 │
                 ▼
-      [Mở ReportFloodModal]
+[Chế độ Ghim điểm báo ngập (ReportLocationPinOverlay)]
+ Tâm ghim cố định ở giữa bản đồ
+ Khung địa chỉ phía trên là Ô NHẬP ĐỊA CHỈ (Interactive Input)
                 │
-   ┌────────────┼────────────┐
-   │ (Cách 1)   │ (Cách 2)   │ (Cách 3)
-   ▼            ▼            ▼
-[Gõ địa chỉ]  [Bấm GPS]   [Bấm 'Ghim trên map']
-   │            │            │
-   ▼            ▼            ▼
-[Chọn gợi ý]  [Lấy GPS &]  [Chuyển sang map overlay]
-   │          [điền input]   │
-   │            │          [Rê map & bấm 'Xác nhận']
-   │            │            │
-   └────────────┴────────────┘
-                │
-                ▼
-   [Vị trí & tọa độ đã được điền vào ô input]
-                │
-                ▼
-   [Chọn mức độ ngập: 4 cấp độ]
-   [Nhập mô tả bổ sung (nếu có)]
-                │
-                ▼
-   [Bấm 'Gửi báo cáo ngay']
+   ┌────────────┴────────────┐
+   │ (Cách 1)                │ (Cách 2)
+   ▼                         ▼
+[Kéo/rê bản đồ]           [Gõ địa chỉ vào ô Input]
+   │                         │
+   ▼                         ▼
+[Tâm ghim di chuyển,      [Dropdown hiển thị gợi ý (Autocomplete)]
+ input tự động cập nhật      │
+ tên đường theo tọa độ]    [Bấm chọn 1 địa chỉ gợi ý]
+   │                         │
+   │                         ▼
+   │                      [Bản đồ tự động bay (pan) đến tọa độ đó,
+   │                       tâm ghim rơi đúng vị trí & input điền tên]
+   │                         │
+   └────────────┬────────────┘
                 │
                 ▼
-   [Lưu vào DB / InMemory & hiển thị marker ngay trên bản đồ]
+      [Bấm 'Xác nhận vị trí']
+                │
+                ▼
+     [Mở ReportFloodModal]
+      (Chọn 4 mức ngập + nhập mô tả)
+                │
+                ▼
+      [Bấm 'Gửi báo cáo ngay']
 ```
 
-### 2.2. Chi tiết các thành phần giao diện
+### 2.2. Chi tiết Component `ReportLocationPinOverlay.tsx`
 
-#### A. Trong `ReportFloodModal.tsx`:
-1. **Header:** Giữ nguyên phong cách chuẩn: Icon giọt nước xanh, tiêu đề *"Báo cáo điểm ngập tức thì"*, nút đóng `X`.
-2. **Khu vực Nhập vị trí (Location Input Section):**
-   - **Label bar:** Nhãn `VỊ TRÍ BÁO NGẬP` (chữ in hoa đậm, `text-[11px] text-gray-700`).
-   - **Thanh công cụ nhanh (Quick Actions):**
-     - Nút `[Vị trí của tôi]`: Icon `Crosshair` / `Navigation`, hiển thị spinner `Loader2` khi đang truy vấn GPS.
-     - Nút `[Ghim trên map]`: Icon `Map`, cho phép tạm ẩn modal và mở overlay kéo tâm bản đồ.
+1. **Center Crosshair & Pin Marker (Giữ nguyên):**
+   - Vòng tròn lan tỏa (ripple effect), tâm ngắm nhỏ và ghim vị trí SVG màu xanh dương nhấc nhẹ khi map di chuyển (`isMoving`).
+2. **Top Address Bar (Nâng cấp thành Interactive Search Input):**
+   - **Container:** Nền kính mờ `bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-gray-200/80`.
+   - **Header:** Icon giọt nước, tiêu đề *"Điểm báo ngập trên bản đồ"*.
    - **Input Box:**
-     - Icon `MapPin` (màu xanh dương `blue-600` hoặc đỏ cảnh báo `rose-500`).
-     - Text input với placeholder *"Nhập địa chỉ hoặc điểm ngập (VD: Trần Xuân Soạn, Q7)..."*.
-     - Nút xóa nhanh `(X)` xuất hiện khi có văn bản trong input.
-     - Dòng phụ hiển thị tọa độ đã nhận diện (`lat.toFixed(5), lng.toFixed(5)`).
-   - **Dropdown Gợi ý địa chỉ (Suggestions Dropdown):**
-     - Kích hoạt khi input focus và có nội dung (hoặc hiển thị preset địa điểm ngập quen thuộc TP.HCM).
-     - Debounce 300ms gọi `searchLocation(query)`.
-     - Header sticky: *"Gợi ý địa chỉ"* kèm trạng thái spinner *"đang tìm..."*.
-     - Mỗi mục gồm tên địa điểm + tọa độ `lat, lng`.
-     - Hover hiệu ứng `hover:bg-blue-50 hover:text-blue-800`.
-     - Khi chọn một mục: Cập nhật địa chỉ hiển thị và gán tọa độ ngầm `{ lat, lng }`.
-3. **Phần chọn mức độ ngập (Flood Depth Levels):**
-   - 4 thẻ chọn trực quan với chuẩn màu sắc:
-     - 🟢 Mắt cá chân (< 20 cm)
-     - 🟡 Nửa bánh xe (20 - 40 cm)
-     - 🟠 Đầu gối / Ngập pô (40 - 60 cm)
-     - 🔴 Ngập sâu (> 60 cm)
-4. **Mô tả chi tiết (Tùy chọn):**
-   - Textarea nhập tình trạng thực tế.
-5. **Action Footer:**
-   - Nút "Hủy" (`min-h-[44px]`, nền trắng viền xám).
-   - Nút "Gửi báo cáo ngay" (`min-h-[44px]`, xanh `blue-600`, khóa disabled khi chưa có vị trí hợp lệ hoặc đang gửi).
+     - Icon `MapPin` (màu đỏ `text-red-500` hoặc xanh `text-blue-600`).
+     - Thẻ `<input>` cho phép click vào nhập chữ trực tiếp.
+     - Khi map di chuyển hoặc load xong địa chỉ, nếu người dùng không đang chủ động gõ thì ô input hiển thị địa chỉ của tâm bản đồ.
+     - Khi người dùng focus và gõ, hiển thị nội dung đang gõ + nút `(X)` để xóa nhanh.
+     - Dòng hiển thị tọa độ phụ `lat.toFixed(5), lng.toFixed(5)` ngay bên dưới.
+   - **Dropdown Gợi ý (Suggestions Dropdown):**
+     - Nổi phía dưới ô input (`z-50`, `max-h-56`, `overflow-y-auto`).
+     - Debounce 300ms gọi `searchLocation(searchQuery)` (tích hợp Nominatim, Goong, Photon, và HCMC Presets).
+     - Mỗi kết quả gồm tên địa chỉ + tọa độ `lat, lng`.
+     - Khi click chọn kết quả:
+       - Đóng dropdown.
+       - Gọi hàm callback `onSelectSuggestedLocation(lat, lng, label)`.
+       - Bản đồ di chuyển tâm đến tọa độ được chọn.
+3. **Bottom Action Bar (Giữ nguyên):**
+   - Nút "Hủy": Đóng chế độ ghim.
+   - Nút "Vị trí của tôi": Lấy GPS, di chuyển tâm bản đồ về vị trí hiện tại và tự động điền địa chỉ.
+   - Nút "Xác nhận vị trí": Mở Modal chọn mức ngập.
+4. **Floating Zoom Controls (+ / -):**
+   - Giữ nguyên các nút zoom trực tiếp tại tâm bản đồ.
 
-#### B. Trong `App.tsx`:
-- Nút FAB *"Báo ngập tại đây"* ở góc dưới bên phải mở trực tiếp `isReportOpen = true`.
-- Khi mở modal, tự động nạp vị trí tâm bản đồ hiện tại làm giá trị khởi tạo (nếu người dùng đã ngắm map), hoặc cho phép người dùng tùy ý nhập mới/chọn GPS.
-- Khi người dùng bấm *"Ghim trên map"* trong modal:
-  - Tạm ẩn modal (`isReportOpen = false`).
-  - Kích hoạt `isPinningReport = true`.
-- Khi người dùng bấm *"Xác nhận vị trí"* trên `ReportLocationPinOverlay`:
-  - Đóng pin overlay (`isPinningReport = false`).
-  - Mở lại modal (`isReportOpen = true`) với tọa độ và địa chỉ đã chọn từ tâm bản đồ.
+### 2.3. Tích hợp trong `App.tsx`
+- Bổ sung prop hoặc handler trong `App.tsx`: Khi người dùng chọn một địa chỉ từ gợi ý trên overlay, gọi `setMapCenter([lat, lng])` và cập nhật `centerCoord = { lat, lng }`, `centerAddress = label`. Bản đồ sẽ tự động pan đến vị trí đó.
 
 ---
 
-## 3. Xử lý lỗi & Tình huống đặc biệt (Edge Cases & Error Handling)
+## 3. Tuân thủ 40 Quy chuẩn SafeRoute Design Tokens
 
-1. **Người dùng gõ địa chỉ nhưng không chọn từ gợi ý:**
-   - Trước khi submit form, nếu tọa độ chưa có (`lat === 0`), hệ thống tự động gọi `searchLocation(searchQuery)` để lấy tọa độ gợi ý đầu tiên.
-   - Nếu không tìm thấy kết quả nào tương ứng, hiển thị thông báo lỗi thân thiện bằng tiếng Việt: *"Không tìm thấy tọa độ phù hợp cho địa chỉ này. Vui lòng chọn từ danh sách gợi ý hoặc bấm 'Ghim trên map'."*
-2. **Quyền truy cập GPS bị từ chối / Lỗi định vị:**
-   - Bắt lỗi `navigator.geolocation` lỗi timeout hoặc denied, hiển thị thông báo: *"Không thể xác định vị trí GPS. Vui lòng cấp quyền truy cập vị trí trên trình duyệt hoặc nhập địa chỉ thủ công."*
-3. **Mất kết nối mạng / API lỗi khi gửi báo cáo:**
-   - Hiển thị banner lỗi màu đỏ trong modal, giữ nguyên các thông tin người dùng đã nhập, mở khóa nút gửi để họ có thể bấm thử lại.
+- Màu sắc: Primary blue `blue-600`, Alert amber/yellow/red, Neutrals `gray-900`/`gray-500`.
+- Bo góc: `rounded-2xl` cho floating card, `rounded-xl` cho input.
+- Kích thước chạm tối thiểu: >= 44px (`min-h-[44px]` cho các nút tương tác).
+- Trạng thái phản hồi: Loading spinner khi đang tìm kiếm hoặc đang geocode địa chỉ, hover, focus-within.
 
 ---
 
-## 4. Kế hoạch kiểm thử & Tiêu chuẩn nghiệm thu (Testing & Verification)
+## 4. Kế hoạch kiểm thử & Tiêu chuẩn nghiệm thu (Verification Checklist)
 
-- **Unit / Build Tests:**
-  - `npm run build` trong `client` phải đạt 0 lỗi TypeScript và Vite.
-  - `npm test` trong `server` giữ vững 40/40 tests pass.
-- **Manual Verification Checklist:**
-  - [ ] Bấm nút "Báo ngập tại đây" mở ngay Modal báo cáo ngập.
-  - [ ] Ô vị trí cho phép gõ văn bản và hiện danh sách gợi ý tự động (autocomplete).
-  - [ ] Bấm một gợi ý sẽ cập nhật địa chỉ và tọa độ chuẩn.
-  - [ ] Bấm nút "Vị trí của tôi" lấy được vị trí GPS và điền vào ô input.
-  - [ ] Bấm nút "Ghim trên map" chuyển sang chế độ ghim tâm màn hình, xác nhận xong quay lại modal với địa chỉ mới.
-  - [ ] Nút xóa `(X)` trong ô input hoạt động trơn tru.
-  - [ ] Gửi báo cáo thành công hiển thị ngay điểm ngập trên bản đồ.
+- [ ] Khi bấm "Báo ngập tại đây": Màn hình ghim tâm bản đồ hiển thị với ô input ở phía trên.
+- [ ] Khi kéo bản đồ: Ô input tự động cập nhật tên đường theo tâm bản đồ như trước.
+- [ ] Khi gõ vào ô input: Dropdown gợi ý địa chỉ hiển thị thời gian thực (autocomplete).
+- [ ] Khi chọn một địa chỉ từ dropdown: Bản đồ tự động di chuyển tâm đến tọa độ đó, tâm ghim rơi đúng vị trí, ô input cập nhật địa chỉ đã chọn.
+- [ ] Bấm "Vị trí của tôi" (GPS): Bản đồ di chuyển về GPS và cập nhật input.
+- [ ] Bấm "Xác nhận vị trí": Mở Modal báo cáo với địa chỉ và tọa độ chuẩn xác.
+- [ ] Build `npm run build` trong `client` đạt 0 lỗi TypeScript / Vite.
