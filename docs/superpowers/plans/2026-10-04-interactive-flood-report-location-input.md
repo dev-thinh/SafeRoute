@@ -28,12 +28,12 @@
 - Consumes: `searchLocation` from `../../services/api`, `LocationItem` or `{ label: string; lat: number; lng: number }`.
 - Produces: `onSelectLocation?: (lat: number, lng: number, label: string) => void` in `ReportLocationPinOverlayProps`.
 
-- [ ] **Step 1: Update `ReportLocationPinOverlayProps` with `onSelectLocation`**
+- [x] **Step 1: Update `ReportLocationPinOverlayProps` with `onSelectLocation`**
 
 In `client/src/components/Reporting/ReportLocationPinOverlay.tsx`:
 Add `onSelectLocation?: (lat: number, lng: number, label: string) => void;` to `ReportLocationPinOverlayProps`.
 
-- [ ] **Step 2: Add autocomplete and synchronization state hooks**
+- [x] **Step 2: Add autocomplete and synchronization state hooks**
 
 ```tsx
 import { searchLocation } from '../../services/api';
@@ -69,7 +69,7 @@ useEffect(() => {
 }, [searchQuery, isFocused]);
 ```
 
-- [ ] **Step 3: Replace static address card with interactive search input & suggestions dropdown**
+- [x] **Step 3: Replace static address card with interactive search input & suggestions dropdown**
 
 Replace the static address card with:
 - An input wrapper with `focus-within:border-blue-500 focus-within:bg-white bg-gray-50`.
@@ -78,11 +78,11 @@ Replace the static address card with:
 - Dropdown suggestions rendered below the input with `z-50 max-h-56 overflow-y-auto divide-y divide-gray-100 bg-white rounded-xl shadow-2xl border border-gray-200`.
 - On item click (`onMouseDown`): call `onSelectLocation?.(item.lat, item.lng, item.label)`, set `searchQuery(item.label)`, close dropdown.
 
-- [ ] **Step 4: Verify type safety in `ReportLocationPinOverlay.tsx`**
+- [x] **Step 4: Verify type safety in `ReportLocationPinOverlay.tsx`**
 
 Ensure all props, types, and callbacks compile cleanly without TypeScript errors.
 
-- [ ] **Step 5: Commit changes**
+- [x] **Step 5: Commit changes**
 
 ```bash
 git add client/src/components/Reporting/ReportLocationPinOverlay.tsx
@@ -100,7 +100,7 @@ git commit -m "feat(reporting): add interactive location input and autocomplete 
 - Consumes: `onSelectLocation` callback from `ReportLocationPinOverlayProps`.
 - Produces: Updates `mapCenter`, `centerCoord`, `centerAddress` in `App.tsx`.
 
-- [ ] **Step 1: Add suggestion handler `handleSelectReportLocation` in `App.tsx`**
+- [x] **Step 1: Add suggestion handler `handleSelectReportLocation` in `App.tsx`**
 
 ```tsx
 const handleSelectReportLocation = (lat: number, lng: number, label: string) => {
@@ -110,7 +110,7 @@ const handleSelectReportLocation = (lat: number, lng: number, label: string) => 
 };
 ```
 
-- [ ] **Step 2: Pass `onSelectLocation` to `<ReportLocationPinOverlay />`**
+- [x] **Step 2: Pass `onSelectLocation` to `<ReportLocationPinOverlay />`**
 
 In `App.tsx`:
 ```tsx
@@ -129,7 +129,7 @@ In `App.tsx`:
 />
 ```
 
-- [ ] **Step 3: Commit changes**
+- [x] **Step 3: Commit changes**
 
 ```bash
 git add client/src/App.tsx
@@ -143,14 +143,14 @@ git commit -m "feat(map): connect suggested report location selection to map cen
 **Files:**
 - None (verification commands)
 
-- [ ] **Step 1: Run client build check**
+- [x] **Step 1: Run client build check**
 Run: `npm run build` in `client`
 Expected: 0 TypeScript and Vite compilation errors.
 
-- [ ] **Step 2: Run server unit test check**
+- [x] **Step 2: Run server unit test check**
 Run: `npm test` in `server`
 Expected: 40/40 tests pass.
 
-- [ ] **Step 3: Verify git status and branch integrity**
+- [x] **Step 3: Verify git status and branch integrity**
 Run: `git status`
 Expected: On branch `dev`, working tree clean.
