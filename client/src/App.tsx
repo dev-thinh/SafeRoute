@@ -176,6 +176,13 @@ export const App: React.FC = () => {
     }
   };
 
+  // User selects an autocomplete suggestion in the report pin overlay
+  const handleSelectReportLocation = (lat: number, lng: number, label: string) => {
+    setMapCenter([lat, lng]);
+    setCenterCoord({ lat, lng });
+    setCenterAddress(label);
+  };
+
   return (
     <div className="relative w-screen h-screen overflow-hidden font-sans">
       {/* 1. Left Sidebar Navigation Panel (Hidden during report pin mode) */}
@@ -305,6 +312,7 @@ export const App: React.FC = () => {
         onConfirm={handleConfirmReportLocation}
         onCancel={() => setIsPinningReport(false)}
         onLocateMe={handleLocateMe}
+        onSelectLocation={handleSelectReportLocation}
         onZoomIn={() => zoomHandlersRef.current?.zoomIn()}
         onZoomOut={() => zoomHandlersRef.current?.zoomOut()}
       />
