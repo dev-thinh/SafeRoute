@@ -1,5 +1,6 @@
-import React from 'react';
-import { Droplet, MapPin, X, Check, Navigation, Loader2, Plus, Minus } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Droplet, MapPin, X, Check, Navigation, Loader2, Plus, Minus, Search } from 'lucide-react';
+import { searchLocation } from '../../services/api';
 
 interface ReportLocationPinOverlayProps {
   isPinning: boolean;
@@ -10,6 +11,7 @@ interface ReportLocationPinOverlayProps {
   onConfirm: () => void;
   onCancel: () => void;
   onLocateMe: () => void;
+  onSelectLocation?: (lat: number, lng: number, label: string) => void;
   onZoomIn?: () => void;
   onZoomOut?: () => void;
 }
@@ -23,9 +25,39 @@ export const ReportLocationPinOverlay: React.FC<ReportLocationPinOverlayProps> =
   onConfirm,
   onCancel,
   onLocateMe,
+  onSelectLocation,
   onZoomIn,
   onZoomOut,
 }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
+  const [suggestions, setSuggestions] = useState<{ label: string; lat: number; lng: number }[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Sync input text with map center address when not actively focused / typing
+  useEffect(() => {
+    if (!isFocused) {
+      setSearchQuery(address || '');
+    }
+  }, [address, isFocused]);
+
+  // Debounced autocomplete search
+  useEffect(() => {
+    if (!isFocused) return;
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    setIsSearching(true);
+    searchTimeoutRef.current = setTimeout(async () => {
+      const results = await searchLocation(searchQuery);
+      setSuggestions(results);
+      setIsSearching(false);
+    }, 300);
+
+    return () => {
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    };
+  }, [searchQuery, isFocused]);
+
   if (!isPinning) return null;
 
   return (
@@ -97,40 +129,112 @@ export const ReportLocationPinOverlay: React.FC<ReportLocationPinOverlayProps> =
         </div>
       </div>
 
-      {/* 2. Top Address Card */}
+      {/* 2. Top Address Card with Interactive Input & Autocomplete */}
       <div className="pointer-events-auto absolute top-5 left-1/2 -translate-x-1/2 z-[1200] w-[92%] max-w-lg bg-white/95 backdrop-blur-md p-3.5 px-4 rounded-2xl shadow-2xl border border-gray-200/80 transition-all duration-200">
-        <div className="flex items-center gap-2.5 mb-2">
-          <div className="w-7 h-7 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
-            <Droplet className="w-4 h-4 fill-current" />
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
+              <Droplet className="w-4 h-4 fill-current" />
+            </div>
+            <div>
+              <h4 className="text-xs font-bold text-gray-900 leading-tight">
+                Điểm báo ngập trên bản đồ
+              </h4>
+              <p className="text-[11px] text-gray-500 leading-tight">
+                Nhập địa chỉ hoặc kéo bản đồ để chọn tâm ngập
+              </p>
+            </div>
           </div>
-          <div>
-            <h4 className="text-xs font-bold text-gray-900 leading-tight">
-              Điểm báo ngập trên bản đồ
-            </h4>
-            <p className="text-[11px] text-gray-500 leading-tight">
-              Tọa độ được tự động đồng bộ theo tâm màn hình
-            </p>
-          </div>
+          {isLoadingAddress && !isSearching && (
+            <span className="flex items-center gap-1 text-[11px] text-blue-600 font-medium">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              <span>Đang định vị...</span>
+            </span>
+          )}
         </div>
 
-        {/* Selected Street Address preview */}
-        <div className="bg-gray-50 rounded-xl p-2.5 border border-gray-200/70 flex items-center gap-2">
-          <MapPin className="w-4 h-4 text-red-500 flex-shrink-0" />
-          <div className="flex-1 min-w-0">
-            {isLoadingAddress ? (
-              <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-500" />
-                <span>Đang xác định địa chỉ...</span>
-              </div>
-            ) : (
-              <p className="text-xs font-semibold text-gray-800 truncate" title={address}>
-                {address || `Tọa độ: ${coord.lat.toFixed(5)}, ${coord.lng.toFixed(5)}`}
-              </p>
+        {/* Interactive Location Input Box */}
+        <div className="relative">
+          <div className="bg-gray-50/90 rounded-xl p-2.5 border border-gray-200/80 focus-within:border-blue-500 focus-within:bg-white transition-all flex items-center gap-2">
+            <MapPin className="w-4 h-4 text-rose-500 flex-shrink-0" />
+            <input
+              type="text"
+              value={searchQuery}
+              onFocus={() => {
+                setIsFocused(true);
+              }}
+              onBlur={() => {
+                setTimeout(() => {
+                  setIsFocused(false);
+                }, 250);
+              }}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Nhập địa chỉ hoặc điểm ngập..."
+              className="text-xs bg-transparent w-full outline-none font-semibold text-gray-800 placeholder-gray-400"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery('');
+                }}
+                className="text-gray-400 hover:text-gray-600 p-0.5 active:scale-90 transition cursor-pointer"
+                title="Xóa tìm kiếm"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
             )}
-            <p className="text-[10px] text-gray-400 font-mono mt-0.5">
-              {coord.lat.toFixed(5)}, {coord.lng.toFixed(5)}
-            </p>
           </div>
+
+          {/* Current coordinates preview under input */}
+          <div className="px-1 mt-1 flex items-center justify-between text-[10px] text-gray-400 font-mono">
+            <span>Tọa độ tâm: {coord.lat.toFixed(5)}, {coord.lng.toFixed(5)}</span>
+            {isMoving && <span className="text-amber-500 font-sans font-medium">Đang di chuyển...</span>}
+          </div>
+
+          {/* Dropdown Suggestions */}
+          {isFocused && (
+            <div className="absolute top-full left-0 right-0 z-50 bg-white border border-gray-200 rounded-xl shadow-2xl mt-1.5 max-h-56 overflow-y-auto divide-y divide-gray-100 animate-in fade-in zoom-in-95 duration-150">
+              <div className="p-2 bg-gray-50/95 backdrop-blur-sm text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center justify-between sticky top-0 z-10">
+                <span className="flex items-center gap-1">
+                  <Search className="w-3 h-3 text-blue-600" />
+                  Gợi ý địa chỉ
+                </span>
+                {isSearching && (
+                  <span className="text-blue-600 lowercase font-normal flex items-center gap-1">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    đang tìm...
+                  </span>
+                )}
+              </div>
+              {suggestions.length === 0 && !isSearching && (
+                <div className="p-3 text-xs text-gray-500 text-center">
+                  Không tìm thấy địa chỉ phù hợp.
+                </div>
+              )}
+              {suggestions.map((item, idx) => (
+                <div
+                  key={idx}
+                  onMouseDown={() => {
+                    setSearchQuery(item.label);
+                    setIsFocused(false);
+                    onSelectLocation?.(item.lat, item.lng, item.label);
+                  }}
+                  className="p-2.5 text-xs text-gray-800 hover:bg-blue-50 hover:text-blue-900 cursor-pointer transition flex items-start gap-2"
+                >
+                  <MapPin className="w-3.5 h-3.5 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-gray-900 leading-snug">
+                      {item.label}
+                    </div>
+                    <div className="text-[10px] text-gray-400 mt-0.5 font-mono">
+                      {item.lat.toFixed(4)}, {item.lng.toFixed(4)}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
