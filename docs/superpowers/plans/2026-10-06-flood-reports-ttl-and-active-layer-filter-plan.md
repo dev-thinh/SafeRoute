@@ -33,18 +33,18 @@
 - Modify: `server/src/routes/floodsRouter.ts`
 - Modify: `server/tests/api.test.ts`
 
-- [ ] **Step 1: Thêm `lastVerifiedAt` vào kiểu `UserReport` trong `server/src/types/index.ts`**
-- [ ] **Step 2: Thêm migration cho cột `last_verified_at` trong `server/src/db/initDb.ts`**
-- [ ] **Step 3: Cập nhật hàm `saveReport`, `getActiveReports` và `voteReport` trong `server/src/db/reportsRepo.ts`**
+- [x] **Step 1: Thêm `lastVerifiedAt` vào kiểu `UserReport` trong `server/src/types/index.ts`**
+- [x] **Step 2: Thêm migration cho cột `last_verified_at` trong `server/src/db/initDb.ts`**
+- [x] **Step 3: Cập nhật hàm `saveReport`, `getActiveReports` và `voteReport` trong `server/src/db/reportsRepo.ts`**
   - Hỗ trợ TTL 3 giờ và Max Lifetime 12 giờ cho cả PostgreSQL và In-memory.
   - Khi `upvote`: gia hạn `last_verified_at = NOW()`.
-- [ ] **Step 4: Cập nhật `server/src/routes/floodsRouter.ts` truyền `targetTime` vào `getActiveReports`**
-- [ ] **Step 5: Bổ sung Unit & Integration Test trong `server/tests/api.test.ts`**
+- [x] **Step 4: Cập nhật `server/src/routes/floodsRouter.ts` truyền `targetTime` vào `getActiveReports`**
+- [x] **Step 5: Bổ sung Unit & Integration Test trong `server/tests/api.test.ts`**
   - Test báo cáo mới < 3h $\implies$ xuất hiện.
   - Test báo cáo > 3h $\implies$ tự động ẩn.
   - Test báo cáo được upvote $\implies$ tự động gia hạn thêm 3h.
-- [ ] **Step 6: Chạy kiểm thử server `npm test`**
-- [ ] **Step 7: Commit Task 1 trên nhánh `dev`**
+- [x] **Step 6: Chạy kiểm thử server `npm test`**
+- [x] **Step 7: Commit Task 1 trên nhánh `dev`**
 
 ---
 

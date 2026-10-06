@@ -68,7 +68,7 @@ routesRouter.post('/navigate', async (req, res) => {
     const activeNewsEvents = getActiveNewsFloodEvents(dynamicAdminEvents, targetDate);
 
     // 4. Live crowdsourced user reports converted to flood hazard obstacles
-    const activeReports = await getActiveReports();
+    const activeReports = await getActiveReports(targetDate);
     const crowdsourcedEvents: FloodEvent[] = activeReports
       .filter((r) => r.status === 'active')
       .map((r) => ({

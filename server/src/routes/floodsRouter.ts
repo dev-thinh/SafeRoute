@@ -33,7 +33,7 @@ floodsRouter.get('/active', async (req, res) => {
       return { ...e, current_depth_cm: Math.round(depth) };
     });
 
-    const reports = await getActiveReports();
+    const reports = await getActiveReports(targetTime);
     const tideStatus = getSaigonTideStatus(targetTime);
 
     return res.json({

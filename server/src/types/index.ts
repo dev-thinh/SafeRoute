@@ -53,6 +53,7 @@ export interface UserReport {
    description?: string;
    imageUrl?: string;
    reportedAt: Date;
+   lastVerifiedAt?: Date;
    upvotes: number;
    downvotes: number;
    status: 'active' | 'resolved';

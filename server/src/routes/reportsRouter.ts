@@ -13,9 +13,10 @@ const depthLevelToCm: Record<string, number> = {
   deep: 70,
 };
 
-reportsRouter.get('/', async (_req, res) => {
+reportsRouter.get('/', async (req, res) => {
   try {
-    const reports = await getActiveReports();
+    const targetTime = req.query.target_time ? new Date(req.query.target_time as string) : new Date();
+    const reports = await getActiveReports(targetTime);
     return res.json({ reports });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });

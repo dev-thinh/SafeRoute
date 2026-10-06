@@ -87,6 +87,53 @@ describe('SafeRoute REST API', () => {
     expect(resolvedRes3.body.report.status).toBe('resolved');
   });
 
+  it('GET /api/reports and /api/floods/active should enforce 3h TTL and sliding window auto-extend', async () => {
+    // 1. Create a fresh report at current time
+    const createRes = await request(app)
+      .post('/api/reports')
+      .send({
+        coordinate: { lat: 10.755, lng: 106.690 },
+        depth_level: 'knee',
+        description: 'Ngập sâu ngã tư Trần Hưng Đạo',
+      });
+    expect(createRes.status).toBe(201);
+    const reportId = createRes.body.report.id;
+
+    // 2. Query at current time -> report must be present
+    const nowRes = await request(app).get('/api/reports');
+    expect(nowRes.status).toBe(200);
+    const foundNow = nowRes.body.reports.find((r: any) => r.id === reportId);
+    expect(foundNow).toBeDefined();
+
+    // 3. Query 4 hours in the future -> report should be expired (TTL > 3 hours)
+    const future4h = new Date(Date.now() + 4 * 3600 * 1000).toISOString();
+    const expiredRes = await request(app).get(`/api/reports?target_time=${future4h}`);
+    expect(expiredRes.status).toBe(200);
+    const foundExpired = expiredRes.body.reports.find((r: any) => r.id === reportId);
+    expect(foundExpired).toBeUndefined();
+
+    // 4. Upvote report to trigger sliding window auto-extend
+    const upvoteRes = await request(app)
+      .post(`/api/reports/${reportId}/vote`)
+      .send({ type: 'upvote' });
+    expect(upvoteRes.status).toBe(200);
+    expect(upvoteRes.body.report.lastVerifiedAt).toBeDefined();
+
+    // 5. Query 2 hours into the future -> report is alive because it was re-verified
+    const future2h = new Date(Date.now() + 2 * 3600 * 1000).toISOString();
+    const aliveRes = await request(app).get(`/api/reports?target_time=${future2h}`);
+    expect(aliveRes.status).toBe(200);
+    const foundAlive = aliveRes.body.reports.find((r: any) => r.id === reportId);
+    expect(foundAlive).toBeDefined();
+
+    // 6. Query 13 hours into the future -> exceeds max 12h lifetime -> must not appear
+    const future13h = new Date(Date.now() + 13 * 3600 * 1000).toISOString();
+    const maxLifeRes = await request(app).get(`/api/reports?target_time=${future13h}`);
+    expect(maxLifeRes.status).toBe(200);
+    const foundMax = maxLifeRes.body.reports.find((r: any) => r.id === reportId);
+    expect(foundMax).toBeUndefined();
+  });
+
   it('GET /api/weather should return dashboard weather data and corridors at risk', async () => {
     const res = await request(app).get('/api/weather');
     expect(res.status).toBe(200);

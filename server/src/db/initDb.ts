@@ -57,9 +57,11 @@ export async function initDb(): Promise<boolean> {
             upvotes INTEGER NOT NULL DEFAULT 1,
             downvotes INTEGER NOT NULL DEFAULT 0,
             status VARCHAR(20) NOT NULL DEFAULT 'active',
-            reported_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            reported_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            last_verified_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         );
 
+        ALTER TABLE user_reports ADD COLUMN IF NOT EXISTS last_verified_at TIMESTAMPTZ DEFAULT NOW();
         CREATE INDEX IF NOT EXISTS idx_user_reports_geom ON user_reports USING GIST(location_geom);
 
         CREATE TABLE IF NOT EXISTS news_articles (
