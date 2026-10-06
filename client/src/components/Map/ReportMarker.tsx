@@ -36,6 +36,12 @@ const SingleReportMarker: React.FC<{
 
   const depthInfo = getDepthLevelInfo(report.depthLevel);
 
+  const upvotesCount = report.upvotes + (hasVoted === 'upvote' ? 1 : 0);
+  const downvotesCount = report.downvotes + (hasVoted === 'resolved' ? 1 : 0);
+  const totalVotes = upvotesCount + downvotesCount;
+  const upPercent = totalVotes > 0 ? Math.round((upvotesCount / totalVotes) * 100) : 0;
+  const downPercent = totalVotes > 0 ? 100 - upPercent : 0;
+
   const handleVote = async (type: 'upvote' | 'resolved') => {
     if (hasVoted || isSubmitting) return;
     setIsSubmitting(true);
@@ -81,14 +87,26 @@ const SingleReportMarker: React.FC<{
             </p>
           )}
 
-          <div className="text-gray-500 text-[10px] mt-2 flex items-center justify-between font-medium">
+          {/* Consensus Progress Bar */}
+          <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden flex my-2 shadow-inner">
+            <div
+              style={{ width: `${upPercent}%` }}
+              className="bg-blue-600 h-full transition-all duration-300"
+            />
+            <div
+              style={{ width: `${downPercent}%` }}
+              className="bg-amber-500 h-full transition-all duration-300"
+            />
+          </div>
+
+          <div className="text-gray-500 text-[10px] flex items-center justify-between font-medium">
             <span className="flex items-center gap-1">
               <ThumbsUp className="w-3 h-3 text-blue-600 flex-shrink-0" />
-              <span>{report.upvotes + (hasVoted === 'upvote' ? 1 : 0)} xác nhận</span>
+              <span>{upvotesCount} đang ngập ({upPercent}%)</span>
             </span>
             <span className="flex items-center gap-1">
               <Sun className="w-3 h-3 text-amber-500 flex-shrink-0" />
-              <span>{report.downvotes + (hasVoted === 'resolved' ? 1 : 0)}/3 báo đã rút</span>
+              <span>{downvotesCount}/{totalVotes} báo đã rút ({downPercent}%)</span>
             </span>
           </div>
 
@@ -120,7 +138,7 @@ const SingleReportMarker: React.FC<{
                   disabled={isSubmitting}
                   onClick={() => handleVote('resolved')}
                   className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-[10px] rounded-lg border border-emerald-200 active:scale-95 transition cursor-pointer disabled:opacity-50"
-                  title="Báo cáo nước đã rút tại đây (3 người báo sẽ ẩn điểm ngập)"
+                  title="Báo cáo nước đã rút tại đây (khi đa số ≥ 60% xác nhận sẽ tự động ẩn điểm ngập)"
                 >
                   {isSubmitting ? (
                     <Loader2 className="w-3 h-3 animate-spin text-emerald-600" />

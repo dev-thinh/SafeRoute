@@ -42,17 +42,17 @@
 **Files:**
 - Modify: `client/src/components/Map/ReportMarker.tsx`
 
-- [ ] **Step 1: Cập nhật tính toán $U, D, N$ và phần trăm trong `ReportMarker.tsx`**
+- [x] **Step 1: Cập nhật tính toán $U, D, N$ và phần trăm trong `ReportMarker.tsx`**
   - $U = \text{report.upvotes} + (\text{hasVoted} === 'upvote' ? 1 : 0)$
   - $D = \text{report.downvotes} + (\text{hasVoted} === 'resolved' ? 1 : 0)$
   - $N = U + D$
   - $\text{upPercent} = N > 0 ? \text{Math.round}((U / N) * 100) : 0$
   - $\text{downPercent} = N > 0 ? 100 - \text{upPercent} : 0$
-- [ ] **Step 2: Thêm thanh Consensus Bar (2 màu: xanh dương cho ngập, vàng hổ phách cho nước rút)**
-- [ ] **Step 3: Cập nhật text thống kê `{U} đang ngập ({upPercent}%)` và `{D}/{N} báo nước đã rút ({downPercent}%)`**
-- [ ] **Step 4: Cập nhật tooltip nút bấm giải thích rõ ràng cơ chế $\ge 60\%$**
-- [ ] **Step 5: Kiểm tra `npm run build` trong `client`**
-- [ ] **Step 6: Commit Task 2 trên nhánh `dev`**
+- [x] **Step 2: Thêm thanh Consensus Bar (2 màu: xanh dương cho ngập, vàng hổ phách cho nước rút)**
+- [x] **Step 3: Cập nhật text thống kê `{U} đang ngập ({upPercent}%)` và `{D}/{N} báo nước đã rút ({downPercent}%)`**
+- [x] **Step 4: Cập nhật tooltip nút bấm giải thích rõ ràng cơ chế $\ge 60\%$**
+- [x] **Step 5: Kiểm tra `npm run build` trong `client`**
+- [x] **Step 6: Commit Task 2 trên nhánh `dev`**
 
 ---
 
