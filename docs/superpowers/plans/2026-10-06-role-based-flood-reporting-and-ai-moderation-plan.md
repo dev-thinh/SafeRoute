@@ -91,21 +91,21 @@
 - Create: `client/src/components/Admin/AdminDashboardModal.tsx`
 - Modify: `client/src/App.tsx`
 
-- [ ] **Step 1: Bổ sung các hàm gọi API Admin trong `client/src/services/api.ts`**
-- [ ] **Step 2: Xây dựng `ClusterDetailModal.tsx`**
+- [x] **Step 1: Bổ sung các hàm gọi API Admin trong `client/src/services/api.ts`**
+- [x] **Step 2: Xây dựng `ClusterDetailModal.tsx`**
   - Xem danh sách từng tin báo của người dân (thời gian, mô tả, ảnh, tọa độ).
   - Hiển thị thông số thời tiết và triều cường lúc báo.
   - Hai nút hành động: Duyệt cả cụm hoặc Bác bỏ cả cụm.
-- [ ] **Step 3: Xây dựng `AdminDashboardModal.tsx`**
+- [x] **Step 3: Xây dựng `AdminDashboardModal.tsx`**
   - Header: Thống kê số tin chờ duyệt / đã duyệt + Công tắc bật/tắt Auto-Pilot ($\ge 85\%$ & $\ge 5$ người).
   - Danh sách thẻ cụm điểm ngập: Tên đường, số lượng báo cáo, thanh điểm tin cậy AI và giải trình ngắn.
   - Nút xem chi tiết, duyệt nhanh, bác bỏ nhanh.
   - Tab xem các điểm đang hiển thị trên bản đồ kèm nút "Gỡ bỏ".
-- [ ] **Step 4: Tích hợp nút mở Quản trị vào `client/src/App.tsx`**
+- [x] **Step 4: Tích hợp nút mở Quản trị vào `client/src/App.tsx`**
   - Nút *"Quản trị"* trên thanh điều hướng với huy hiệu đỏ đếm tin chờ duyệt.
   - Mở/đóng modal mượt mà, hỗ trợ phím Escape.
-- [ ] **Step 5: Kiểm tra `npm run build` trong `client`**
-- [ ] **Step 6: Commit Task 3 trên nhánh `dev`**
+- [x] **Step 5: Kiểm tra `npm run build` trong `client`**
+- [x] **Step 6: Commit Task 3 trên nhánh `dev`**
 
 ---
 

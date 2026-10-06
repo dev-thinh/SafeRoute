@@ -7,8 +7,9 @@ import { ReportMarker } from './components/Map/ReportMarker';
 import { RoutePlannerPanel, LocationItem } from './components/Navigation/RoutePlannerPanel';
 import { ReportFloodModal, SelectedReportLocation } from './components/Reporting/ReportFloodModal';
 import { ReportLocationPinOverlay } from './components/Reporting/ReportLocationPinOverlay';
-import { getActiveFloods, reverseGeocode } from './services/api';
-import { Droplet, PanelLeftOpen, MapPin, Target, AlertTriangle, X, Waves } from 'lucide-react';
+import { AdminDashboardModal } from './components/Admin/AdminDashboardModal';
+import { getActiveFloods, reverseGeocode, getAdminReports } from './services/api';
+import { Droplet, PanelLeftOpen, MapPin, Target, AlertTriangle, X, Waves, ShieldCheck } from 'lucide-react';
 import { NavigateResponse, FloodEvent, UserReport } from './types';
 
 export const App: React.FC = () => {
@@ -17,6 +18,10 @@ export const App: React.FC = () => {
   const [floodEvents, setFloodEvents] = useState<FloodEvent[]>([]);
   const [reports, setReports] = useState<UserReport[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Admin Dashboard State
+  const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [pendingAdminCount, setPendingAdminCount] = useState(0);
 
   // Panel Collapsible State for responsive layout
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
@@ -55,9 +60,17 @@ export const App: React.FC = () => {
 
   const loadFloods = async (targetTime?: string) => {
     try {
-      const data = await getActiveFloods(targetTime);
-      setFloodEvents(data.events || []);
-      setReports(data.reports || []);
+      const [floodData, adminData] = await Promise.allSettled([
+        getActiveFloods(targetTime),
+        getAdminReports(),
+      ]);
+      if (floodData.status === 'fulfilled') {
+        setFloodEvents(floodData.value.events || []);
+        setReports(floodData.value.reports || []);
+      }
+      if (adminData.status === 'fulfilled') {
+        setPendingAdminCount(adminData.value.summary?.totalPending || 0);
+      }
     } catch (err) {
       console.error('Failed to load active floods', err);
     }
@@ -377,6 +390,26 @@ export const App: React.FC = () => {
         </div>
       )}
 
+      {/* Floating Admin Moderation Button */}
+      {!isPinningReport && (
+        <div className="absolute top-4 right-4 z-[1000]">
+          <button
+            type="button"
+            onClick={() => setIsAdminOpen(true)}
+            className="flex items-center gap-2 px-3.5 py-2.5 min-h-[44px] bg-white/95 backdrop-blur-md border border-gray-200/80 rounded-2xl shadow-xl hover:shadow-2xl hover:bg-white text-gray-800 font-bold text-xs active:scale-95 transition-all cursor-pointer"
+            title="Mở trung tâm quản trị & kiểm duyệt ngập lụt"
+          >
+            <ShieldCheck className="w-4 h-4 text-blue-600" />
+            <span>Quản trị</span>
+            {pendingAdminCount > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white font-mono animate-pulse">
+                {pendingAdminCount}
+              </span>
+            )}
+          </button>
+        </div>
+      )}
+
       {/* 6. Report Flood Form Modal with marked location details */}
       <ReportFloodModal
         isOpen={isReportOpen}
@@ -384,6 +417,13 @@ export const App: React.FC = () => {
         onClose={() => setIsReportOpen(false)}
         onReportSubmitted={loadFloods}
         onRePickLocation={handleRePickLocation}
+      />
+
+      {/* 7. Admin Moderation Dashboard Modal */}
+      <AdminDashboardModal
+        isOpen={isAdminOpen}
+        onClose={() => setIsAdminOpen(false)}
+        onDataChanged={loadFloods}
       />
     </div>
   );
