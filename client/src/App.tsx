@@ -240,7 +240,7 @@ export const App: React.FC = () => {
         }}
       >
         <FloodLayer events={floodEvents} />
-        <ReportMarker reports={reports} />
+        <ReportMarker reports={reports} onVoteReport={() => loadFloods()} />
         {routes && (
           <RoutePolyline
             safeGeometry={routes.safe_route?.geometry}
