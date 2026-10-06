@@ -29,6 +29,8 @@ Dự án định tuyến tránh các vùng ngập do triều cường và mưa l
    * Báo điểm ngập trực quan với 4 mức độ: Mắt cá chân (<20cm), Nửa bánh xe (20-40cm), Đầu gối (40-60cm), Ngập sâu (>60cm).
    * Tương tác trực tiếp trên Marker bản đồ: Nút *"Đang ngập"* (xác nhận cảnh báo) và *"Nước đã rút"* (báo hết ngập).
    * **Thuật toán đồng thuận đa số linh hoạt (Consensus Algorithm)**: Điểm ngập chỉ tự động giải tỏa khi tổng số người đánh giá đạt tối thiểu $N \ge 3$ VÀ tỷ lệ báo nước rút đạt đa số áp đảo $\ge 60\%$ ($D / N \ge 0.60$).
+   * **Cơ chế Tự động Hết hạn (TTL 3h) & Gia hạn Trượt (Sliding Window Auto-Extend)**: Điểm báo ngập tự động ẩn sau 3 giờ. Mỗi lượt xác nhận *"Đang ngập"* sẽ reset lại thời gian sống 3 giờ (trần tối đa 12 giờ). Popup điểm ngập hiển thị bộ đếm thời gian hiệu lực còn lại.
+   * **Lớp Bản đồ Tinh gọn (Active Flood Filtering)**: Chỉ hiển thị các vùng thực sự có rủi ro ngập úng ($\ge 10\text{cm}$), ẩn 100% các vòng tròn xám khô ráo giúp giao diện thông thoáng, chuẩn xác.
    * Thanh trực quan hóa tỷ lệ Consensus Bar hai màu và thống kê phần trăm minh bạch ngay trên Popup điểm ngập (`{U} đang ngập ({upPercent}%)` và `{D}/{N} báo đã rút ({downPercent}%)`).
    * Đồng bộ tức thì giữa bộ nhớ RAM và PostgreSQL thông qua chuẩn định danh UUID v4 nhất quán.
 
