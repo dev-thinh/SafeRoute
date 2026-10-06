@@ -296,7 +296,7 @@ export async function evaluateReportCredibility(
 
   let aiReasoning = '';
   if (isSpam) {
-    aiReasoning = `🚨 CẢNH BÁO SPAM: ${spamCheck.reason} • Điểm liệt VETO (Độ tin cậy: ${Math.round(confidenceScore * 100)}%)`;
+    aiReasoning = `CẢNH BÁO SPAM: ${spamCheck.reason} • Điểm liệt VETO (Độ tin cậy: ${Math.round(confidenceScore * 100)}%)`;
   } else {
     const reasoningParts: string[] = [];
     reasoningParts.push(weatherDesc);

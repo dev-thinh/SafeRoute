@@ -127,8 +127,6 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
 
   const pendingClusters = clusters.filter((c) => c.status === 'pending');
   const approvedClusters = clusters.filter((c) => c.status === 'approved');
-  const totalSubmissions = clusters.reduce((sum, c) => sum + c.totalReports, 0);
-
   const displayedClusters = activeTab === 'pending' ? pendingClusters : approvedClusters;
 
   return (
@@ -172,8 +170,8 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
         </div>
 
         {/* 2. Top Summary & Auto-Pilot Toggle Bar */}
-        <div className="p-4 sm:p-5 border-b border-gray-100 bg-white grid grid-cols-1 sm:grid-cols-4 gap-3">
-          {/* Stat 1: Pending */}
+        <div className="p-4 sm:p-5 border-b border-gray-100 bg-white grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {/* Stat 1: Pending Clusters */}
           <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-200/80 flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center flex-shrink-0">
               <Clock className="w-4 h-4" />
@@ -192,27 +190,14 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
               <CheckCircle2 className="w-4 h-4" />
             </div>
             <div>
-              <span className="text-[10px] font-bold text-emerald-800 uppercase block">Đang trên map</span>
+              <span className="text-[10px] font-bold text-emerald-800 uppercase block">Đang trên bản đồ</span>
               <span className="text-base font-bold text-emerald-950 font-mono">
                 {approvedClusters.length} điểm
               </span>
             </div>
           </div>
 
-          {/* Stat 3: Total submissions */}
-          <div className="p-3 rounded-xl bg-blue-50/70 border border-blue-200/80 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center flex-shrink-0">
-              <Sparkles className="w-4 h-4" />
-            </div>
-            <div>
-              <span className="text-[10px] font-bold text-blue-800 uppercase block">Tổng tin báo</span>
-              <span className="text-base font-bold text-blue-950 font-mono">
-                {totalSubmissions} tin
-              </span>
-            </div>
-          </div>
-
-          {/* Stat 4: Auto-Pilot Switch Card */}
+          {/* Stat 3: Auto-Pilot Switch Card */}
           <div className="p-3 rounded-xl bg-gray-50 border border-gray-200/80 flex items-center justify-between gap-2">
             <div>
               <span className="text-[10px] font-bold text-gray-700 uppercase flex items-center gap-1">

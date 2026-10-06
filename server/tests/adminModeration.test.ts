@@ -85,17 +85,23 @@ describe('Role-Based Flood Reporting & Admin Moderation', () => {
   });
 
   it('Cluster Moderation: Admin should be able to approve or reject whole cluster', async () => {
-    // Submit 2 reports at same location
-    const r1 = await request(app).post('/api/reports').send({
-      coordinate: { lat: 10.735, lng: 106.720 },
-      depth_level: 'wheel',
-      description: 'Ngập nửa bánh xe đoạn gần chợ Tân Mỹ',
-    });
-    const r2 = await request(app).post('/api/reports').send({
-      coordinate: { lat: 10.7351, lng: 106.7201 },
-      depth_level: 'wheel',
-      description: 'Đoạn chợ Tân Mỹ ngập nước',
-    });
+    // Submit 2 reports at same location from 2 different users
+    const r1 = await request(app)
+      .post('/api/reports')
+      .set('x-client-token', 'user-cluster-1')
+      .send({
+        coordinate: { lat: 10.735, lng: 106.720 },
+        depth_level: 'wheel',
+        description: 'Ngập nửa bánh xe đoạn gần chợ Tân Mỹ',
+      });
+    const r2 = await request(app)
+      .post('/api/reports')
+      .set('x-client-token', 'user-cluster-2')
+      .send({
+        coordinate: { lat: 10.7351, lng: 106.7201 },
+        depth_level: 'wheel',
+        description: 'Đoạn chợ Tân Mỹ ngập nước',
+      });
 
     const clusterId = r1.body.report.clusterId;
     expect(r2.body.report.clusterId).toBe(clusterId);
@@ -113,11 +119,14 @@ describe('Role-Based Flood Reporting & Admin Moderation', () => {
 
   it('Anti-Spam VETO: Should detect single spam reports ("123", "asd", "test") and cap credibility at 5%', async () => {
     // 1. Numbers only spam
-    const numRes = await request(app).post('/api/reports').send({
-      coordinate: { lat: 10.740, lng: 106.710 },
-      depth_level: 'knee',
-      description: '123',
-    });
+    const numRes = await request(app)
+      .post('/api/reports')
+      .set('x-client-token', 'single-spam-1')
+      .send({
+        coordinate: { lat: 10.740, lng: 106.710 },
+        depth_level: 'knee',
+        description: '123',
+      });
     expect(numRes.status).toBe(201);
     expect(numRes.body.report.status).toBe('pending');
     expect(numRes.body.report.aiConfidence).toBe(0.05);
@@ -125,11 +134,14 @@ describe('Role-Based Flood Reporting & Admin Moderation', () => {
     expect(numRes.body.report.aiReasoning).toContain('chữ số vô nghĩa');
 
     // 2. Keyboard mash spam
-    const mashRes = await request(app).post('/api/reports').send({
-      coordinate: { lat: 10.741, lng: 106.711 },
-      depth_level: 'knee',
-      description: 'asd',
-    });
+    const mashRes = await request(app)
+      .post('/api/reports')
+      .set('x-client-token', 'single-spam-2')
+      .send({
+        coordinate: { lat: 10.741, lng: 106.711 },
+        depth_level: 'knee',
+        description: 'asd',
+      });
     expect(mashRes.status).toBe(201);
     expect(mashRes.body.report.status).toBe('pending');
     expect(mashRes.body.report.aiConfidence).toBe(0.05);
@@ -141,12 +153,16 @@ describe('Role-Based Flood Reporting & Admin Moderation', () => {
     const spamCoords = { lat: 10.7555, lng: 106.6999 };
     let targetClusterId = '';
 
-    for (const text of spamTexts) {
-      const res = await request(app).post('/api/reports').send({
-        coordinate: spamCoords,
-        depth_level: 'knee',
-        description: text,
-      });
+    for (let i = 0; i < spamTexts.length; i++) {
+      const text = spamTexts[i];
+      const res = await request(app)
+        .post('/api/reports')
+        .set('x-client-token', `spam-bot-net-${i}`)
+        .send({
+          coordinate: spamCoords,
+          depth_level: 'knee',
+          description: text,
+        });
       expect(res.status).toBe(201);
       expect(res.body.report.status).toBe('pending');
       expect(res.body.report.aiConfidence).toBe(0.05);
@@ -164,12 +180,98 @@ describe('Role-Based Flood Reporting & Admin Moderation', () => {
     expect(spamCluster.aiConfidence).toBe(0.05);
     expect(spamCluster.canAutoApprove).toBe(false);
     expect(spamCluster.status).toBe('pending');
-    expect(spamCluster.aiReasoning).toContain('🚨 Cụm nghi vấn spam');
+    expect(spamCluster.aiReasoning).toContain('Cụm nghi vấn spam');
 
     // Verify public map still has 0 reports from this spam attack
     const publicRes = await request(app).get('/api/reports');
     expect(publicRes.status).toBe(200);
     const leakedReport = publicRes.body.reports.find((r: any) => r.clusterId === targetClusterId);
     expect(leakedReport).toBeUndefined();
+  });
+
+  it('Anti-Spam Rate Limiting: Same client cannot report the same location (within 150m) twice', async () => {
+    const clientToken = 'test-client-unique-123';
+    const loc = { lat: 10.770, lng: 106.690 };
+
+    // 1st submission -> Allowed
+    const res1 = await request(app)
+      .post('/api/reports')
+      .set('x-client-token', clientToken)
+      .send({
+        coordinate: loc,
+        depth_level: 'knee',
+        description: 'Ngập sâu trước cổng viện',
+      });
+    expect(res1.status).toBe(201);
+
+    // 2nd submission at same location from same client -> Blocked with 429
+    const res2 = await request(app)
+      .post('/api/reports')
+      .set('x-client-token', clientToken)
+      .send({
+        coordinate: { lat: 10.7702, lng: 106.6901 }, // ~25m away
+        depth_level: 'deep',
+        description: 'Vẫn ngập sâu',
+      });
+    expect(res2.status).toBe(429);
+    expect(res2.body.error).toContain('Bạn đã gửi báo cáo ngập tại khu vực này rồi');
+  });
+
+  it('Spatial Merging: 2 nearby reports within 150m from different users must merge into 1 cluster', async () => {
+    // 2 reports ~50m apart from 2 different users
+    const r1 = await request(app)
+      .post('/api/reports')
+      .set('x-client-token', 'user-alpha-001')
+      .send({
+        coordinate: { lat: 10.7800, lng: 106.6800 },
+        depth_level: 'wheel',
+        description: 'Ngập nửa bánh xe đoạn ngã tư',
+      });
+    expect(r1.status).toBe(201);
+
+    const r2 = await request(app)
+      .post('/api/reports')
+      .set('x-client-token', 'user-beta-002')
+      .send({
+        coordinate: { lat: 10.7803, lng: 106.6802 }, // ~40m away
+        depth_level: 'wheel',
+        description: 'Nước dâng cao đoạn ngã tư',
+      });
+    expect(r2.status).toBe(201);
+
+    const adminRes = await request(app).get('/api/admin/reports');
+    expect(adminRes.status).toBe(200);
+
+    // Find the merged cluster containing these reports
+    const mergedCluster = adminRes.body.clusters.find((c: any) =>
+      c.reports.some((rep: any) => rep.id === r1.body.report.id)
+    );
+    expect(mergedCluster).toBeDefined();
+    // Must be merged into 1 cluster containing both reports
+    expect(mergedCluster.reports.some((rep: any) => rep.id === r2.body.report.id)).toBe(true);
+    expect(mergedCluster.totalReports).toBeGreaterThanOrEqual(2);
+  });
+
+  it('Admin Complete Rejection: Rejecting the last cluster must remove it completely from pending', async () => {
+    // Submit 1 report at isolated location
+    const isolatedReport = await request(app)
+      .post('/api/reports')
+      .set('x-client-token', 'user-gamma-999')
+      .send({
+        coordinate: { lat: 10.8200, lng: 106.6200 },
+        depth_level: 'knee',
+        description: 'Đường Nguyễn Văn Quá ngập pô',
+      });
+    expect(isolatedReport.status).toBe(201);
+    const clusterId = isolatedReport.body.report.clusterId;
+
+    // Reject this cluster
+    const rejectRes = await request(app).post(`/api/admin/clusters/${clusterId}/reject`);
+    expect(rejectRes.status).toBe(200);
+
+    // Verify it is completely purged from admin pending view
+    const adminRes = await request(app).get('/api/admin/reports');
+    const foundCluster = adminRes.body.clusters.find((c: any) => c.clusterId === clusterId);
+    expect(foundCluster).toBeUndefined();
   });
 });

@@ -180,8 +180,9 @@ export const ClusterDetailModal: React.FC<ClusterDetailModalProps> = ({
                             <span>Nội dung rác / vô nghĩa</span>
                           </span>
                         ) : (
-                          <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                            ✓ Hợp lệ
+                          <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-0.5">
+                            <Check className="w-2.5 h-2.5 text-emerald-600" />
+                            <span>Hợp lệ</span>
                           </span>
                         )}
                       </div>

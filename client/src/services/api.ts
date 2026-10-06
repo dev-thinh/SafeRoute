@@ -70,11 +70,29 @@ export const navigateRoute = (data: {
   vehicle_type: 'motorbike' | 'car';
 }): Promise<NavigateResponse> => api.post('/routes/navigate', data).then((r) => r.data);
 
+export function getOrCreateClientToken(): string {
+  try {
+    let token = localStorage.getItem('saferoute_client_token');
+    if (!token) {
+      token = 'client_' + Math.random().toString(36).substring(2, 12) + '_' + Date.now();
+      localStorage.setItem('saferoute_client_token', token);
+    }
+    return token;
+  } catch {
+    return 'client_fallback_' + Date.now();
+  }
+}
+
 export const submitReport = (data: {
   coordinate: { lat: number; lng: number };
   depth_level: string;
   description?: string;
-}) => api.post('/reports', data).then((r) => r.data);
+}) =>
+  api.post('/reports', data, {
+    headers: {
+      'x-client-token': getOrCreateClientToken(),
+    },
+  }).then((r) => r.data);
 
 export const voteReport = (id: string, type: 'upvote' | 'resolved') =>
   api.post(`/reports/${id}/vote`, { type }).then((r) => r.data);

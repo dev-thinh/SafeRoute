@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { randomUUID } from 'crypto';
 import { UserReport } from '../types';
-import { saveReport, getActiveReports, voteReport, inMemoryReports } from '../db/reportsRepo';
+import { saveReport, getActiveReports, voteReport, inMemoryReports, checkClientSpamLimits } from '../db/reportsRepo';
 
 export const reportsRouter = Router();
 export { inMemoryReports };
@@ -27,6 +27,20 @@ reportsRouter.post('/', async (req, res) => {
   const { coordinate, depth_level, description, image_url } = req.body;
   if (!coordinate || !depth_level) {
     return res.status(400).json({ error: 'Coordinate and depth_level are required' });
+  }
+
+  // Rate limiting & spam detection per client identifier
+  const clientIdentifier =
+    (req.headers['x-client-token'] as string) ||
+    req.body.clientToken ||
+    req.ip ||
+    'anonymous';
+
+  const limitCheck = checkClientSpamLimits(clientIdentifier, coordinate);
+  if (!limitCheck.allowed) {
+    return res.status(429).json({
+      error: limitCheck.message || 'Bạn đã gửi báo cáo ngập tại khu vực này rồi.',
+    });
   }
 
   const report: UserReport = {

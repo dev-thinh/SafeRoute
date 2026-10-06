@@ -23,6 +23,99 @@ export function updateAdminSettings(newSettings: Partial<AdminSettings>): AdminS
   return { ...adminSettings };
 }
 
+// Rate Limiting & Anti-Spam Tracking Per Client
+interface ClientSubmissionRecord {
+  timestamp: number;
+  lat: number;
+  lng: number;
+}
+
+export const clientSubmissionHistory = new Map<string, ClientSubmissionRecord[]>();
+
+export interface SpamLimitCheckResult {
+  allowed: boolean;
+  message?: string;
+}
+
+/**
+ * Checks if a client is spamming reports or repeatedly reporting the same location within 150m.
+ */
+export function checkClientSpamLimits(
+  clientIdentifier: string,
+  newCoord: { lat: number; lng: number }
+): SpamLimitCheckResult {
+  const now = Date.now();
+  const records = clientSubmissionHistory.get(clientIdentifier) || [];
+
+  // Keep records from the last 2 hours
+  const validRecords = records.filter((r) => now - r.timestamp < 2 * 60 * 60 * 1000);
+
+  // 1. Check duplicate report at the same location (within 150m) in the last 2 hours
+  for (const r of validRecords) {
+    const dist = calculateDistanceMeters(newCoord.lat, newCoord.lng, r.lat, r.lng);
+    if (dist <= 150) {
+      return {
+        allowed: false,
+        message: 'Bạn đã gửi báo cáo ngập tại khu vực này rồi. Hệ thống đã ghi nhận và đang kiểm duyệt.',
+      };
+    }
+  }
+
+  // 2. Check flooding across multiple locations (> 3 reports within 5 minutes)
+  const recentIn5Min = validRecords.filter((r) => now - r.timestamp < 5 * 60 * 1000);
+  if (recentIn5Min.length >= 3) {
+    return {
+      allowed: false,
+      message: 'Bạn đang gửi báo cáo quá nhanh. Hệ thống tạm khóa 5 phút để bảo vệ dữ liệu.',
+    };
+  }
+
+  validRecords.push({ timestamp: now, lat: newCoord.lat, lng: newCoord.lng });
+  clientSubmissionHistory.set(clientIdentifier, validRecords);
+
+  return { allowed: true };
+}
+
+/**
+ * Clusters reports spatially where any two reports within maxDistanceMeters (150m)
+ * are merged into a single report cluster.
+ */
+export function clusterReportsSpatially(
+  reports: UserReport[],
+  maxDistanceMeters: number = 150
+): UserReport[][] {
+  const clusters: UserReport[][] = [];
+
+  for (const report of reports) {
+    let matchedCluster: UserReport[] | null = null;
+
+    for (const cluster of clusters) {
+      const isNearby = cluster.some((existing) => {
+        const dist = calculateDistanceMeters(
+          report.coordinate.lat,
+          report.coordinate.lng,
+          existing.coordinate.lat,
+          existing.coordinate.lng
+        );
+        return dist <= maxDistanceMeters;
+      });
+
+      if (isNearby) {
+        matchedCluster = cluster;
+        break;
+      }
+    }
+
+    if (matchedCluster) {
+      matchedCluster.push(report);
+    } else {
+      clusters.push([report]);
+    }
+  }
+
+  return clusters;
+}
+
 /**
  * Gets all recent reports for clustering (within 2 hours).
  */
@@ -406,7 +499,8 @@ export async function getAdminReportClusters(): Promise<ReportCluster[]> {
           reviewed_by as "reviewedBy",
           reviewed_at as "reviewedAt"
          FROM user_reports 
-         WHERE reported_at >= NOW() - INTERVAL '24 hours'
+         WHERE status NOT IN ('rejected', 'resolved')
+           AND reported_at >= NOW() - INTERVAL '24 hours'
          ORDER BY reported_at DESC`
       );
       if (res.rows.length > 0) {
@@ -436,23 +530,33 @@ export async function getAdminReportClusters(): Promise<ReportCluster[]> {
   }
 
   if (reports.length === 0) {
-    reports = inMemoryReports;
+    const cutoff = Date.now() - 24 * 3600 * 1000;
+    reports = inMemoryReports.filter(
+      (r) =>
+        r.status !== 'rejected' &&
+        r.status !== 'resolved' &&
+        new Date(r.reportedAt).getTime() >= cutoff
+    );
+  } else {
+    reports = reports.filter((r) => r.status !== 'rejected' && r.status !== 'resolved');
   }
 
-  // Group reports by clusterId
-  const clustersMap = new Map<string, UserReport[]>();
-  for (const r of reports) {
-    const cId = r.clusterId || `cluster-${r.id.substring(0, 8)}`;
-    if (!clustersMap.has(cId)) {
-      clustersMap.set(cId, []);
-    }
-    clustersMap.get(cId)!.push(r);
-  }
+  // 150m Spatial Clustering: all reports within 150m are grouped into ONE cluster
+  const spatialGroups = clusterReportsSpatially(reports, 150);
 
   const clusters: ReportCluster[] = [];
-  for (const [clusterId, clusterReports] of clustersMap.entries()) {
+  for (const clusterReports of spatialGroups) {
     const totalReports = clusterReports.length;
     const first = clusterReports[0];
+
+    // Harmonize common clusterId across this spatial cluster
+    const commonClusterId =
+      clusterReports.find((r) => r.clusterId)?.clusterId ||
+      `cluster-${first.id.substring(0, 8)}`;
+    for (const r of clusterReports) {
+      r.clusterId = commonClusterId;
+    }
+
     const avgDepthCm = Math.round(
       clusterReports.reduce((sum, r) => sum + r.depthCm, 0) / totalReports
     );
@@ -471,7 +575,7 @@ export async function getAdminReportClusters(): Promise<ReportCluster[]> {
     if (validReportsInCluster.length === 0) {
       // Entire cluster consists of spam/gibberish reports!
       maxConfidence = 0.05;
-      representativeReason = `🚨 Cụm nghi vấn spam: Toàn bộ ${totalReports} báo cáo chứa nội dung rác / gõ phím vô nghĩa • Độ tin cậy: 5%`;
+      representativeReason = `Cụm nghi vấn spam: Toàn bộ ${totalReports} báo cáo chứa nội dung rác / gõ phím vô nghĩa • Độ tin cậy: 5%`;
     } else {
       maxConfidence = Math.max(...validReportsInCluster.map((r) => r.aiConfidence || 0.5));
       const repValid = validReportsInCluster.find((r) => r.aiReasoning);
@@ -481,7 +585,7 @@ export async function getAdminReportClusters(): Promise<ReportCluster[]> {
       }
     }
 
-    // Status: approved if any is approved, rejected if all rejected, else pending
+    // Status: approved if any is approved/active, else pending (rejected are already filtered out)
     let status: 'pending' | 'approved' | 'rejected' = 'pending';
     if (clusterReports.some((r) => r.status === 'approved' || r.status === 'active')) {
       status = 'approved';
@@ -490,7 +594,7 @@ export async function getAdminReportClusters(): Promise<ReportCluster[]> {
     }
 
     clusters.push({
-      clusterId,
+      clusterId: commonClusterId,
       coordinate: first.coordinate,
       totalReports,
       depthLevel: first.depthLevel,
@@ -500,7 +604,9 @@ export async function getAdminReportClusters(): Promise<ReportCluster[]> {
       ),
       aiConfidence: maxConfidence,
       aiReasoning: representativeReason,
-      canAutoApprove: validReportsInCluster.length >= adminSettings.minClusterCountForAutoApprove && maxConfidence >= adminSettings.autoApproveThreshold,
+      canAutoApprove:
+        validReportsInCluster.length >= adminSettings.minClusterCountForAutoApprove &&
+        maxConfidence >= adminSettings.autoApproveThreshold,
       status,
       reports: clusterReports,
     });
@@ -576,11 +682,14 @@ export async function rejectReport(id: string): Promise<UserReport | null> {
 export async function approveCluster(clusterId: string): Promise<number> {
   const now = new Date();
   let count = 0;
+  const targetReportIds: string[] = [];
+
   for (const r of inMemoryReports) {
-    if (r.clusterId === clusterId) {
+    if (r.clusterId === clusterId || `cluster-${r.id.substring(0, 8)}` === clusterId) {
       r.status = 'approved';
       r.reviewedBy = 'admin';
       r.reviewedAt = now;
+      targetReportIds.push(r.id);
       count++;
     }
   }
@@ -590,8 +699,11 @@ export async function approveCluster(clusterId: string): Promise<number> {
       const res = await pool.query(
         `UPDATE user_reports 
          SET status = 'approved', reviewed_by = 'admin', reviewed_at = NOW() 
-         WHERE cluster_id = $1`,
-        [clusterId]
+         WHERE cluster_id = $1 
+            OR id::text = $1 
+            OR ('cluster-' || SUBSTRING(id::text, 1, 8)) = $1
+            OR id = ANY($2::uuid[])`,
+        [clusterId, targetReportIds.length > 0 ? targetReportIds : ['00000000-0000-0000-0000-000000000000']]
       );
       count = Math.max(count, res.rowCount || 0);
     } catch (err: any) {
@@ -608,11 +720,14 @@ export async function approveCluster(clusterId: string): Promise<number> {
 export async function rejectCluster(clusterId: string): Promise<number> {
   const now = new Date();
   let count = 0;
+  const targetReportIds: string[] = [];
+
   for (const r of inMemoryReports) {
-    if (r.clusterId === clusterId) {
+    if (r.clusterId === clusterId || `cluster-${r.id.substring(0, 8)}` === clusterId) {
       r.status = 'rejected';
       r.reviewedBy = 'admin';
       r.reviewedAt = now;
+      targetReportIds.push(r.id);
       count++;
     }
   }
@@ -622,8 +737,11 @@ export async function rejectCluster(clusterId: string): Promise<number> {
       const res = await pool.query(
         `UPDATE user_reports 
          SET status = 'rejected', reviewed_by = 'admin', reviewed_at = NOW() 
-         WHERE cluster_id = $1`,
-        [clusterId]
+         WHERE cluster_id = $1 
+            OR id::text = $1 
+            OR ('cluster-' || SUBSTRING(id::text, 1, 8)) = $1
+            OR id = ANY($2::uuid[])`,
+        [clusterId, targetReportIds.length > 0 ? targetReportIds : ['00000000-0000-0000-0000-000000000000']]
       );
       count = Math.max(count, res.rowCount || 0);
     } catch (err: any) {
