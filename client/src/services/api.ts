@@ -88,4 +88,28 @@ export const triggerCrawlNow = () =>
 export const getWeatherData = (targetTime?: string): Promise<WeatherDashboardData> =>
   api.get('/weather', { params: { target_time: targetTime } }).then((r) => r.data);
 
+export const getAdminReports = () =>
+  api.get('/admin/reports').then((r) => r.data);
+
+export const approveAdminReport = (id: string) =>
+  api.post(`/admin/reports/${id}/approve`).then((r) => r.data);
+
+export const rejectAdminReport = (id: string) =>
+  api.post(`/admin/reports/${id}/reject`).then((r) => r.data);
+
+export const approveAdminCluster = (clusterId: string) =>
+  api.post(`/admin/clusters/${clusterId}/approve`).then((r) => r.data);
+
+export const rejectAdminCluster = (clusterId: string) =>
+  api.post(`/admin/clusters/${clusterId}/reject`).then((r) => r.data);
+
+export const takedownAdminReport = (id: string) =>
+  api.post(`/admin/reports/${id}/takedown`).then((r) => r.data);
+
+export const getAdminSettings = () =>
+  api.get('/admin/settings').then((r) => r.data);
+
+export const updateAdminSettings = (settings: Partial<{ isAutoPilotEnabled: boolean; autoApproveThreshold: number }>) =>
+  api.post('/admin/settings', settings).then((r) => r.data);
+
 

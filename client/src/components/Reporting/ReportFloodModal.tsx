@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Droplet, MapPin, Edit3, Loader2, Check } from 'lucide-react';
+import { X, Droplet, MapPin, Edit3, Loader2, Check, CheckCircle2 } from 'lucide-react';
 import { submitReport } from '../../services/api';
 
 export interface SelectedReportLocation {
@@ -19,6 +19,7 @@ export const ReportFloodModal: React.FC<{
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   if (!isOpen || !location) return null;
 
@@ -33,8 +34,8 @@ export const ReportFloodModal: React.FC<{
         depth_level: depthLevel,
         description: description.trim() || undefined,
       });
-      onReportSubmitted();
-      onClose();
+      setIsSuccess(true);
+      setDescription('');
     } catch (err: any) {
       console.error('Failed to submit report', err);
       setErrorMsg(
@@ -44,6 +45,37 @@ export const ReportFloodModal: React.FC<{
       setLoading(false);
     }
   };
+
+  const handleFinish = () => {
+    setIsSuccess(false);
+    onReportSubmitted();
+    onClose();
+  };
+
+  if (isSuccess) {
+    return (
+      <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl relative animate-in fade-in zoom-in-95 duration-200 border border-gray-100 flex flex-col items-center text-center gap-3">
+          <div className="w-12 h-12 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 mb-1">
+            <CheckCircle2 className="w-6 h-6" />
+          </div>
+          <h3 className="font-bold text-base text-gray-900 leading-tight">
+            Đã tiếp nhận báo cáo của bạn!
+          </h3>
+          <p className="text-xs text-gray-600 leading-relaxed">
+            Cảm ơn tinh thần đóng góp của bạn. Báo cáo đã được chuyển đến ban điều phối để kiểm duyệt trước khi đưa lên bản đồ điều hướng.
+          </p>
+          <button
+            type="button"
+            onClick={handleFinish}
+            className="w-full mt-2 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-lg transition active:scale-95 cursor-pointer"
+          >
+            Đã hiểu
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">

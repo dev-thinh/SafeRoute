@@ -3,7 +3,7 @@ import { Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import { UserReport } from '../../types';
 import { voteReport } from '../../services/api';
-import { Loader2, ThumbsUp, Sun, Check, Clock } from 'lucide-react';
+import { Loader2, ThumbsUp, Sun, Check } from 'lucide-react';
 
 const reportIcon = L.divIcon({
   className: 'custom-report-icon',
@@ -42,33 +42,19 @@ const SingleReportMarker: React.FC<{
   const upPercent = totalVotes > 0 ? Math.round((upvotesCount / totalVotes) * 100) : 0;
   const downPercent = totalVotes > 0 ? 100 - upPercent : 0;
 
-  // 3-hour sliding window TTL calculation, capped at 12 hours from creation
-  const reportedTime = report.reportedAt ? new Date(report.reportedAt).getTime() : Date.now();
-  const lastVerifiedTime = hasVoted === 'upvote'
-    ? Date.now()
-    : (report.lastVerifiedAt ? new Date(report.lastVerifiedAt).getTime() : reportedTime);
-  const expireTimeMs = Math.min(lastVerifiedTime + 3 * 3600 * 1000, reportedTime + 12 * 3600 * 1000);
-  const remainingMs = Math.max(0, expireTimeMs - Date.now());
-  const remainingHours = Math.floor(remainingMs / (3600 * 1000));
-  const remainingMinutes = Math.floor((remainingMs % (3600 * 1000)) / (60 * 1000));
-
-  let remainingText = '';
-  if (remainingHours > 0) {
-    remainingText = `Còn ~${remainingHours}h ${remainingMinutes}p`;
-  } else if (remainingMinutes > 0) {
-    remainingText = `Còn ~${remainingMinutes} phút`;
-  } else {
-    remainingText = 'Sắp hết hạn';
-  }
-
   const handleVote = async (type: 'upvote' | 'resolved') => {
-    if (hasVoted || isSubmitting) return;
+    if (isSubmitting) return;
     setIsSubmitting(true);
     try {
-      await voteReport(report.id, type);
-      setHasVoted(type);
-      if (onVoteReport) {
-        onVoteReport(report.id, type);
+      if (hasVoted === type) {
+        // Unvote toggle
+        setHasVoted(null);
+      } else {
+        await voteReport(report.id, type);
+        setHasVoted(type);
+        if (onVoteReport) {
+          onVoteReport(report.id, type);
+        }
       }
     } catch (err) {
       console.warn('Failed to submit vote for report', err);
@@ -85,15 +71,12 @@ const SingleReportMarker: React.FC<{
       <Popup>
         <div className="text-xs p-1 min-w-[210px] max-w-[240px]">
           <div className="flex items-center justify-between">
-            <span className="inline-block px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-full font-bold text-[10px]">
-              Báo cáo cộng đồng
+            <span className="inline-block px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full font-bold text-[10px] flex items-center gap-1">
+              <Check className="w-2.5 h-2.5" />
+              <span>Điểm ngập đã duyệt</span>
             </span>
-            <span
-              className="text-[10px] text-gray-500 font-medium flex items-center gap-1"
-              title={`Hiệu lực dự kiến đến ${new Date(expireTimeMs).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`}
-            >
-              <Clock className="w-2.5 h-2.5 text-gray-400 flex-shrink-0" />
-              <span>{remainingText}</span>
+            <span className="text-[10px] text-gray-400 font-mono">
+              {report.reportedAt ? new Date(report.reportedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : 'Vừa xong'}
             </span>
           </div>
 

@@ -71,15 +71,15 @@
 - Modify: `client/src/components/Map/ReportMarker.tsx`
 - Modify: `client/src/services/api.ts`
 
-- [ ] **Step 1: Cập nhật `client/src/types/index.ts` bổ sung các trường trạng thái và kiểu Admin**
-- [ ] **Step 2: Cập nhật `ReportFloodModal.tsx`**
+- [x] **Step 1: Cập nhật `client/src/types/index.ts` bổ sung các trường trạng thái và kiểu Admin**
+- [x] **Step 2: Cập nhật `ReportFloodModal.tsx`**
   - Sau khi gửi báo cáo thành công: Hiển thị thông báo an tâm *"Đã tiếp nhận báo cáo! Cảm ơn bạn đã hỗ trợ cộng đồng. Thông tin đã được chuyển đến ban điều phối để kiểm duyệt."*
   - Đóng modal và reset trạng thái sạch sẽ.
-- [ ] **Step 3: Cập nhật `ReportMarker.tsx`**
+- [x] **Step 3: Cập nhật `ReportMarker.tsx`**
   - Bỏ dòng đếm ngược TTL (`Còn ~2h 45p`).
   - Hiển thị nhãn *"Điểm ngập đã kiểm duyệt"* (Verified Hazard).
-- [ ] **Step 4: Kiểm tra `npm run build` trong `client`**
-- [ ] **Step 5: Commit Task 2 trên nhánh `dev`**
+- [x] **Step 4: Kiểm tra `npm run build` trong `client`**
+- [x] **Step 5: Commit Task 2 trên nhánh `dev`**
 
 ---
 

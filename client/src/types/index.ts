@@ -51,9 +51,37 @@ export interface UserReport {
   description?: string;
   upvotes: number;
   downvotes: number;
-  status: 'active' | 'resolved';
+  status: 'pending' | 'approved' | 'rejected' | 'resolved' | 'active';
   reportedAt?: string;
   lastVerifiedAt?: string;
+  aiConfidence?: number;
+  aiReasoning?: string;
+  clusterId?: string;
+  isAutoApproved?: boolean;
+  reviewedBy?: 'ai' | 'admin';
+  reviewedAt?: string;
+}
+
+export interface ReportCluster {
+  clusterId: string;
+  streetName?: string;
+  district?: string;
+  coordinate: Coordinate;
+  totalReports: number;
+  depthLevel: 'ankle' | 'wheel' | 'knee' | 'deep';
+  avgDepthCm: number;
+  latestReportedAt: string;
+  aiConfidence: number;
+  aiReasoning: string;
+  canAutoApprove: boolean;
+  status: 'pending' | 'approved' | 'rejected';
+  reports: UserReport[];
+}
+
+export interface AdminSettings {
+  isAutoPilotEnabled: boolean;
+  autoApproveThreshold: number;
+  minClusterCountForAutoApprove: number;
 }
 
 export interface ScrapedArticleLocation {
