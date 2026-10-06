@@ -53,6 +53,7 @@ export interface UserReport {
   downvotes: number;
   status: 'active' | 'resolved';
   reportedAt?: string;
+  lastVerifiedAt?: string;
 }
 
 export interface ScrapedArticleLocation {

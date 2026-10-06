@@ -55,11 +55,11 @@
 - Modify: `client/src/components/Map/FloodLayer.tsx`
 - Modify: `client/src/components/Map/ReportMarker.tsx`
 
-- [ ] **Step 1: Cập nhật kiểu `UserReport` trong `client/src/types/index.ts` bổ sung `lastVerifiedAt`**
-- [ ] **Step 2: Cập nhật `client/src/components/Map/FloodLayer.tsx` chỉ hiển thị các điểm có độ sâu $\ge 10\text{ cm}$**
-- [ ] **Step 3: Cập nhật `client/src/components/Map/ReportMarker.tsx` hiển thị thời gian còn lại của điểm ngập và tooltip nút bấm**
-- [ ] **Step 4: Chạy `npm run build` trong thư mục `client` kiểm tra 0 lỗi**
-- [ ] **Step 5: Commit Task 2 trên nhánh `dev`**
+- [x] **Step 1: Cập nhật kiểu `UserReport` trong `client/src/types/index.ts` bổ sung `lastVerifiedAt`**
+- [x] **Step 2: Cập nhật `client/src/components/Map/FloodLayer.tsx` chỉ hiển thị các điểm có độ sâu $\ge 10\text{ cm}$**
+- [x] **Step 3: Cập nhật `client/src/components/Map/ReportMarker.tsx` hiển thị thời gian còn lại của điểm ngập và tooltip nút bấm**
+- [x] **Step 4: Chạy `npm run build` trong thư mục `client` kiểm tra 0 lỗi**
+- [x] **Step 5: Commit Task 2 trên nhánh `dev`**
 
 ---
 
