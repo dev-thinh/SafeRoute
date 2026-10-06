@@ -56,7 +56,7 @@ export interface UserReport {
    lastVerifiedAt?: Date;
    upvotes: number;
    downvotes: number;
-   status: 'pending' | 'approved' | 'rejected' | 'resolved';
+   status: 'pending' | 'approved' | 'rejected' | 'resolved' | 'active';
    aiConfidence?: number;
    aiReasoning?: string;
    clusterId?: string;

@@ -70,7 +70,7 @@ routesRouter.post('/navigate', async (req, res) => {
     // 4. Live crowdsourced user reports converted to flood hazard obstacles
     const activeReports = await getActiveReports(targetDate);
     const crowdsourcedEvents: FloodEvent[] = activeReports
-      .filter((r) => r.status === 'active')
+      .filter((r) => r.status === 'active' || r.status === 'approved')
       .map((r) => ({
         id: r.id,
         title: `Cộng đồng báo ngập: ${r.description || 'Hiện trường'}`,

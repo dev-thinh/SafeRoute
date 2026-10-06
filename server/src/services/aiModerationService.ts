@@ -191,12 +191,12 @@ export async function evaluateReportCredibility(
       rollingRain.northwest.currentMm
     );
 
-    if (maxRain >= 20 || tide.tideHeightM >= 1.50) {
+    if (maxRain >= 20 || tide.peakTideHeightM >= 1.50) {
       weatherPillar = 1.0;
-      weatherDesc = `Mưa lớn (${maxRain.toFixed(1)}mm) hoặc triều cường cao (${tide.tideHeightM}m)`;
-    } else if (maxRain >= 8 || tide.tideHeightM >= 1.35) {
+      weatherDesc = `Mưa lớn (${maxRain.toFixed(1)}mm) hoặc triều cường cao (${tide.peakTideHeightM}m)`;
+    } else if (maxRain >= 8 || tide.peakTideHeightM >= 1.35) {
       weatherPillar = 0.65;
-      weatherDesc = `Có mưa vừa (${maxRain.toFixed(1)}mm) hoặc triều dâng (${tide.tideHeightM}m)`;
+      weatherDesc = `Có mưa vừa (${maxRain.toFixed(1)}mm) hoặc triều dâng (${tide.peakTideHeightM}m)`;
     } else if (maxRain >= 3) {
       weatherPillar = 0.40;
       weatherDesc = `Mưa nhỏ rải rác (${maxRain.toFixed(1)}mm)`;
