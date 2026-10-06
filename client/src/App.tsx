@@ -7,8 +7,9 @@ import { ReportMarker } from './components/Map/ReportMarker';
 import { RoutePlannerPanel, LocationItem } from './components/Navigation/RoutePlannerPanel';
 import { ReportFloodModal, SelectedReportLocation } from './components/Reporting/ReportFloodModal';
 import { ReportLocationPinOverlay } from './components/Reporting/ReportLocationPinOverlay';
-import { getActiveFloods, reverseGeocode } from './services/api';
-import { Droplet, PanelLeftOpen, MapPin, Target } from 'lucide-react';
+import { AdminDashboardModal } from './components/Admin/AdminDashboardModal';
+import { getActiveFloods, reverseGeocode, getAdminReports } from './services/api';
+import { Droplet, PanelLeftOpen, MapPin, Target, AlertTriangle, X, Waves, ShieldCheck } from 'lucide-react';
 import { NavigateResponse, FloodEvent, UserReport } from './types';
 
 export const App: React.FC = () => {
@@ -16,12 +17,18 @@ export const App: React.FC = () => {
   const [selectedRouteType, setSelectedRouteType] = useState<'safe' | 'fastest'>('safe');
   const [floodEvents, setFloodEvents] = useState<FloodEvent[]>([]);
   const [reports, setReports] = useState<UserReport[]>([]);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Admin Dashboard State
+  const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [pendingAdminCount, setPendingAdminCount] = useState(0);
 
   // Panel Collapsible State for responsive layout
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
 
   // Zoom handlers ref from MapView
   const zoomHandlersRef = useRef<{ zoomIn: () => void; zoomOut: () => void } | null>(null);
+  const skipNextReverseGeocodeRef = useRef(false);
 
   // Modal & Pinning Mode State
   const [isReportOpen, setIsReportOpen] = useState(false);
@@ -53,9 +60,17 @@ export const App: React.FC = () => {
 
   const loadFloods = async (targetTime?: string) => {
     try {
-      const data = await getActiveFloods(targetTime);
-      setFloodEvents(data.events || []);
-      setReports(data.reports || []);
+      const [floodData, adminData] = await Promise.allSettled([
+        getActiveFloods(targetTime),
+        getAdminReports(),
+      ]);
+      if (floodData.status === 'fulfilled') {
+        setFloodEvents(floodData.value.events || []);
+        setReports(floodData.value.reports || []);
+      }
+      if (adminData.status === 'fulfilled') {
+        setPendingAdminCount(adminData.value.summary?.totalPending || 0);
+      }
     } catch (err) {
       console.error('Failed to load active floods', err);
     }
@@ -68,6 +83,11 @@ export const App: React.FC = () => {
   // Debounced reverse geocode when map center moves during pinning mode
   useEffect(() => {
     if (!isPinningReport) return;
+    if (skipNextReverseGeocodeRef.current) {
+      skipNextReverseGeocodeRef.current = false;
+      setIsLoadingAddress(false);
+      return;
+    }
     setIsLoadingAddress(true);
     const timer = setTimeout(async () => {
       try {
@@ -83,55 +103,88 @@ export const App: React.FC = () => {
     return () => clearTimeout(timer);
   }, [centerCoord.lat, centerCoord.lng, isPinningReport]);
 
-  const handleMapClick = async (lat: number, lng: number) => {
+  const handleMapClick = (lat: number, lng: number) => {
     if (!pickingField) return;
+    const targetField = pickingField;
 
-    try {
-      const rev = await reverseGeocode(lat, lng);
-      if (pickingField === 'origin') {
-        setOrigin({
-          label: rev.label,
-          lat,
-          lng,
-        });
-      } else if (pickingField === 'dest') {
-        setDestination({
-          label: rev.label,
-          lat,
-          lng,
-        });
-      }
-    } catch (err) {
-      console.error('Failed to reverse geocode clicked point', err);
-    } finally {
-      setPickingField(null);
-    }
-  };
+    // 1. Immediately exit picking mode so banner closes in 0ms
+    setPickingField(null);
 
-  const handleDragOrigin = async (lat: number, lng: number) => {
-    try {
-      const rev = await reverseGeocode(lat, lng);
+    // 2. Optimistically update marker coordinate and temporary label
+    if (targetField === 'origin') {
       setOrigin({
-        label: rev.label,
+        label: 'Đang xác định địa chỉ...',
         lat,
         lng,
       });
-    } catch (err) {
-      setOrigin((prev) => ({ ...prev, lat, lng }));
+    } else if (targetField === 'dest') {
+      setDestination({
+        label: 'Đang xác định địa chỉ...',
+        lat,
+        lng,
+      });
     }
+
+    // 3. Resolve human-readable address in background without blocking UI
+    reverseGeocode(lat, lng)
+      .then((rev) => {
+        if (targetField === 'origin') {
+          setOrigin((prev) =>
+            prev.lat === lat && prev.lng === lng ? { ...prev, label: rev.label } : prev
+          );
+        } else if (targetField === 'dest') {
+          setDestination((prev) =>
+            prev.lat === lat && prev.lng === lng ? { ...prev, label: rev.label } : prev
+          );
+        }
+      })
+      .catch((err) => {
+        console.warn('Failed to reverse geocode clicked point', err);
+        const fallback = `Tọa độ: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        if (targetField === 'origin') {
+          setOrigin((prev) =>
+            prev.lat === lat && prev.lng === lng ? { ...prev, label: fallback } : prev
+          );
+        } else if (targetField === 'dest') {
+          setDestination((prev) =>
+            prev.lat === lat && prev.lng === lng ? { ...prev, label: fallback } : prev
+          );
+        }
+      });
   };
 
-  const handleDragDestination = async (lat: number, lng: number) => {
-    try {
-      const rev = await reverseGeocode(lat, lng);
-      setDestination({
-        label: rev.label,
-        lat,
-        lng,
+  const handleDragOrigin = (lat: number, lng: number) => {
+    setOrigin((prev) => ({ ...prev, lat, lng, label: 'Đang xác định địa chỉ...' }));
+    reverseGeocode(lat, lng)
+      .then((rev) => {
+        setOrigin((prev) =>
+          prev.lat === lat && prev.lng === lng ? { ...prev, label: rev.label } : prev
+        );
+      })
+      .catch(() => {
+        setOrigin((prev) =>
+          prev.lat === lat && prev.lng === lng
+            ? { ...prev, label: `Tọa độ: ${lat.toFixed(5)}, ${lng.toFixed(5)}` }
+            : prev
+        );
       });
-    } catch (err) {
-      setDestination((prev) => ({ ...prev, lat, lng }));
-    }
+  };
+
+  const handleDragDestination = (lat: number, lng: number) => {
+    setDestination((prev) => ({ ...prev, lat, lng, label: 'Đang xác định địa chỉ...' }));
+    reverseGeocode(lat, lng)
+      .then((rev) => {
+        setDestination((prev) =>
+          prev.lat === lat && prev.lng === lng ? { ...prev, label: rev.label } : prev
+        );
+      })
+      .catch(() => {
+        setDestination((prev) =>
+          prev.lat === lat && prev.lng === lng
+            ? { ...prev, label: `Tọa độ: ${lat.toFixed(5)}, ${lng.toFixed(5)}` }
+            : prev
+        );
+      });
   };
 
   // Start pinning mode for report flood
@@ -167,20 +220,24 @@ export const App: React.FC = () => {
         },
         (err) => {
           console.warn('Geolocation error:', err);
-          alert('Không thể xác định vị trí GPS. Vui lòng cấp quyền vị trí trên trình duyệt.');
+          setToastMessage('Không thể xác định vị trí GPS. Vui lòng cấp quyền vị trí trên trình duyệt.');
+          setTimeout(() => setToastMessage(null), 4500);
         },
         { enableHighAccuracy: true, timeout: 8000 }
       );
     } else {
-      alert('Trình duyệt không hỗ trợ định vị GPS.');
+      setToastMessage('Trình duyệt không hỗ trợ định vị GPS.');
+      setTimeout(() => setToastMessage(null), 4500);
     }
   };
 
   // User selects an autocomplete suggestion in the report pin overlay
   const handleSelectReportLocation = (lat: number, lng: number, label: string) => {
+    skipNextReverseGeocodeRef.current = true;
     setMapCenter([lat, lng]);
     setCenterCoord({ lat, lng });
     setCenterAddress(label);
+    setIsLoadingAddress(false);
   };
 
   return (
@@ -213,7 +270,7 @@ export const App: React.FC = () => {
           aria-label="Mở bảng điều khiển SafeRoute"
         >
           <PanelLeftOpen className="w-4 h-4 text-blue-600" />
-          <span className="text-base leading-none">🌊</span>
+          <Waves className="w-4 h-4 text-blue-600" />
           <span>Bảng điều khiển</span>
           <span className="text-[10px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-bold border border-blue-100">
             Mở
@@ -240,7 +297,7 @@ export const App: React.FC = () => {
         }}
       >
         <FloodLayer events={floodEvents} />
-        <ReportMarker reports={reports} />
+        <ReportMarker reports={reports} onVoteReport={() => loadFloods()} />
         {routes && (
           <RoutePolyline
             safeGeometry={routes.safe_route?.geometry}
@@ -317,6 +374,42 @@ export const App: React.FC = () => {
         onZoomOut={() => zoomHandlersRef.current?.zoomOut()}
       />
 
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="absolute top-5 left-1/2 -translate-x-1/2 z-[1200] bg-white/95 backdrop-blur-md px-4 py-2.5 rounded-2xl shadow-2xl border border-gray-200/90 flex items-center gap-2.5 animate-in fade-in slide-in-from-top-2">
+          <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+          <span className="text-xs font-semibold text-gray-800">{toastMessage}</span>
+          <button
+            type="button"
+            onClick={() => setToastMessage(null)}
+            className="p-1 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-600 transition cursor-pointer"
+            title="Đóng thông báo"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+      {/* Floating Admin Moderation Button */}
+      {!isPinningReport && (
+        <div className="absolute top-4 right-4 z-[1000]">
+          <button
+            type="button"
+            onClick={() => setIsAdminOpen(true)}
+            className="flex items-center gap-2 px-3.5 py-2.5 min-h-[44px] bg-white/95 backdrop-blur-md border border-gray-200/80 rounded-2xl shadow-xl hover:shadow-2xl hover:bg-white text-gray-800 font-bold text-xs active:scale-95 transition-all cursor-pointer"
+            title="Mở trung tâm quản trị & kiểm duyệt ngập lụt"
+          >
+            <ShieldCheck className="w-4 h-4 text-blue-600" />
+            <span>Quản trị</span>
+            {pendingAdminCount > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white font-mono animate-pulse">
+                {pendingAdminCount}
+              </span>
+            )}
+          </button>
+        </div>
+      )}
+
       {/* 6. Report Flood Form Modal with marked location details */}
       <ReportFloodModal
         isOpen={isReportOpen}
@@ -324,6 +417,13 @@ export const App: React.FC = () => {
         onClose={() => setIsReportOpen(false)}
         onReportSubmitted={loadFloods}
         onRePickLocation={handleRePickLocation}
+      />
+
+      {/* 7. Admin Moderation Dashboard Modal */}
+      <AdminDashboardModal
+        isOpen={isAdminOpen}
+        onClose={() => setIsAdminOpen(false)}
+        onDataChanged={loadFloods}
       />
     </div>
   );

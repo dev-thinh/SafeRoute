@@ -70,11 +70,29 @@ export const navigateRoute = (data: {
   vehicle_type: 'motorbike' | 'car';
 }): Promise<NavigateResponse> => api.post('/routes/navigate', data).then((r) => r.data);
 
+export function getOrCreateClientToken(): string {
+  try {
+    let token = localStorage.getItem('saferoute_client_token');
+    if (!token) {
+      token = 'client_' + Math.random().toString(36).substring(2, 12) + '_' + Date.now();
+      localStorage.setItem('saferoute_client_token', token);
+    }
+    return token;
+  } catch {
+    return 'client_fallback_' + Date.now();
+  }
+}
+
 export const submitReport = (data: {
   coordinate: { lat: number; lng: number };
   depth_level: string;
   description?: string;
-}) => api.post('/reports', data).then((r) => r.data);
+}) =>
+  api.post('/reports', data, {
+    headers: {
+      'x-client-token': getOrCreateClientToken(),
+    },
+  }).then((r) => r.data);
 
 export const voteReport = (id: string, type: 'upvote' | 'resolved') =>
   api.post(`/reports/${id}/vote`, { type }).then((r) => r.data);
@@ -87,5 +105,29 @@ export const triggerCrawlNow = () =>
 
 export const getWeatherData = (targetTime?: string): Promise<WeatherDashboardData> =>
   api.get('/weather', { params: { target_time: targetTime } }).then((r) => r.data);
+
+export const getAdminReports = () =>
+  api.get('/admin/reports').then((r) => r.data);
+
+export const approveAdminReport = (id: string) =>
+  api.post(`/admin/reports/${id}/approve`).then((r) => r.data);
+
+export const rejectAdminReport = (id: string) =>
+  api.post(`/admin/reports/${id}/reject`).then((r) => r.data);
+
+export const approveAdminCluster = (clusterId: string) =>
+  api.post(`/admin/clusters/${clusterId}/approve`).then((r) => r.data);
+
+export const rejectAdminCluster = (clusterId: string) =>
+  api.post(`/admin/clusters/${clusterId}/reject`).then((r) => r.data);
+
+export const takedownAdminReport = (id: string) =>
+  api.post(`/admin/reports/${id}/takedown`).then((r) => r.data);
+
+export const getAdminSettings = () =>
+  api.get('/admin/settings').then((r) => r.data);
+
+export const updateAdminSettings = (settings: Partial<{ isAutoPilotEnabled: boolean; autoApproveThreshold: number }>) =>
+  api.post('/admin/settings', settings).then((r) => r.data);
 
 

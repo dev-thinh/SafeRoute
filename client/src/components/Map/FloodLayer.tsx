@@ -7,14 +7,23 @@ interface FloodLayerProps {
 }
 
 export const FloodLayer: React.FC<FloodLayerProps> = ({ events }) => {
+  // Only render corridors that are actively flooded (>= 10 cm), keeping the map clean
+  const floodedEvents = events.filter((event) => {
+    const depth =
+      event.current_depth_cm !== undefined
+        ? event.current_depth_cm
+        : event.estimatedDepthCm;
+    return depth >= 10;
+  });
+
   return (
     <>
-      {events.map((event) => {
+      {floodedEvents.map((event) => {
         const depth =
           event.current_depth_cm !== undefined
             ? event.current_depth_cm
             : event.estimatedDepthCm;
-        const isActive = depth >= 10;
+        const isActive = true;
 
         // Color based on standardized 4-tier flood alert scale
         let color = '#9CA3AF'; // Muted gray when dry

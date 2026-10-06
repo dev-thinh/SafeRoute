@@ -30,6 +30,17 @@ const knownStreets: Record<string, Coordinate> = {
   'hồ học lãm': { lat: 10.7220, lng: 106.6180 },
   'an dương vương': { lat: 10.7300, lng: 106.6250 },
   'song hành quốc lộ 22': { lat: 10.8570, lng: 106.6110 },
+  'phạm hùng': { lat: 10.7380, lng: 106.6750 },
+  'dương bá trạc': { lat: 10.7489, lng: 106.6883 },
+  'bến phú định': { lat: 10.7250, lng: 106.6280 },
+  'mễ cốc': { lat: 10.7225, lng: 106.6255 },
+  'bà triệu': { lat: 10.8783, lng: 106.5920 },
+  'linh đông': { lat: 10.8526, lng: 106.7486 },
+  'tăng nhơn phú': { lat: 10.8350, lng: 106.7750 },
+  'phan văn hớn': { lat: 10.8450, lng: 106.6180 },
+  'phan anh': { lat: 10.7680, lng: 106.6220 },
+  'quang trung': { lat: 10.8265, lng: 106.6799 },
+  'tên lửa': { lat: 10.7567, lng: 106.5901 },
 };
 
 /**
@@ -87,8 +98,8 @@ export async function geocodeStreet(streetName: string, district: string): Promi
       return found;
     }
   } catch {
-    // Graceful fallback to HCMC centroid
+    // Geocoding lookup failed
   }
 
-  return { lat: 10.75, lng: 106.70 };
+  return null;
 }

@@ -1,6 +1,7 @@
 import { Router } from 'express';
+import { randomUUID } from 'crypto';
 import { UserReport } from '../types';
-import { saveReport, getActiveReports, voteReport, inMemoryReports } from '../db/reportsRepo';
+import { saveReport, getActiveReports, voteReport, inMemoryReports, checkClientSpamLimits } from '../db/reportsRepo';
 
 export const reportsRouter = Router();
 export { inMemoryReports };
@@ -12,9 +13,10 @@ const depthLevelToCm: Record<string, number> = {
   deep: 70,
 };
 
-reportsRouter.get('/', async (_req, res) => {
+reportsRouter.get('/', async (req, res) => {
   try {
-    const reports = await getActiveReports();
+    const targetTime = req.query.target_time ? new Date(req.query.target_time as string) : new Date();
+    const reports = await getActiveReports(targetTime);
     return res.json({ reports });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
@@ -27,8 +29,22 @@ reportsRouter.post('/', async (req, res) => {
     return res.status(400).json({ error: 'Coordinate and depth_level are required' });
   }
 
+  // Rate limiting & spam detection per client identifier
+  const clientIdentifier =
+    (req.headers['x-client-token'] as string) ||
+    req.body.clientToken ||
+    req.ip ||
+    'anonymous';
+
+  const limitCheck = checkClientSpamLimits(clientIdentifier, coordinate);
+  if (!limitCheck.allowed) {
+    return res.status(429).json({
+      error: limitCheck.message || 'Bạn đã gửi báo cáo ngập tại khu vực này rồi.',
+    });
+  }
+
   const report: UserReport = {
-    id: `report-${Date.now()}`,
+    id: randomUUID(),
     coordinate,
     depthLevel: depth_level,
     depthCm: depthLevelToCm[depth_level] || 25,
@@ -37,11 +53,15 @@ reportsRouter.post('/', async (req, res) => {
     reportedAt: new Date(),
     upvotes: 1,
     downvotes: 0,
-    status: 'active',
+    status: 'pending',
   };
 
   const saved = await saveReport(report);
-  return res.status(201).json({ report: saved });
+  return res.status(201).json({
+    success: true,
+    message: 'Đã tiếp nhận báo cáo của bạn. Thông tin đã được chuyển đến ban điều phối để kiểm duyệt.',
+    report: saved,
+  });
 });
 
 reportsRouter.post('/:id/vote', async (req, res) => {

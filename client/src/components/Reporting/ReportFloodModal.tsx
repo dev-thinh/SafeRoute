@@ -1,11 +1,31 @@
-import React, { useState } from 'react';
-import { X, Droplet, MapPin, Edit3, Loader2, Check } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { X, Droplet, MapPin, Edit3, Loader2, Check, CheckCircle2 } from 'lucide-react';
 import { submitReport } from '../../services/api';
 
 export interface SelectedReportLocation {
   lat: number;
   lng: number;
   label: string;
+}
+
+interface MyReportRecord {
+  id: string;
+  lat: number;
+  lng: number;
+  depthLevel: string;
+  reportedAt: string;
+}
+
+function calculateDistanceM(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371e3;
+  const phi1 = (lat1 * Math.PI) / 180;
+  const phi2 = (lat2 * Math.PI) / 180;
+  const deltaPhi = ((lat2 - lat1) * Math.PI) / 180;
+  const deltaLambda = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+    Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 export const ReportFloodModal: React.FC<{
@@ -19,22 +39,58 @@ export const ReportFloodModal: React.FC<{
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isSuccess, setIsSuccess] = useState(false);
+
+  // Check if current user already reported at this location within 150m in the last 2 hours
+  const alreadyReported = useMemo(() => {
+    if (!location) return false;
+    try {
+      const stored = localStorage.getItem('saferoute_my_reports');
+      if (!stored) return false;
+      const list: MyReportRecord[] = JSON.parse(stored);
+      const now = Date.now();
+      return list.some((r) => {
+        const diffMs = now - new Date(r.reportedAt).getTime();
+        if (diffMs > 2 * 60 * 60 * 1000) return false;
+        return calculateDistanceM(location.lat, location.lng, r.lat, r.lng) <= 150;
+      });
+    } catch {
+      return false;
+    }
+  }, [location, isOpen]);
 
   if (!isOpen || !location) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (loading) return;
+    if (loading || alreadyReported) return;
     setLoading(true);
     setErrorMsg(null);
     try {
-      await submitReport({
+      const res = await submitReport({
         coordinate: { lat: location.lat, lng: location.lng },
         depth_level: depthLevel,
         description: description.trim() || undefined,
       });
-      onReportSubmitted();
-      onClose();
+
+      // Save to local reports history to prevent duplicate reporting and show indicator
+      try {
+        const stored = localStorage.getItem('saferoute_my_reports');
+        const list: MyReportRecord[] = stored ? JSON.parse(stored) : [];
+        list.unshift({
+          id: res?.report?.id || `rep_${Date.now()}`,
+          lat: location.lat,
+          lng: location.lng,
+          depthLevel,
+          reportedAt: new Date().toISOString(),
+        });
+        localStorage.setItem('saferoute_my_reports', JSON.stringify(list.slice(0, 30)));
+      } catch (storageErr) {
+        console.warn('Failed to save report to local storage:', storageErr);
+      }
+
+      setIsSuccess(true);
+      setDescription('');
     } catch (err: any) {
       console.error('Failed to submit report', err);
       setErrorMsg(
@@ -44,6 +100,37 @@ export const ReportFloodModal: React.FC<{
       setLoading(false);
     }
   };
+
+  const handleFinish = () => {
+    setIsSuccess(false);
+    onReportSubmitted();
+    onClose();
+  };
+
+  if (isSuccess) {
+    return (
+      <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl relative animate-in fade-in zoom-in-95 duration-200 border border-gray-100 flex flex-col items-center text-center gap-3">
+          <div className="w-12 h-12 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 mb-1">
+            <CheckCircle2 className="w-6 h-6" />
+          </div>
+          <h3 className="font-bold text-base text-gray-900 leading-tight">
+            Đã tiếp nhận báo cáo của bạn!
+          </h3>
+          <p className="text-xs text-gray-600 leading-relaxed">
+            Cảm ơn tinh thần đóng góp của bạn. Báo cáo đã được chuyển đến ban điều phối để kiểm duyệt trước khi đưa lên bản đồ điều hướng.
+          </p>
+          <button
+            type="button"
+            onClick={handleFinish}
+            className="w-full mt-2 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-lg transition active:scale-95 cursor-pointer"
+          >
+            Đã hiểu
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
@@ -106,6 +193,18 @@ export const ReportFloodModal: React.FC<{
         {errorMsg && (
           <div className="p-2.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl">
             {errorMsg}
+          </div>
+        )}
+
+        {alreadyReported && (
+          <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs rounded-xl flex items-start gap-2.5">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold text-xs">Bạn đã gửi báo cáo tại khu vực này</p>
+              <p className="text-[11px] text-emerald-800 mt-0.5 leading-relaxed">
+                Hệ thống đã tiếp nhận dữ liệu và đang kiểm duyệt. Bạn không cần gửi lặp lại.
+              </p>
+            </div>
           </div>
         )}
 
@@ -214,13 +313,22 @@ export const ReportFloodModal: React.FC<{
             </button>
             <button
               type="submit"
-              disabled={loading}
-              className="flex-[2] py-3 min-h-[44px] bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              disabled={loading || alreadyReported}
+              className={`flex-[2] py-3 min-h-[44px] font-bold text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-2 active:scale-95 cursor-pointer ${
+                alreadyReported
+                  ? 'bg-emerald-600/80 text-white cursor-not-allowed opacity-80'
+                  : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white disabled:opacity-50 disabled:cursor-not-allowed'
+              }`}
             >
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin text-white" />
                   <span>Đang gửi báo cáo...</span>
+                </>
+              ) : alreadyReported ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4 text-white" />
+                  <span>Đã báo cáo vị trí này</span>
                 </>
               ) : (
                 <>

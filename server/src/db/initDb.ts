@@ -56,11 +56,27 @@ export async function initDb(): Promise<boolean> {
             image_url TEXT,
             upvotes INTEGER NOT NULL DEFAULT 1,
             downvotes INTEGER NOT NULL DEFAULT 0,
-            status VARCHAR(20) NOT NULL DEFAULT 'active',
-            reported_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            status VARCHAR(20) NOT NULL DEFAULT 'pending',
+            reported_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            last_verified_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            ai_confidence REAL,
+            ai_reasoning TEXT,
+            cluster_id VARCHAR(100),
+            is_auto_approved BOOLEAN NOT NULL DEFAULT FALSE,
+            reviewed_by VARCHAR(50),
+            reviewed_at TIMESTAMPTZ
         );
 
+        ALTER TABLE user_reports ADD COLUMN IF NOT EXISTS last_verified_at TIMESTAMPTZ DEFAULT NOW();
+        ALTER TABLE user_reports ADD COLUMN IF NOT EXISTS ai_confidence REAL;
+        ALTER TABLE user_reports ADD COLUMN IF NOT EXISTS ai_reasoning TEXT;
+        ALTER TABLE user_reports ADD COLUMN IF NOT EXISTS cluster_id VARCHAR(100);
+        ALTER TABLE user_reports ADD COLUMN IF NOT EXISTS is_auto_approved BOOLEAN DEFAULT FALSE;
+        ALTER TABLE user_reports ADD COLUMN IF NOT EXISTS reviewed_by VARCHAR(50);
+        ALTER TABLE user_reports ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ;
         CREATE INDEX IF NOT EXISTS idx_user_reports_geom ON user_reports USING GIST(location_geom);
+        CREATE INDEX IF NOT EXISTS idx_user_reports_cluster ON user_reports(cluster_id);
+        CREATE INDEX IF NOT EXISTS idx_user_reports_status ON user_reports(status);
 
         CREATE TABLE IF NOT EXISTS news_articles (
             id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

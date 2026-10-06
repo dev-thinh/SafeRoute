@@ -81,6 +81,61 @@ export function extractWithRuleBasedFallback(articleText: string): ExtractedFloo
   };
 }
 
+interface CircuitBreakerState {
+  state: 'CLOSED' | 'OPEN' | 'HALF_OPEN';
+  failuresCount: number;
+  lastFailureTime: number;
+  cooldownMs: number;
+}
+
+export const circuitBreaker: CircuitBreakerState = {
+  state: 'CLOSED',
+  failuresCount: 0,
+  lastFailureTime: 0,
+  cooldownMs: 5 * 60 * 1000, // 5 minutes cooldown window
+};
+
+export function resetCircuitBreaker() {
+  circuitBreaker.state = 'CLOSED';
+  circuitBreaker.failuresCount = 0;
+  circuitBreaker.lastFailureTime = 0;
+}
+
+async function callModelWithRetry(
+  genAI: GoogleGenerativeAI,
+  modelName: string,
+  prompt: string,
+  maxRetries = 2
+): Promise<string> {
+  let attempt = 0;
+  while (true) {
+    try {
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        generationConfig: { responseMimeType: 'application/json' },
+      });
+      const result = await model.generateContent(prompt);
+      return result.response.text();
+    } catch (err: any) {
+      const isTransient =
+        err?.status === 429 ||
+        err?.message?.includes('429') ||
+        err?.message?.includes('RESOURCE_EXHAUSTED') ||
+        err?.message?.includes('503') ||
+        err?.code === 'ETIMEDOUT';
+
+      if (attempt < maxRetries && isTransient) {
+        attempt++;
+        const backoffMs = Math.round(1500 * Math.pow(2, attempt - 1) + Math.random() * 500);
+        console.warn(`[Gemini AI] Model ${modelName} transient rate limit/error, retry ${attempt}/${maxRetries} after ${backoffMs}ms...`);
+        await new Promise((r) => setTimeout(r, backoffMs));
+        continue;
+      }
+      throw err;
+    }
+  }
+}
+
 export async function extractFloodEventsWithGemini(articleText: string): Promise<ExtractedFloodData> {
   if (!ENV.GEMINI_API_KEY) {
     return extractWithRuleBasedFallback(articleText);
@@ -112,24 +167,59 @@ Hãy phân loại bài viết và trích xuất danh sách các điểm ngập d
 Nội dung bài viết:
 ${articleText}`;
 
-  const candidateModels = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.8-flash'];
-  let lastError: any = null;
+  const primaryModel = ENV.GEMINI_MODEL || 'gemini-3-pro';
+  const fallbackModels = [
+    'gemini-3.8-flash',
+    'gemini-3.5-flash',
+    'gemini-3.5-flash-lite',
+  ].filter((m) => m !== primaryModel);
 
-  for (const modelName of candidateModels) {
-    try {
-      const model = genAI.getGenerativeModel({
-        model: modelName,
-        generationConfig: { responseMimeType: 'application/json' },
-      });
-      const result = await model.generateContent(prompt);
-      const text = result.response.text();
-      return parseGeminiExtractionResponse(text || '{}');
-    } catch (err: any) {
-      lastError = err;
-      continue;
+  // 1. Evaluate Circuit Breaker State
+  const now = Date.now();
+  if (circuitBreaker.state === 'OPEN') {
+    if (now - circuitBreaker.lastFailureTime >= circuitBreaker.cooldownMs) {
+      console.log(`[Circuit Breaker] Cooldown expired. Moving to HALF_OPEN to probe primary model ${primaryModel}...`);
+      circuitBreaker.state = 'HALF_OPEN';
+    } else {
+      console.log(`[Circuit Breaker] Primary model ${primaryModel} in OPEN cooldown. Fast-pathing to Flash fallback...`);
     }
   }
 
-  console.warn('Gemini AI extraction quota exceeded or unavailable. Falling back to rule-based NLP extraction:', lastError?.message);
+  // 2. Try Primary Model (when CLOSED or probing in HALF_OPEN)
+  if (circuitBreaker.state === 'CLOSED' || circuitBreaker.state === 'HALF_OPEN') {
+    try {
+      const text = await callModelWithRetry(genAI, primaryModel, prompt, 2);
+      if (circuitBreaker.state === 'HALF_OPEN') {
+        console.log(`[Circuit Breaker] Probe to ${primaryModel} SUCCEEDED! Restoring state to CLOSED.`);
+        circuitBreaker.state = 'CLOSED';
+        circuitBreaker.failuresCount = 0;
+      }
+      return parseGeminiExtractionResponse(text || '{}');
+    } catch (err: any) {
+      circuitBreaker.failuresCount++;
+      console.warn(`[Circuit Breaker] Primary model ${primaryModel} failed (failure #${circuitBreaker.failuresCount}):`, err?.message);
+      
+      // Trip circuit breaker to OPEN on persistent failure
+      if (circuitBreaker.failuresCount >= 2 || err?.status === 429 || err?.message?.includes('RESOURCE_EXHAUSTED')) {
+        circuitBreaker.state = 'OPEN';
+        circuitBreaker.lastFailureTime = Date.now();
+        console.warn(`[Circuit Breaker] TRIPPED to OPEN. Cooldown for ${circuitBreaker.cooldownMs / 1000}s. Routing to fallback models.`);
+      }
+    }
+  }
+
+  // 3. Try Fallback Flash Models
+  for (const fallbackModel of fallbackModels) {
+    try {
+      console.log(`[Gemini AI] Trying fallback model ${fallbackModel}...`);
+      const text = await callModelWithRetry(genAI, fallbackModel, prompt, 1);
+      return parseGeminiExtractionResponse(text || '{}');
+    } catch (fbErr: any) {
+      console.warn(`[Gemini AI] Fallback model ${fallbackModel} failed:`, fbErr?.message);
+    }
+  }
+
+  // 4. Final safety net: Rule-based NLP extraction
+  console.warn('[Gemini AI] All AI models unavailable. Falling back to rule-based NLP extraction.');
   return extractWithRuleBasedFallback(articleText);
 }

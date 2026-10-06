@@ -12,6 +12,10 @@ import {
   CloudRain,
   Loader2,
   PanelLeftClose,
+  AlertTriangle,
+  Waves,
+  AlertOctagon,
+  ShieldCheck,
 } from 'lucide-react';
 import { VehicleSelector } from './VehicleSelector';
 import { TimeSelector } from './TimeSelector';
@@ -67,6 +71,8 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
   const [targetTime, setTargetTime] = useState<string>(() => new Date().toISOString());
   const [loading, setLoading] = useState(false);
   const [routeData, setRouteData] = useState<NavigateResponse | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [gpsError, setGpsError] = useState<string | null>(null);
 
   // Search autocomplete state
   const [activeField, setActiveField] = useState<'origin' | 'dest' | null>(null);
@@ -94,6 +100,7 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
   }, [searchQuery, activeField]);
 
   const handleSelectLocation = (loc: LocationItem) => {
+    setErrorMsg(null);
     if (activeField === 'origin') {
       onChangeOrigin(loc);
     } else if (activeField === 'dest') {
@@ -105,34 +112,44 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
 
   const handleGetCurrentLocation = () => {
     if (!navigator.geolocation) {
-      alert('Trình duyệt không hỗ trợ định vị GPS.');
+      setGpsError('Trình duyệt không hỗ trợ định vị GPS.');
+      setTimeout(() => setGpsError(null), 4000);
       return;
     }
 
     setGpsLoading(true);
+    setGpsError(null);
     navigator.geolocation.getCurrentPosition(
-      async (pos) => {
+      (pos) => {
         const { latitude, longitude } = pos.coords;
-        try {
-          const rev = await reverseGeocode(latitude, longitude);
-          onChangeOrigin({
-            label: rev.label || 'Vị trí của tôi',
-            lat: latitude,
-            lng: longitude,
+        setGpsLoading(false);
+        // Optimistically update origin immediately so marker and panel update in 0ms
+        onChangeOrigin({
+          label: 'Đang xác định địa chỉ GPS...',
+          lat: latitude,
+          lng: longitude,
+        });
+        // Resolve street name asynchronously in background
+        reverseGeocode(latitude, longitude)
+          .then((rev) => {
+            onChangeOrigin({
+              label: rev.label || 'Vị trí của tôi',
+              lat: latitude,
+              lng: longitude,
+            });
+          })
+          .catch(() => {
+            onChangeOrigin({
+              label: `Tọa độ: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`,
+              lat: latitude,
+              lng: longitude,
+            });
           });
-        } catch {
-          onChangeOrigin({
-            label: `Tọa độ: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`,
-            lat: latitude,
-            lng: longitude,
-          });
-        } finally {
-          setGpsLoading(false);
-        }
       },
       (err) => {
         console.warn('GPS location error:', err);
-        alert('Không thể xác định vị trí GPS. Vui lòng cấp quyền truy cập vị trí trên trình duyệt.');
+        setGpsError('Không thể xác định vị trí GPS. Vui lòng cấp quyền truy cập vị trí trên trình duyệt.');
+        setTimeout(() => setGpsError(null), 5000);
         setGpsLoading(false);
       },
       { enableHighAccuracy: true, timeout: 8000 }
@@ -141,6 +158,7 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
 
   const handleSwap = () => {
     if (loading) return;
+    setErrorMsg(null);
     const temp = { ...origin };
     onChangeOrigin(destination);
     onChangeDestination(temp);
@@ -149,6 +167,7 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
   const handleSearch = async () => {
     if (loading || !origin.label.trim() || !destination.label.trim()) return;
     setLoading(true);
+    setErrorMsg(null);
     try {
       let finalOrigin = { ...origin };
       let finalDest = { ...destination };
@@ -170,8 +189,12 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
       });
       setRouteData(data);
       onRoutesCalculated(data);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Route calculation failed', err);
+      const friendlyMsg =
+        err?.response?.data?.error ||
+        'Không thể tính toán lộ trình né ngập lúc này. Vui lòng kiểm tra lại địa chỉ hoặc thử lại sau.';
+      setErrorMsg(friendlyMsg);
     } finally {
       setLoading(false);
     }
@@ -192,7 +215,7 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-200/60 flex items-center justify-center shadow-xs">
-            <span className="text-lg leading-none">🌊</span>
+            <Waves className="w-4 h-4 text-blue-600" />
           </div>
           <div>
             <h2 className="font-bold text-base text-gray-900 tracking-tight leading-tight">
@@ -393,35 +416,53 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                       <Search className="w-3 h-3 text-emerald-600" />
                       Gợi ý địa chỉ
                     </span>
-                    {searching && (
-                      <span className="text-emerald-600 lowercase font-normal flex items-center gap-1">
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                        đang tìm...
-                      </span>
-                    )}
                   </div>
-                  {suggestions.length === 0 && !searching && (
-                    <div className="p-3 text-xs text-gray-500 text-center">
-                      Không tìm thấy địa chỉ phù hợp.
+
+                  {searching ? (
+                    <div className="py-7 flex flex-col items-center justify-center gap-2 text-gray-500">
+                      <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
+                      <span className="text-xs font-semibold text-gray-700">Đang tìm kiếm địa chỉ...</span>
+                      <span className="text-[10px] text-gray-400">Vui lòng chờ trong giây lát</span>
                     </div>
-                  )}
-                  {suggestions.map((item, idx) => (
-                    <div
-                      key={idx}
-                      onMouseDown={() => handleSelectLocation(item)}
-                      className="p-2.5 text-xs text-gray-800 hover:bg-emerald-50 hover:text-emerald-800 cursor-pointer transition flex items-start gap-2"
-                    >
-                      <MapPin className="w-3.5 h-3.5 text-emerald-500 mt-0.5 flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-gray-900 leading-snug">
-                          {item.label}
-                        </div>
-                        <div className="text-[10px] text-gray-400 mt-0.5 font-mono">
-                          {item.lat.toFixed(4)}, {item.lng.toFixed(4)}
+                  ) : suggestions.length === 0 ? (
+                    <div className="p-4 text-xs text-gray-500 text-center flex flex-col items-center justify-center gap-1">
+                      <span className="font-semibold text-gray-700">Không tìm thấy địa chỉ</span>
+                      <span className="text-[11px] text-gray-400">Thử nhập tên đường hoặc địa danh phổ biến</span>
+                    </div>
+                  ) : (
+                    suggestions.map((item, idx) => (
+                      <div
+                        key={idx}
+                        onMouseDown={() => handleSelectLocation(item)}
+                        className="p-2.5 text-xs text-gray-800 hover:bg-emerald-50 hover:text-emerald-800 cursor-pointer transition flex items-start gap-2 active:bg-emerald-100"
+                      >
+                        <MapPin className="w-3.5 h-3.5 text-emerald-500 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-gray-900 leading-snug">
+                            {item.label}
+                          </div>
+                          <div className="text-[10px] text-gray-400 mt-0.5 font-mono">
+                            {item.lat.toFixed(4)}, {item.lng.toFixed(4)}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
+                </div>
+              )}
+
+              {gpsError && (
+                <div className="p-2 bg-amber-50 border border-amber-200/90 rounded-xl text-[11px] text-amber-900 flex items-center gap-2 mt-1.5 animate-in fade-in">
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
+                  <span className="flex-1">{gpsError}</span>
+                  <button
+                    type="button"
+                    onClick={() => setGpsError(null)}
+                    className="p-0.5 text-amber-700 hover:text-amber-900 rounded cursor-pointer"
+                    title="Đóng thông báo"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
                 </div>
               )}
             </div>
@@ -510,35 +551,38 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                       <Search className="w-3 h-3 text-rose-600" />
                       Gợi ý địa chỉ
                     </span>
-                    {searching && (
-                      <span className="text-rose-600 lowercase font-normal flex items-center gap-1">
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                        đang tìm...
-                      </span>
-                    )}
                   </div>
-                  {suggestions.length === 0 && !searching && (
-                    <div className="p-3 text-xs text-gray-500 text-center">
-                      Không tìm thấy địa chỉ phù hợp.
+
+                  {searching ? (
+                    <div className="py-7 flex flex-col items-center justify-center gap-2 text-gray-500">
+                      <Loader2 className="w-6 h-6 animate-spin text-rose-600" />
+                      <span className="text-xs font-semibold text-gray-700">Đang tìm kiếm địa chỉ...</span>
+                      <span className="text-[10px] text-gray-400">Vui lòng chờ trong giây lát</span>
                     </div>
-                  )}
-                  {suggestions.map((item, idx) => (
-                    <div
-                      key={idx}
-                      onMouseDown={() => handleSelectLocation(item)}
-                      className="p-2.5 text-xs text-gray-800 hover:bg-rose-50 hover:text-rose-800 cursor-pointer transition flex items-start gap-2"
-                    >
-                      <Target className="w-3.5 h-3.5 text-rose-500 mt-0.5 flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-gray-900 leading-snug">
-                          {item.label}
-                        </div>
-                        <div className="text-[10px] text-gray-400 mt-0.5 font-mono">
-                          {item.lat.toFixed(4)}, {item.lng.toFixed(4)}
+                  ) : suggestions.length === 0 ? (
+                    <div className="p-4 text-xs text-gray-500 text-center flex flex-col items-center justify-center gap-1">
+                      <span className="font-semibold text-gray-700">Không tìm thấy địa chỉ</span>
+                      <span className="text-[11px] text-gray-400">Thử nhập tên đường hoặc địa danh phổ biến</span>
+                    </div>
+                  ) : (
+                    suggestions.map((item, idx) => (
+                      <div
+                        key={idx}
+                        onMouseDown={() => handleSelectLocation(item)}
+                        className="p-2.5 text-xs text-gray-800 hover:bg-rose-50 hover:text-rose-800 cursor-pointer transition flex items-start gap-2 active:bg-rose-100"
+                      >
+                        <Target className="w-3.5 h-3.5 text-rose-500 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-gray-900 leading-snug">
+                            {item.label}
+                          </div>
+                          <div className="text-[10px] text-gray-400 mt-0.5 font-mono">
+                            {item.lat.toFixed(4)}, {item.lng.toFixed(4)}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               )}
             </div>
@@ -574,6 +618,27 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
             )}
           </button>
 
+          {/* Route calculation error notification */}
+          {errorMsg && (
+            <div className="p-3 bg-red-50 border border-red-200/90 rounded-xl text-xs flex items-start gap-2.5 text-red-900 animate-in fade-in">
+              <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <div className="font-bold text-red-900 mb-0.5 leading-snug">
+                  Không thể tính lộ trình
+                </div>
+                <p className="text-[11px] text-red-700 leading-normal">{errorMsg}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setErrorMsg(null)}
+                className="p-1 text-red-600 hover:text-red-800 hover:bg-red-100/60 rounded-lg transition cursor-pointer"
+                title="Đóng thông báo"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
           {/* Route Results Comparison Section */}
           {routeData && (
             <div className="space-y-2.5 pt-2 border-t border-gray-100">
@@ -581,7 +646,7 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
               {routeData.safe_route.isFlooded ? (
                 <div className="p-3 bg-red-50 border border-red-200/90 rounded-xl text-xs space-y-1">
                   <div className="flex items-center gap-1.5 font-bold text-red-900">
-                    <span>🚨</span>
+                    <AlertOctagon className="w-4 h-4 text-red-600 flex-shrink-0" />
                     <span>
                       Mọi ngả đường đều ngập sâu {routeData.safe_route.maxFloodDepthCm} cm ({routeData.safe_route.floodedDistanceMeters} m)
                     </span>
@@ -593,7 +658,7 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
               ) : routeData.fastest_route.isFlooded ? (
                 <div className="p-3 bg-emerald-50 border border-emerald-200/90 rounded-xl text-xs space-y-1">
                   <div className="flex items-center gap-1.5 font-bold text-emerald-900">
-                    <span>🛡️</span>
+                    <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
                     <span>
                       Đã tự động né ngập thành công
                     </span>

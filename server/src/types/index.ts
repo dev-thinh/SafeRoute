@@ -53,7 +53,36 @@ export interface UserReport {
    description?: string;
    imageUrl?: string;
    reportedAt: Date;
+   lastVerifiedAt?: Date;
    upvotes: number;
    downvotes: number;
-   status: 'active' | 'resolved';
+   status: 'pending' | 'approved' | 'rejected' | 'resolved' | 'active';
+   aiConfidence?: number;
+   aiReasoning?: string;
+   clusterId?: string;
+   isAutoApproved?: boolean;
+   reviewedBy?: 'ai' | 'admin';
+   reviewedAt?: Date;
+}
+
+export interface ReportCluster {
+   clusterId: string;
+   streetName?: string;
+   district?: string;
+   coordinate: Coordinate;
+   totalReports: number;
+   depthLevel: DepthLevel;
+   avgDepthCm: number;
+   latestReportedAt: Date;
+   aiConfidence: number;
+   aiReasoning: string;
+   canAutoApprove: boolean;
+   status: 'pending' | 'approved' | 'rejected';
+   reports: UserReport[];
+}
+
+export interface AdminSettings {
+   isAutoPilotEnabled: boolean;
+   autoApproveThreshold: number;
+   minClusterCountForAutoApprove: number;
 }
