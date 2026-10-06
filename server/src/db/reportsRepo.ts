@@ -77,12 +77,12 @@ export function checkClientSpamLimits(
 }
 
 /**
- * Clusters reports spatially where any two reports within maxDistanceMeters (150m)
+ * Clusters reports spatially where any two reports within maxDistanceMeters (550m)
  * are merged into a single report cluster.
  */
 export function clusterReportsSpatially(
   reports: UserReport[],
-  maxDistanceMeters: number = 150
+  maxDistanceMeters: number = 550
 ): UserReport[][] {
   const clusters: UserReport[][] = [];
 
@@ -185,7 +185,7 @@ export async function saveReport(report: UserReport): Promise<UserReport> {
     report.lastVerifiedAt = now;
   }
 
-  // 1. Find existing cluster within 350m and 45 minutes
+  // 1. Find existing cluster within 550m and 45 minutes
   const recentReports = await getAllRecentReports();
   const clusterReports: UserReport[] = [];
   let assignedClusterId = report.clusterId;
@@ -199,7 +199,7 @@ export async function saveReport(report: UserReport): Promise<UserReport> {
         r.coordinate.lat,
         r.coordinate.lng
       );
-      if (dist <= 350) {
+      if (dist <= 550) {
         clusterReports.push(r);
         if (!assignedClusterId && r.clusterId) {
           assignedClusterId = r.clusterId;
@@ -541,8 +541,8 @@ export async function getAdminReportClusters(): Promise<ReportCluster[]> {
     reports = reports.filter((r) => r.status !== 'rejected' && r.status !== 'resolved');
   }
 
-  // 150m Spatial Clustering: all reports within 150m are grouped into ONE cluster
-  const spatialGroups = clusterReportsSpatially(reports, 150);
+  // 550m Spatial Clustering: all reports within 550m are grouped into ONE cluster
+  const spatialGroups = clusterReportsSpatially(reports, 550);
 
   const clusters: ReportCluster[] = [];
   for (const clusterReports of spatialGroups) {

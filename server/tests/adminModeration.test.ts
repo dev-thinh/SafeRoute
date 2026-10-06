@@ -252,6 +252,52 @@ describe('Role-Based Flood Reporting & Admin Moderation', () => {
     expect(mergedCluster.totalReports).toBeGreaterThanOrEqual(2);
   });
 
+  it('Spatial Merging: 3 reports at user coordinates (10.7605, 106.6806), (10.7592, 106.6849), (10.7626, 106.6823) must merge into 1 cluster', async () => {
+    const r1 = await request(app)
+      .post('/api/reports')
+      .set('x-client-token', 'user-p1-test')
+      .send({
+        coordinate: { lat: 10.7605, lng: 106.6806 },
+        depth_level: 'knee',
+        description: 'Đoạn này ngập sâu qua đầu gối',
+      });
+    expect(r1.status).toBe(201);
+
+    const r2 = await request(app)
+      .post('/api/reports')
+      .set('x-client-token', 'user-p2-test')
+      .send({
+        coordinate: { lat: 10.7592, lng: 106.6849 },
+        depth_level: 'wheel',
+        description: 'Đoạn gần đó nước ngập nửa bánh xe',
+      });
+    expect(r2.status).toBe(201);
+
+    const r3 = await request(app)
+      .post('/api/reports')
+      .set('x-client-token', 'user-p3-test')
+      .send({
+        coordinate: { lat: 10.7626, lng: 106.6823 },
+        depth_level: 'knee',
+        description: 'Nước dâng cao xe máy không qua được',
+      });
+    expect(r3.status).toBe(201);
+
+    const adminRes = await request(app).get('/api/admin/reports');
+    expect(adminRes.status).toBe(200);
+
+    // Find the cluster containing r1
+    const mergedCluster = adminRes.body.clusters.find((c: any) =>
+      c.reports.some((rep: any) => rep.id === r1.body.report.id)
+    );
+    expect(mergedCluster).toBeDefined();
+
+    // Verify all 3 reports are merged into this single cluster
+    expect(mergedCluster.reports.some((rep: any) => rep.id === r2.body.report.id)).toBe(true);
+    expect(mergedCluster.reports.some((rep: any) => rep.id === r3.body.report.id)).toBe(true);
+    expect(mergedCluster.totalReports).toBeGreaterThanOrEqual(3);
+  });
+
   it('Admin Complete Rejection: Rejecting the last cluster must remove it completely from pending', async () => {
     // Submit 1 report at isolated location
     const isolatedReport = await request(app)

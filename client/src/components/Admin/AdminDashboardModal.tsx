@@ -11,7 +11,6 @@ import {
   Trash2,
   AlertTriangle,
   RotateCcw,
-  Zap,
 } from 'lucide-react';
 import { ReportCluster, AdminSettings } from '../../types';
 import {
@@ -198,14 +197,10 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
           </div>
 
           {/* Stat 3: Auto-Pilot Switch Card */}
-          <div className="p-3 rounded-xl bg-gray-50 border border-gray-200/80 flex items-center justify-between gap-2">
+          <div className="p-3 rounded-xl bg-gray-50 border border-gray-200/80 flex items-center justify-between gap-3">
             <div>
-              <span className="text-[10px] font-bold text-gray-700 uppercase flex items-center gap-1">
-                <Zap className="w-3 h-3 text-amber-500 fill-current" />
-                <span>Auto-Pilot AI</span>
-              </span>
-              <span className="text-[10px] text-gray-500 block mt-0.5">
-                {settings.isAutoPilotEnabled ? 'Tự duyệt ≥85% & ≥5 tin' : 'Tắt tự duyệt'}
+              <span className="text-xs font-bold text-gray-700 uppercase tracking-wide">
+                Auto-Pilot AI
               </span>
             </div>
 
