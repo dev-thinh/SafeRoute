@@ -114,6 +114,6 @@
 **Files:**
 - Modify: `README.md`
 
-- [ ] **Step 1: Cập nhật `README.md` tài liệu hóa kiến trúc phân quyền và AI Moderation 4 trụ cột**
-- [ ] **Step 2: Chạy kiểm thử toàn bộ `server` và `client`**
-- [ ] **Step 3: Commit Task 4 trên nhánh `dev`**
+- [x] **Step 1: Cập nhật `README.md` tài liệu hóa kiến trúc phân quyền và AI Moderation 4 trụ cột**
+- [x] **Step 2: Chạy kiểm thử toàn bộ `server` và `client`**
+- [x] **Step 3: Commit Task 4 trên nhánh `dev`**

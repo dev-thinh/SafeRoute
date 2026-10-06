@@ -25,13 +25,19 @@ Dự án định tuyến tránh các vùng ngập do triều cường và mưa l
    * Tự động định tuyến sang Flash khi gặp lỗi Quota (429) hoặc mạng; định kỳ 5 phút tự động kích hoạt lượt probe thăm dò để **hồi phục về Gemini Pro** ngay khi quota hoặc kết nối khả dụng trở lại.
    * Geocoding chuẩn xác: Tích hợp từ điển các tuyến đường xung yếu tại TP.HCM, loại bỏ hoàn toàn các điểm ngập ảo do lỗi tọa độ fallback.
 
-5. **Cộng đồng tương tác thời gian thực & Cơ chế Đồng thuận Động (Crowdsourced Dynamic Consensus Voting)**:
-   * Báo điểm ngập trực quan với 4 mức độ: Mắt cá chân (<20cm), Nửa bánh xe (20-40cm), Đầu gối (40-60cm), Ngập sâu (>60cm).
-   * Tương tác trực tiếp trên Marker bản đồ: Nút *"Đang ngập"* (xác nhận cảnh báo) và *"Nước đã rút"* (báo hết ngập).
-   * **Thuật toán đồng thuận đa số linh hoạt (Consensus Algorithm)**: Điểm ngập chỉ tự động giải tỏa khi tổng số người đánh giá đạt tối thiểu $N \ge 3$ VÀ tỷ lệ báo nước rút đạt đa số áp đảo $\ge 60\%$ ($D / N \ge 0.60$).
-   * **Cơ chế Tự động Hết hạn (TTL 3h) & Gia hạn Trượt (Sliding Window Auto-Extend)**: Điểm báo ngập tự động ẩn sau 3 giờ. Mỗi lượt xác nhận *"Đang ngập"* sẽ reset lại thời gian sống 3 giờ (trần tối đa 12 giờ). Popup điểm ngập hiển thị bộ đếm thời gian hiệu lực còn lại.
+5. **Phân quyền Báo ngập, Thẩm định AI 4 Trụ cột & Bảng Điều phối Admin (Role-Based Moderation & AI Credibility Engine)**:
+   * **Phân quyền rành mạch (User vs Admin)**: Người dùng gửi báo cáo ngập kèm vị trí, mức ngập và mô tả; hệ thống phản hồi xác nhận tiếp nhận văn minh. Bản đồ công cộng chỉ hiển thị điểm ngập **đã được kiểm duyệt (`status = approved`)**, cách ly 100% tin ảo và troll phá hoại.
+   * **Ma trận Thẩm định Thật/Giả 4 Trụ cột AI (The 4-Pillar Verification Matrix)**:
+     1. *Khí tượng & Thủy văn thực tế (35%)*: Đối chiếu radar mưa $\ge 15$mm hoặc triều dâng $\ge 1.45$m.
+     2. *Gom cụm không gian & Đồng thuận cộng đồng (35%)*: Ngưỡng $\ge 5$ người độc lập báo cùng vị trí ($\le 350$m, 45 phút) mới đạt điểm tối đa gom cụm.
+     3. *Phân tích ngữ nghĩa NLP bằng Gemini (20%)*: Nhận diện chi tiết hiện trường thực tế, loại trừ 100% ngôn từ spam/đùa cợt.
+     4. *Độ nhạy cảm địa hình (10%)*: Đối chiếu với 68 hành lang trũng thấp đã được hiệu chuẩn.
+   * **Trung tâm Điều hành Admin (Admin Dashboard Panel)**:
+     - Thống kê thời gian thực theo cụm điểm ngập nóng (Hotspot Clusters).
+     - Xem tóm tắt điểm tin cậy AI, số lượng tin gửi về và bấm xem chi tiết từng tin báo thô của người dân.
+     - 1-click Phê duyệt (Approve), Bác bỏ (Reject) hoặc Gỡ bỏ khỏi bản đồ (Take down).
+     - Công tắc **Auto-Pilot Mode**: Cho phép AI tự động duyệt khi tin cậy $\ge 85\%$ và có $\ge 5$ người báo.
    * **Lớp Bản đồ Tinh gọn (Active Flood Filtering)**: Chỉ hiển thị các vùng thực sự có rủi ro ngập úng ($\ge 10\text{cm}$), ẩn 100% các vòng tròn xám khô ráo giúp giao diện thông thoáng, chuẩn xác.
-   * Thanh trực quan hóa tỷ lệ Consensus Bar hai màu và thống kê phần trăm minh bạch ngay trên Popup điểm ngập (`{U} đang ngập ({upPercent}%)` và `{D}/{N} báo đã rút ({downPercent}%)`).
    * Đồng bộ tức thì giữa bộ nhớ RAM và PostgreSQL thông qua chuẩn định danh UUID v4 nhất quán.
 
 6. **Thiết kế UI/UX hiện đại (Tuân thủ 40 Quy chuẩn AGENTS.md)**:
