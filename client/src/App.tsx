@@ -23,6 +23,7 @@ export const App: React.FC = () => {
 
   // Zoom handlers ref from MapView
   const zoomHandlersRef = useRef<{ zoomIn: () => void; zoomOut: () => void } | null>(null);
+  const skipNextReverseGeocodeRef = useRef(false);
 
   // Modal & Pinning Mode State
   const [isReportOpen, setIsReportOpen] = useState(false);
@@ -69,6 +70,11 @@ export const App: React.FC = () => {
   // Debounced reverse geocode when map center moves during pinning mode
   useEffect(() => {
     if (!isPinningReport) return;
+    if (skipNextReverseGeocodeRef.current) {
+      skipNextReverseGeocodeRef.current = false;
+      setIsLoadingAddress(false);
+      return;
+    }
     setIsLoadingAddress(true);
     const timer = setTimeout(async () => {
       try {
@@ -84,55 +90,88 @@ export const App: React.FC = () => {
     return () => clearTimeout(timer);
   }, [centerCoord.lat, centerCoord.lng, isPinningReport]);
 
-  const handleMapClick = async (lat: number, lng: number) => {
+  const handleMapClick = (lat: number, lng: number) => {
     if (!pickingField) return;
+    const targetField = pickingField;
 
-    try {
-      const rev = await reverseGeocode(lat, lng);
-      if (pickingField === 'origin') {
-        setOrigin({
-          label: rev.label,
-          lat,
-          lng,
-        });
-      } else if (pickingField === 'dest') {
-        setDestination({
-          label: rev.label,
-          lat,
-          lng,
-        });
-      }
-    } catch (err) {
-      console.error('Failed to reverse geocode clicked point', err);
-    } finally {
-      setPickingField(null);
-    }
-  };
+    // 1. Immediately exit picking mode so banner closes in 0ms
+    setPickingField(null);
 
-  const handleDragOrigin = async (lat: number, lng: number) => {
-    try {
-      const rev = await reverseGeocode(lat, lng);
+    // 2. Optimistically update marker coordinate and temporary label
+    if (targetField === 'origin') {
       setOrigin({
-        label: rev.label,
+        label: 'Đang xác định địa chỉ...',
         lat,
         lng,
       });
-    } catch (err) {
-      setOrigin((prev) => ({ ...prev, lat, lng }));
+    } else if (targetField === 'dest') {
+      setDestination({
+        label: 'Đang xác định địa chỉ...',
+        lat,
+        lng,
+      });
     }
+
+    // 3. Resolve human-readable address in background without blocking UI
+    reverseGeocode(lat, lng)
+      .then((rev) => {
+        if (targetField === 'origin') {
+          setOrigin((prev) =>
+            prev.lat === lat && prev.lng === lng ? { ...prev, label: rev.label } : prev
+          );
+        } else if (targetField === 'dest') {
+          setDestination((prev) =>
+            prev.lat === lat && prev.lng === lng ? { ...prev, label: rev.label } : prev
+          );
+        }
+      })
+      .catch((err) => {
+        console.warn('Failed to reverse geocode clicked point', err);
+        const fallback = `Tọa độ: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        if (targetField === 'origin') {
+          setOrigin((prev) =>
+            prev.lat === lat && prev.lng === lng ? { ...prev, label: fallback } : prev
+          );
+        } else if (targetField === 'dest') {
+          setDestination((prev) =>
+            prev.lat === lat && prev.lng === lng ? { ...prev, label: fallback } : prev
+          );
+        }
+      });
   };
 
-  const handleDragDestination = async (lat: number, lng: number) => {
-    try {
-      const rev = await reverseGeocode(lat, lng);
-      setDestination({
-        label: rev.label,
-        lat,
-        lng,
+  const handleDragOrigin = (lat: number, lng: number) => {
+    setOrigin((prev) => ({ ...prev, lat, lng, label: 'Đang xác định địa chỉ...' }));
+    reverseGeocode(lat, lng)
+      .then((rev) => {
+        setOrigin((prev) =>
+          prev.lat === lat && prev.lng === lng ? { ...prev, label: rev.label } : prev
+        );
+      })
+      .catch(() => {
+        setOrigin((prev) =>
+          prev.lat === lat && prev.lng === lng
+            ? { ...prev, label: `Tọa độ: ${lat.toFixed(5)}, ${lng.toFixed(5)}` }
+            : prev
+        );
       });
-    } catch (err) {
-      setDestination((prev) => ({ ...prev, lat, lng }));
-    }
+  };
+
+  const handleDragDestination = (lat: number, lng: number) => {
+    setDestination((prev) => ({ ...prev, lat, lng, label: 'Đang xác định địa chỉ...' }));
+    reverseGeocode(lat, lng)
+      .then((rev) => {
+        setDestination((prev) =>
+          prev.lat === lat && prev.lng === lng ? { ...prev, label: rev.label } : prev
+        );
+      })
+      .catch(() => {
+        setDestination((prev) =>
+          prev.lat === lat && prev.lng === lng
+            ? { ...prev, label: `Tọa độ: ${lat.toFixed(5)}, ${lng.toFixed(5)}` }
+            : prev
+        );
+      });
   };
 
   // Start pinning mode for report flood
@@ -181,9 +220,11 @@ export const App: React.FC = () => {
 
   // User selects an autocomplete suggestion in the report pin overlay
   const handleSelectReportLocation = (lat: number, lng: number, label: string) => {
+    skipNextReverseGeocodeRef.current = true;
     setMapCenter([lat, lng]);
     setCenterCoord({ lat, lng });
     setCenterAddress(label);
+    setIsLoadingAddress(false);
   };
 
   return (

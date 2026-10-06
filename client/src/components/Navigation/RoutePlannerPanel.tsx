@@ -117,24 +117,31 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
     setGpsLoading(true);
     setGpsError(null);
     navigator.geolocation.getCurrentPosition(
-      async (pos) => {
+      (pos) => {
         const { latitude, longitude } = pos.coords;
-        try {
-          const rev = await reverseGeocode(latitude, longitude);
-          onChangeOrigin({
-            label: rev.label || 'Vị trí của tôi',
-            lat: latitude,
-            lng: longitude,
+        setGpsLoading(false);
+        // Optimistically update origin immediately so marker and panel update in 0ms
+        onChangeOrigin({
+          label: 'Đang xác định địa chỉ GPS...',
+          lat: latitude,
+          lng: longitude,
+        });
+        // Resolve street name asynchronously in background
+        reverseGeocode(latitude, longitude)
+          .then((rev) => {
+            onChangeOrigin({
+              label: rev.label || 'Vị trí của tôi',
+              lat: latitude,
+              lng: longitude,
+            });
+          })
+          .catch(() => {
+            onChangeOrigin({
+              label: `Tọa độ: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`,
+              lat: latitude,
+              lng: longitude,
+            });
           });
-        } catch {
-          onChangeOrigin({
-            label: `Tọa độ: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`,
-            lat: latitude,
-            lng: longitude,
-          });
-        } finally {
-          setGpsLoading(false);
-        }
       },
       (err) => {
         console.warn('GPS location error:', err);
@@ -406,35 +413,38 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                       <Search className="w-3 h-3 text-emerald-600" />
                       Gợi ý địa chỉ
                     </span>
-                    {searching && (
-                      <span className="text-emerald-600 lowercase font-normal flex items-center gap-1">
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                        đang tìm...
-                      </span>
-                    )}
                   </div>
-                  {suggestions.length === 0 && !searching && (
-                    <div className="p-3 text-xs text-gray-500 text-center">
-                      Không tìm thấy địa chỉ phù hợp.
+
+                  {searching ? (
+                    <div className="py-7 flex flex-col items-center justify-center gap-2 text-gray-500">
+                      <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
+                      <span className="text-xs font-semibold text-gray-700">Đang tìm kiếm địa chỉ...</span>
+                      <span className="text-[10px] text-gray-400">Vui lòng chờ trong giây lát</span>
                     </div>
-                  )}
-                  {suggestions.map((item, idx) => (
-                    <div
-                      key={idx}
-                      onMouseDown={() => handleSelectLocation(item)}
-                      className="p-2.5 text-xs text-gray-800 hover:bg-emerald-50 hover:text-emerald-800 cursor-pointer transition flex items-start gap-2"
-                    >
-                      <MapPin className="w-3.5 h-3.5 text-emerald-500 mt-0.5 flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-gray-900 leading-snug">
-                          {item.label}
-                        </div>
-                        <div className="text-[10px] text-gray-400 mt-0.5 font-mono">
-                          {item.lat.toFixed(4)}, {item.lng.toFixed(4)}
+                  ) : suggestions.length === 0 ? (
+                    <div className="p-4 text-xs text-gray-500 text-center flex flex-col items-center justify-center gap-1">
+                      <span className="font-semibold text-gray-700">Không tìm thấy địa chỉ</span>
+                      <span className="text-[11px] text-gray-400">Thử nhập tên đường hoặc địa danh phổ biến</span>
+                    </div>
+                  ) : (
+                    suggestions.map((item, idx) => (
+                      <div
+                        key={idx}
+                        onMouseDown={() => handleSelectLocation(item)}
+                        className="p-2.5 text-xs text-gray-800 hover:bg-emerald-50 hover:text-emerald-800 cursor-pointer transition flex items-start gap-2 active:bg-emerald-100"
+                      >
+                        <MapPin className="w-3.5 h-3.5 text-emerald-500 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-gray-900 leading-snug">
+                            {item.label}
+                          </div>
+                          <div className="text-[10px] text-gray-400 mt-0.5 font-mono">
+                            {item.lat.toFixed(4)}, {item.lng.toFixed(4)}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               )}
 
@@ -538,35 +548,38 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                       <Search className="w-3 h-3 text-rose-600" />
                       Gợi ý địa chỉ
                     </span>
-                    {searching && (
-                      <span className="text-rose-600 lowercase font-normal flex items-center gap-1">
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                        đang tìm...
-                      </span>
-                    )}
                   </div>
-                  {suggestions.length === 0 && !searching && (
-                    <div className="p-3 text-xs text-gray-500 text-center">
-                      Không tìm thấy địa chỉ phù hợp.
+
+                  {searching ? (
+                    <div className="py-7 flex flex-col items-center justify-center gap-2 text-gray-500">
+                      <Loader2 className="w-6 h-6 animate-spin text-rose-600" />
+                      <span className="text-xs font-semibold text-gray-700">Đang tìm kiếm địa chỉ...</span>
+                      <span className="text-[10px] text-gray-400">Vui lòng chờ trong giây lát</span>
                     </div>
-                  )}
-                  {suggestions.map((item, idx) => (
-                    <div
-                      key={idx}
-                      onMouseDown={() => handleSelectLocation(item)}
-                      className="p-2.5 text-xs text-gray-800 hover:bg-rose-50 hover:text-rose-800 cursor-pointer transition flex items-start gap-2"
-                    >
-                      <Target className="w-3.5 h-3.5 text-rose-500 mt-0.5 flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-gray-900 leading-snug">
-                          {item.label}
-                        </div>
-                        <div className="text-[10px] text-gray-400 mt-0.5 font-mono">
-                          {item.lat.toFixed(4)}, {item.lng.toFixed(4)}
+                  ) : suggestions.length === 0 ? (
+                    <div className="p-4 text-xs text-gray-500 text-center flex flex-col items-center justify-center gap-1">
+                      <span className="font-semibold text-gray-700">Không tìm thấy địa chỉ</span>
+                      <span className="text-[11px] text-gray-400">Thử nhập tên đường hoặc địa danh phổ biến</span>
+                    </div>
+                  ) : (
+                    suggestions.map((item, idx) => (
+                      <div
+                        key={idx}
+                        onMouseDown={() => handleSelectLocation(item)}
+                        className="p-2.5 text-xs text-gray-800 hover:bg-rose-50 hover:text-rose-800 cursor-pointer transition flex items-start gap-2 active:bg-rose-100"
+                      >
+                        <Target className="w-3.5 h-3.5 text-rose-500 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-gray-900 leading-snug">
+                            {item.label}
+                          </div>
+                          <div className="text-[10px] text-gray-400 mt-0.5 font-mono">
+                            {item.lat.toFixed(4)}, {item.lng.toFixed(4)}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               )}
             </div>
