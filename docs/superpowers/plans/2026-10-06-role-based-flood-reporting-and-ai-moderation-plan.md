@@ -36,30 +36,30 @@
 - Modify: `server/src/app.ts`
 - Create: `server/tests/adminModeration.test.ts`
 
-- [ ] **Step 1: Cập nhật kiểu `UserReport` và kiểu Admin trong `server/src/types/index.ts`**
+- [x] **Step 1: Cập nhật kiểu `UserReport` và kiểu Admin trong `server/src/types/index.ts`**
   - Thêm `status: 'pending' | 'approved' | 'rejected' | 'resolved'`, `aiConfidence`, `aiReasoning`, `clusterId`, `isAutoApproved`, `reviewedBy`, `reviewedAt`.
   - Định nghĩa kiểu `ReportCluster` và `AdminSettings`.
-- [ ] **Step 2: Thêm schema migration cho bảng `user_reports` trong `server/src/db/initDb.ts`**
-- [ ] **Step 3: Xây dựng `server/src/services/aiModerationService.ts`**
+- [x] **Step 2: Thêm schema migration cho bảng `user_reports` trong `server/src/db/initDb.ts`**
+- [x] **Step 3: Xây dựng `server/src/services/aiModerationService.ts`**
   - Trụ cột 1 (35%): Khí tượng mưa radar & triều cường sông Sài Gòn.
   - Trụ cột 2 (35%): Gom cụm không gian $\le 350$m, $\le 45$p. Ngưỡng $\ge 5$ người đạt 100% điểm, 3-4 người = 60%, 1-2 người = 20%.
   - Trụ cột 3 (20%): Gemini NLP phân tích chi tiết hiện trường vs spam/troll.
   - Trụ cột 4 (10%): Khoảng cách tới 68 hành lang trũng thấp.
   - Quy tắc auto-approve: `score >= 0.85 && clusterCount >= 5 && isAutoPilotEnabled`.
-- [ ] **Step 4: Cập nhật `server/src/db/reportsRepo.ts`**
+- [x] **Step 4: Cập nhật `server/src/db/reportsRepo.ts`**
   - `saveReport`: Gán `clusterId`, lưu thông tin AI đánh giá.
   - `getActiveReports`: CHỈ trả về `status === 'approved'`.
   - Bổ sung các hàm: `getAdminReportClusters()`, `approveReport()`, `rejectReport()`, `approveCluster()`, `rejectCluster()`, `takeDownReport()`, `getAdminSettings()`, `updateAdminSettings()`.
-- [ ] **Step 5: Cập nhật `server/src/routes/reportsRouter.ts` và tạo `server/src/routes/adminRouter.ts`**
+- [x] **Step 5: Cập nhật `server/src/routes/reportsRouter.ts` và tạo `server/src/routes/adminRouter.ts`**
   - `POST /api/reports`: Chạy AI đánh giá, trả về thông báo đã tiếp nhận.
   - Router admin với đầy đủ endpoints quản trị và bật/tắt Auto-Pilot.
-- [ ] **Step 6: Đăng ký `adminRouter` trong `server/src/app.ts`**
-- [ ] **Step 7: Viết kiểm thử tự động trong `server/tests/adminModeration.test.ts`**
+- [x] **Step 6: Đăng ký `adminRouter` trong `server/src/app.ts`**
+- [x] **Step 7: Viết kiểm thử tự động trong `server/tests/adminModeration.test.ts`**
   - Test tin mới ở trạng thái `pending` không lộ ra `getActiveReports()`.
   - Test gom cụm $\ge 5$ tin báo kèm mưa đạt $\ge 85\%$ tự động duyệt.
   - Test admin phê duyệt, từ chối và gỡ bỏ điểm ngập.
-- [ ] **Step 8: Chạy kiểm thử server `npm test`**
-- [ ] **Step 9: Commit Task 1 trên nhánh `dev`**
+- [x] **Step 8: Chạy kiểm thử server `npm test`**
+- [x] **Step 9: Commit Task 1 trên nhánh `dev`**
 
 ---
 

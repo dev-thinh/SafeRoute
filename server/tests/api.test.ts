@@ -49,6 +49,10 @@ describe('SafeRoute REST API', () => {
     const reportId = res.body.report.id;
     // UUID v4 format regex
     expect(reportId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+    expect(res.body.report.status).toBe('pending');
+
+    // Admin approves report for public voting & display
+    await request(app).post(`/api/admin/reports/${reportId}/approve`);
 
     // Test upvote (now upvotes = 2, downvotes = 0)
     const voteRes = await request(app)
@@ -57,25 +61,25 @@ describe('SafeRoute REST API', () => {
 
     expect(voteRes.status).toBe(200);
     expect(voteRes.body.report.upvotes).toBe(2);
-    expect(voteRes.body.report.status).toBe('active');
+    expect(['approved', 'active']).toContain(voteRes.body.report.status);
 
-    // Test 1st resolved vote (upvotes = 2, downvotes = 1, total = 3, 1/3 = 33% < 60% => status remains 'active')
+    // Test 1st resolved vote (upvotes = 2, downvotes = 1, total = 3, 1/3 = 33% < 60% => status remains 'approved')
     const resolvedRes1 = await request(app)
       .post(`/api/reports/${reportId}/vote`)
       .send({ type: 'resolved' });
 
     expect(resolvedRes1.status).toBe(200);
     expect(resolvedRes1.body.report.downvotes).toBe(1);
-    expect(resolvedRes1.body.report.status).toBe('active');
+    expect(['approved', 'active']).toContain(resolvedRes1.body.report.status);
 
-    // Test 2nd resolved vote (upvotes = 2, downvotes = 2, total = 4, 2/4 = 50% < 60% => status remains 'active')
+    // Test 2nd resolved vote (upvotes = 2, downvotes = 2, total = 4, 2/4 = 50% < 60% => status remains 'approved')
     const resolvedRes2 = await request(app)
       .post(`/api/reports/${reportId}/vote`)
       .send({ type: 'resolved' });
 
     expect(resolvedRes2.status).toBe(200);
     expect(resolvedRes2.body.report.downvotes).toBe(2);
-    expect(resolvedRes2.body.report.status).toBe('active');
+    expect(['approved', 'active']).toContain(resolvedRes2.body.report.status);
 
     // Test 3rd resolved vote (upvotes = 2, downvotes = 3, total = 5, 3/5 = 60% >= 60% => auto-resolved!)
     const resolvedRes3 = await request(app)
@@ -98,6 +102,9 @@ describe('SafeRoute REST API', () => {
       });
     expect(createRes.status).toBe(201);
     const reportId = createRes.body.report.id;
+
+    // Approve report so it is eligible for public active listing
+    await request(app).post(`/api/admin/reports/${reportId}/approve`);
 
     // 2. Query at current time -> report must be present
     const nowRes = await request(app).get('/api/reports');

@@ -39,11 +39,15 @@ reportsRouter.post('/', async (req, res) => {
     reportedAt: new Date(),
     upvotes: 1,
     downvotes: 0,
-    status: 'active',
+    status: 'pending',
   };
 
   const saved = await saveReport(report);
-  return res.status(201).json({ report: saved });
+  return res.status(201).json({
+    success: true,
+    message: 'Đã tiếp nhận báo cáo của bạn. Thông tin đã được chuyển đến ban điều phối để kiểm duyệt.',
+    report: saved,
+  });
 });
 
 reportsRouter.post('/:id/vote', async (req, res) => {
