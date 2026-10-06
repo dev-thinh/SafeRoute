@@ -3,27 +3,27 @@ import { Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import { UserReport } from '../../types';
 import { voteReport } from '../../services/api';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ThumbsUp, Sun, Check } from 'lucide-react';
 
 const reportIcon = L.divIcon({
   className: 'custom-report-icon',
-  html: `<div style="background-color: #2563EB; color: white; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 14px; border: 2px solid white; box-shadow: 0 4px 12px rgba(37,99,235,0.4);">💧</div>`,
+  html: `<div style="background-color: #2563EB; color: white; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 4px 12px rgba(37,99,235,0.4);"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg></div>`,
   iconSize: [28, 28],
   iconAnchor: [14, 14],
 });
 
-const getDepthLevelLabel = (level: UserReport['depthLevel']) => {
+const getDepthLevelInfo = (level: UserReport['depthLevel']) => {
   switch (level) {
     case 'ankle':
-      return '🟢 Mắt cá chân (< 20 cm)';
+      return { label: 'Mắt cá chân (< 20 cm)', dotBg: 'bg-yellow-500' };
     case 'wheel':
-      return '🟡 Nửa bánh xe (20 - 40 cm)';
+      return { label: 'Nửa bánh xe (20 - 40 cm)', dotBg: 'bg-amber-500' };
     case 'knee':
-      return '🟠 Đầu gối / Ngập pô (40 - 60 cm)';
+      return { label: 'Đầu gối / Ngập pô (40 - 60 cm)', dotBg: 'bg-orange-500' };
     case 'deep':
-      return '🔴 Ngập sâu (> 60 cm)';
+      return { label: 'Ngập sâu (> 60 cm)', dotBg: 'bg-red-600' };
     default:
-      return 'Báo cáo ngập';
+      return { label: 'Báo cáo ngập', dotBg: 'bg-blue-600' };
   }
 };
 
@@ -33,6 +33,8 @@ const SingleReportMarker: React.FC<{
 }> = ({ report, onVoteReport }) => {
   const [hasVoted, setHasVoted] = useState<'upvote' | 'resolved' | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const depthInfo = getDepthLevelInfo(report.depthLevel);
 
   const handleVote = async (type: 'upvote' | 'resolved') => {
     if (hasVoted || isSubmitting) return;
@@ -66,8 +68,9 @@ const SingleReportMarker: React.FC<{
             </span>
           </div>
 
-          <div className="mt-1.5 font-bold text-gray-900 text-xs leading-snug">
-            {getDepthLevelLabel(report.depthLevel)}
+          <div className="mt-1.5 font-bold text-gray-900 text-xs leading-snug flex items-center gap-1.5">
+            <span className={`w-2 h-2 rounded-full ${depthInfo.dotBg} inline-block flex-shrink-0`} />
+            <span>{depthInfo.label}</span>
           </div>
           <div className="text-[11px] text-gray-600 font-mono mt-0.5 font-medium">
             Độ sâu ghi nhận: ~{report.depthCm} cm
@@ -79,15 +82,22 @@ const SingleReportMarker: React.FC<{
           )}
 
           <div className="text-gray-500 text-[10px] mt-2 flex items-center justify-between font-medium">
-            <span>👍 {report.upvotes + (hasVoted === 'upvote' ? 1 : 0)} xác nhận</span>
-            <span>☀️ {report.downvotes + (hasVoted === 'resolved' ? 1 : 0)}/3 báo đã rút</span>
+            <span className="flex items-center gap-1">
+              <ThumbsUp className="w-3 h-3 text-blue-600 flex-shrink-0" />
+              <span>{report.upvotes + (hasVoted === 'upvote' ? 1 : 0)} xác nhận</span>
+            </span>
+            <span className="flex items-center gap-1">
+              <Sun className="w-3 h-3 text-amber-500 flex-shrink-0" />
+              <span>{report.downvotes + (hasVoted === 'resolved' ? 1 : 0)}/3 báo đã rút</span>
+            </span>
           </div>
 
           {/* Community Vote CTA buttons */}
           <div className="mt-2.5 pt-2 border-t border-gray-100 flex items-center gap-1.5">
             {hasVoted ? (
-              <div className="w-full text-center py-1.5 px-2 bg-emerald-50 text-emerald-800 font-bold text-[10px] rounded-lg border border-emerald-200">
-                ✓ Đã ghi nhận đóng góp của bạn!
+              <div className="w-full text-center py-1.5 px-2 bg-emerald-50 text-emerald-800 font-bold text-[10px] rounded-lg border border-emerald-200 flex items-center justify-center gap-1">
+                <Check className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Đã ghi nhận đóng góp của bạn!</span>
               </div>
             ) : (
               <>
@@ -95,13 +105,13 @@ const SingleReportMarker: React.FC<{
                   type="button"
                   disabled={isSubmitting}
                   onClick={() => handleVote('upvote')}
-                  className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-[10px] rounded-lg border border-blue-200 active:scale-95 transition cursor-pointer disabled:opacity-50"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-[10px] rounded-lg border border-blue-200 active:scale-95 transition cursor-pointer disabled:opacity-50"
                   title="Xác nhận điểm ngập này vẫn còn"
                 >
                   {isSubmitting ? (
                     <Loader2 className="w-3 h-3 animate-spin text-blue-600" />
                   ) : (
-                    <span>👍</span>
+                    <ThumbsUp className="w-3 h-3 text-blue-600" />
                   )}
                   <span>Đang ngập</span>
                 </button>
@@ -109,13 +119,13 @@ const SingleReportMarker: React.FC<{
                   type="button"
                   disabled={isSubmitting}
                   onClick={() => handleVote('resolved')}
-                  className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-[10px] rounded-lg border border-emerald-200 active:scale-95 transition cursor-pointer disabled:opacity-50"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-[10px] rounded-lg border border-emerald-200 active:scale-95 transition cursor-pointer disabled:opacity-50"
                   title="Báo cáo nước đã rút tại đây (3 người báo sẽ ẩn điểm ngập)"
                 >
                   {isSubmitting ? (
                     <Loader2 className="w-3 h-3 animate-spin text-emerald-600" />
                   ) : (
-                    <span>☀️</span>
+                    <Sun className="w-3 h-3 text-amber-500" />
                   )}
                   <span>Nước đã rút</span>
                 </button>

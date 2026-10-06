@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { Route } from 'lucide-react';
 import { NavigateResponse } from '../../types';
 
 interface MapViewProps {
@@ -147,7 +148,7 @@ const FitRouteButton: React.FC<{
         title="Thu nhỏ để xem toàn cảnh lộ trình"
         className="bg-white/95 hover:bg-white text-gray-800 font-bold px-3 py-2 rounded-xl shadow-lg border border-gray-200 text-xs flex items-center gap-1.5 transition backdrop-blur-sm cursor-pointer hover:shadow-xl active:scale-95"
       >
-        <span>🗺️</span>
+        <Route className="w-4 h-4 text-blue-600 flex-shrink-0" />
         <span>Toàn bộ lộ trình</span>
       </button>
     </div>

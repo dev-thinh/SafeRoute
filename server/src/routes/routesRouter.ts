@@ -96,10 +96,10 @@ routesRouter.post('/navigate', async (req, res) => {
 
     // Compute risk summary metrics
     const criticalEvents = combinedEvents.filter(
-      (e) => e.estimatedDepthCm >= (vehicle === 'car' ? 35 : 20) || e.title.includes('🚨')
+      (e) => e.estimatedDepthCm >= (vehicle === 'car' ? 35 : 20) || e.title.includes('Ngập sâu') || e.title.includes('🚨')
     );
     const potentialEvents = combinedEvents.filter(
-      (e) => !criticalEvents.includes(e) && (e.estimatedDepthCm >= 10 || e.title.includes('⚠️'))
+      (e) => !criticalEvents.includes(e) && (e.estimatedDepthCm >= 10 || e.title.includes('Có khả năng ngập') || e.title.includes('⚠️'))
     );
 
     // 1. Prioritize native pgRouting engine on local PostGIS (100% natural Dijkstra flood avoidance)

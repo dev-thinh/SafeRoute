@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Newspaper, RefreshCw, ExternalLink, MapPin, AlertCircle, Clock, Loader2 } from 'lucide-react';
+import { Newspaper, RefreshCw, ExternalLink, MapPin, AlertCircle, Clock, Loader2, Bell } from 'lucide-react';
 import { ScrapedArticle } from '../../types';
 import { getNewsArticles, triggerCrawlNow } from '../../services/api';
 
@@ -102,7 +102,7 @@ export const NewsFeedTab: React.FC<NewsFeedTabProps> = ({ onSelectLocation, onRe
         {/* Crawl Result Notification */}
         {crawlMessage && (
           <div className="mt-2.5 p-2 bg-white/95 rounded-xl border border-indigo-100 text-[11px] text-gray-800 flex items-start gap-1.5 shadow-xs">
-            <span className="text-xs">🔔</span>
+            <Bell className="w-3.5 h-3.5 text-indigo-600 flex-shrink-0 mt-0.5" />
             <div className="leading-tight flex-1">{crawlMessage}</div>
           </div>
         )}

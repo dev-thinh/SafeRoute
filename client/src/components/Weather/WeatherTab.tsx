@@ -11,6 +11,7 @@ import {
   Waves,
   Search,
   Loader2,
+  X,
 } from 'lucide-react';
 import { WeatherDashboardData, QuadrantWeatherStatus, CorridorRiskStatus } from '../../types';
 import { getWeatherData } from '../../services/api';
@@ -76,29 +77,34 @@ export const WeatherTab: React.FC<WeatherTabProps> = ({ onSelectLocation }) => {
       return {
         bg: 'bg-gray-100 text-gray-700 border-gray-200',
         text: 'Bình thường',
+        dotBg: 'bg-gray-400',
       };
     }
     if (depthCm > 60) {
       return {
         bg: 'bg-red-50 text-red-800 border-red-200 font-bold',
-        text: `🔴 Ngập sâu ~${depthCm}cm`,
+        text: `Ngập sâu ~${depthCm}cm`,
+        dotBg: 'bg-red-600',
       };
     }
     if (depthCm >= 40) {
       return {
         bg: 'bg-orange-50 text-orange-800 border-orange-200 font-bold',
-        text: `🟠 Đầu gối ~${depthCm}cm`,
+        text: `Đầu gối ~${depthCm}cm`,
+        dotBg: 'bg-orange-500',
       };
     }
     if (depthCm >= 20) {
       return {
         bg: 'bg-amber-50 text-amber-800 border-amber-200 font-bold',
-        text: `🟡 Nửa bánh ~${depthCm}cm`,
+        text: `Nửa bánh ~${depthCm}cm`,
+        dotBg: 'bg-amber-500',
       };
     }
     return {
       bg: 'bg-yellow-50 text-yellow-800 border-yellow-200 font-semibold',
-      text: `🟢 Mắt cá ~${depthCm}cm`,
+      text: `Mắt cá ~${depthCm}cm`,
+      dotBg: 'bg-yellow-500',
     };
   };
 
@@ -336,9 +342,10 @@ export const WeatherTab: React.FC<WeatherTabProps> = ({ onSelectLocation }) => {
             <button
               type="button"
               onClick={() => setSearchStreet('')}
-              className="text-gray-400 hover:text-gray-600 text-xs px-1"
+              className="text-gray-400 hover:text-gray-600 p-0.5 active:scale-90 transition cursor-pointer"
+              title="Xóa tìm kiếm"
             >
-              ✕
+              <X className="w-3.5 h-3.5" />
             </button>
           )}
         </div>
@@ -385,9 +392,10 @@ export const WeatherTab: React.FC<WeatherTabProps> = ({ onSelectLocation }) => {
                   </div>
 
                   <span
-                    className={`flex-shrink-0 text-[10px] px-2 py-0.5 rounded-md border ${badge.bg}`}
+                    className={`flex-shrink-0 text-[10px] px-2 py-0.5 rounded-md border flex items-center gap-1.5 ${badge.bg}`}
                   >
-                    {badge.text}
+                    <span className={`w-1.5 h-1.5 rounded-full ${badge.dotBg} flex-shrink-0`} />
+                    <span>{badge.text}</span>
                   </span>
                 </div>
 

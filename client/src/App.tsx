@@ -8,7 +8,7 @@ import { RoutePlannerPanel, LocationItem } from './components/Navigation/RoutePl
 import { ReportFloodModal, SelectedReportLocation } from './components/Reporting/ReportFloodModal';
 import { ReportLocationPinOverlay } from './components/Reporting/ReportLocationPinOverlay';
 import { getActiveFloods, reverseGeocode } from './services/api';
-import { Droplet, PanelLeftOpen, MapPin, Target, AlertTriangle, X } from 'lucide-react';
+import { Droplet, PanelLeftOpen, MapPin, Target, AlertTriangle, X, Waves } from 'lucide-react';
 import { NavigateResponse, FloodEvent, UserReport } from './types';
 
 export const App: React.FC = () => {
@@ -257,7 +257,7 @@ export const App: React.FC = () => {
           aria-label="Mở bảng điều khiển SafeRoute"
         >
           <PanelLeftOpen className="w-4 h-4 text-blue-600" />
-          <span className="text-base leading-none">🌊</span>
+          <Waves className="w-4 h-4 text-blue-600" />
           <span>Bảng điều khiển</span>
           <span className="text-[10px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-bold border border-blue-100">
             Mở

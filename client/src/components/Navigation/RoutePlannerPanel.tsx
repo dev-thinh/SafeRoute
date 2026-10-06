@@ -13,6 +13,9 @@ import {
   Loader2,
   PanelLeftClose,
   AlertTriangle,
+  Waves,
+  AlertOctagon,
+  ShieldCheck,
 } from 'lucide-react';
 import { VehicleSelector } from './VehicleSelector';
 import { TimeSelector } from './TimeSelector';
@@ -212,7 +215,7 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-200/60 flex items-center justify-center shadow-xs">
-            <span className="text-lg leading-none">🌊</span>
+            <Waves className="w-4 h-4 text-blue-600" />
           </div>
           <div>
             <h2 className="font-bold text-base text-gray-900 tracking-tight leading-tight">
@@ -643,7 +646,7 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
               {routeData.safe_route.isFlooded ? (
                 <div className="p-3 bg-red-50 border border-red-200/90 rounded-xl text-xs space-y-1">
                   <div className="flex items-center gap-1.5 font-bold text-red-900">
-                    <span>🚨</span>
+                    <AlertOctagon className="w-4 h-4 text-red-600 flex-shrink-0" />
                     <span>
                       Mọi ngả đường đều ngập sâu {routeData.safe_route.maxFloodDepthCm} cm ({routeData.safe_route.floodedDistanceMeters} m)
                     </span>
@@ -655,7 +658,7 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
               ) : routeData.fastest_route.isFlooded ? (
                 <div className="p-3 bg-emerald-50 border border-emerald-200/90 rounded-xl text-xs space-y-1">
                   <div className="flex items-center gap-1.5 font-bold text-emerald-900">
-                    <span>🛡️</span>
+                    <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
                     <span>
                       Đã tự động né ngập thành công
                     </span>

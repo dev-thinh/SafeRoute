@@ -1,5 +1,6 @@
 import React from 'react';
 import { Polyline, Popup } from 'react-leaflet';
+import { AlertTriangle } from 'lucide-react';
 import { FloodedSegment } from '../../types';
 
 interface RoutePolylineProps {
@@ -131,7 +132,8 @@ export const RoutePolyline: React.FC<RoutePolylineProps> = ({
               <Popup>
                 <div className="p-1.5 text-xs max-w-[240px]">
                   <div className="font-bold flex items-center gap-1.5 text-red-600">
-                    <span>⚠️ Đoạn ngập trên lộ trình</span>
+                    <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0" />
+                    <span>Đoạn ngập trên lộ trình</span>
                   </div>
                   {seg.streetName && (
                     <div className="text-gray-900 font-bold mt-1 text-sm">

@@ -1094,9 +1094,9 @@ export function evaluateMultiSourceHotspots(
 
       let title = `Khô ráo: ${corridor.streetName} (${corridor.district})`;
       if (assessment.riskTier === 'critical') {
-        title = `🚨 Ngập sâu: ${corridor.streetName} (${corridor.district})`;
+        title = `Ngập sâu: ${corridor.streetName} (${corridor.district})`;
       } else if (assessment.riskTier === 'potential') {
-        title = `⚠️ Có khả năng ngập: ${corridor.streetName} (${corridor.district})`;
+        title = `Có khả năng ngập: ${corridor.streetName} (${corridor.district})`;
       }
 
       events.push({
