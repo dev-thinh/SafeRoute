@@ -292,11 +292,16 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
             displayedClusters.map((cluster) => {
               const confidencePercent = Math.round((cluster.aiConfidence || 0.5) * 100);
               const isBusy = actionLoadingId === cluster.clusterId;
+              const isSpamCluster = confidencePercent <= 15 || cluster.aiReasoning.includes('spam') || cluster.aiReasoning.includes('SPAM');
 
               return (
                 <div
                   key={cluster.clusterId}
-                  className="bg-white rounded-xl border border-gray-200/90 hover:border-gray-300 p-4 shadow-xs transition space-y-3"
+                  className={`rounded-xl border p-4 shadow-xs transition space-y-3 ${
+                    isSpamCluster
+                      ? 'bg-red-50/20 border-red-200 hover:border-red-300'
+                      : 'bg-white border-gray-200/90 hover:border-gray-300'
+                  }`}
                 >
                   {/* Top row: Cluster summary */}
                   <div className="flex items-start justify-between gap-3">
@@ -305,7 +310,11 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                         <span className="font-bold text-xs text-gray-900">
                           Tọa độ: {cluster.coordinate.lat.toFixed(4)}, {cluster.coordinate.lng.toFixed(4)}
                         </span>
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                          isSpamCluster
+                            ? 'bg-red-50 text-red-700 border-red-200'
+                            : 'bg-blue-50 text-blue-700 border-blue-200'
+                        }`}>
                           {cluster.totalReports} báo cáo từ dân
                         </span>
                       </div>
@@ -316,22 +325,37 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
 
                     {/* AI Score Badge */}
                     <div className="flex items-center gap-1.5 flex-shrink-0">
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                        confidencePercent >= 85
-                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                          : confidencePercent >= 60
-                          ? 'bg-amber-100 text-amber-800 border border-amber-300'
-                          : 'bg-red-100 text-red-800 border border-red-300'
-                      }`}>
-                        AI chấm: {confidencePercent}%
-                      </span>
+                      {isSpamCluster ? (
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-800 border border-red-300 flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3 text-red-600" />
+                          <span>Spam rác: {confidencePercent}%</span>
+                        </span>
+                      ) : (
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                          confidencePercent >= 85
+                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                            : confidencePercent >= 60
+                            ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                            : 'bg-gray-100 text-gray-800 border border-gray-300'
+                        }`}>
+                          AI chấm: {confidencePercent}%
+                        </span>
+                      )}
                     </div>
                   </div>
 
                   {/* AI Reasoning Bar */}
-                  <div className="p-2.5 rounded-lg bg-gray-50/80 border border-gray-100 flex items-center gap-2 text-xs">
-                    <Sparkles className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
-                    <p className="text-[11px] text-gray-700 font-medium line-clamp-1">
+                  <div className={`p-2.5 rounded-lg border flex items-center gap-2 text-xs ${
+                    isSpamCluster
+                      ? 'bg-red-50 border-red-200 text-red-800'
+                      : 'bg-gray-50/80 border-gray-100 text-gray-700'
+                  }`}>
+                    {isSpamCluster ? (
+                      <AlertTriangle className="w-3.5 h-3.5 text-red-600 flex-shrink-0" />
+                    ) : (
+                      <Sparkles className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
+                    )}
+                    <p className="text-[11px] font-medium line-clamp-1">
                       {cluster.aiReasoning}
                     </p>
                   </div>

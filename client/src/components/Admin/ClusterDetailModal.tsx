@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, MapPin, Sparkles, Check, Trash2, Loader2, Calendar, FileText } from 'lucide-react';
+import { X, MapPin, Sparkles, Check, Trash2, Loader2, Calendar, FileText, AlertTriangle } from 'lucide-react';
 import { ReportCluster } from '../../types';
 
 interface ClusterDetailModalProps {
@@ -44,6 +44,11 @@ export const ClusterDetailModal: React.FC<ClusterDetailModalProps> = ({
   };
 
   const confidencePercent = Math.round((cluster.aiConfidence || 0.5) * 100);
+  const isSpamCluster =
+    confidencePercent <= 15 ||
+    cluster.aiReasoning.includes('spam') ||
+    cluster.aiReasoning.includes('SPAM') ||
+    cluster.aiReasoning.includes('vô nghĩa');
 
   return (
     <div className="fixed inset-0 z-[2100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
@@ -51,8 +56,10 @@ export const ClusterDetailModal: React.FC<ClusterDetailModalProps> = ({
         {/* 1. Header */}
         <div className="p-4 sm:p-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/70">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-blue-100/80 text-blue-700 flex items-center justify-center flex-shrink-0">
-              <MapPin className="w-5 h-5" />
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
+              isSpamCluster ? 'bg-red-100 text-red-700' : 'bg-blue-100/80 text-blue-700'
+            }`}>
+              {isSpamCluster ? <AlertTriangle className="w-5 h-5" /> : <MapPin className="w-5 h-5" />}
             </div>
             <div>
               <h3 className="font-bold text-base text-gray-900 leading-tight">
@@ -77,11 +84,24 @@ export const ClusterDetailModal: React.FC<ClusterDetailModalProps> = ({
         {/* 2. Scrollable Body */}
         <div className="p-4 sm:p-5 overflow-y-auto space-y-4">
           {/* AI Credibility Assessment Card */}
-          <div className="p-3.5 rounded-xl bg-gradient-to-br from-blue-50/80 to-indigo-50/40 border border-blue-200/80 space-y-2">
+          <div className={`p-3.5 rounded-xl border space-y-2 ${
+            isSpamCluster
+              ? 'bg-red-50/60 border-red-200'
+              : 'bg-gradient-to-br from-blue-50/80 to-indigo-50/40 border-blue-200/80'
+          }`}>
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 font-bold text-xs text-blue-900">
-                <Sparkles className="w-4 h-4 text-blue-600" />
-                <span>AI Thẩm Định Thật/Giả (Ma trận 4 trụ cột)</span>
+              <div className="flex items-center gap-1.5 font-bold text-xs">
+                {isSpamCluster ? (
+                  <>
+                    <AlertTriangle className="w-4 h-4 text-red-600" />
+                    <span className="text-red-900">AI Cảnh Báo Spam / Vô Nghĩa</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 text-blue-600" />
+                    <span className="text-blue-900">AI Thẩm Định Thật/Giả (Ma trận 4 trụ cột)</span>
+                  </>
+                )}
               </div>
               <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
                 confidencePercent >= 85
@@ -95,9 +115,9 @@ export const ClusterDetailModal: React.FC<ClusterDetailModalProps> = ({
             </div>
 
             {/* Score Bar */}
-            <div className="w-full h-2 bg-blue-100 rounded-full overflow-hidden shadow-inner">
+            <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden shadow-inner">
               <div
-                style={{ width: `${confidencePercent}%` }}
+                style={{ width: `${Math.max(5, confidencePercent)}%` }}
                 className={`h-full transition-all duration-500 ${
                   confidencePercent >= 85 ? 'bg-emerald-600' : confidencePercent >= 60 ? 'bg-amber-500' : 'bg-red-500'
                 }`}
@@ -133,36 +153,73 @@ export const ClusterDetailModal: React.FC<ClusterDetailModalProps> = ({
             </h4>
 
             <div className="space-y-2">
-              {cluster.reports.map((r, idx) => (
-                <div
-                  key={r.id || idx}
-                  className="p-3 rounded-xl border border-gray-200/90 bg-white hover:border-gray-300 transition text-xs space-y-1.5"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-gray-900">
-                      Báo cáo #{idx + 1}
-                    </span>
-                    <span className="text-[10px] text-gray-500 flex items-center gap-1 font-mono">
-                      <Calendar className="w-3 h-3 text-gray-400" />
-                      <span>{r.reportedAt ? new Date(r.reportedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : 'Vừa xong'}</span>
-                    </span>
-                  </div>
+              {cluster.reports.map((r, idx) => {
+                const isReportSpam =
+                  (r.aiConfidence ?? 0.5) <= 0.15 ||
+                  r.aiReasoning?.includes('SPAM') ||
+                  r.aiReasoning?.includes('vô nghĩa') ||
+                  r.aiReasoning?.includes('rác');
 
-                  <div className="text-[11px] text-gray-600 font-medium">
-                    Mức độ ghi nhận: <span className="font-bold text-gray-800">~{r.depthCm} cm</span>
-                  </div>
+                return (
+                  <div
+                    key={r.id || idx}
+                    className={`p-3 rounded-xl border transition text-xs space-y-1.5 ${
+                      isReportSpam
+                        ? 'border-red-200 bg-red-50/20 hover:border-red-300'
+                        : 'border-gray-200/90 bg-white hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-gray-900">
+                          Báo cáo #{idx + 1}
+                        </span>
+                        {isReportSpam ? (
+                          <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-red-100 text-red-800 border border-red-200 flex items-center gap-0.5">
+                            <AlertTriangle className="w-2.5 h-2.5 text-red-600" />
+                            <span>Nội dung rác / vô nghĩa</span>
+                          </span>
+                        ) : (
+                          <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                            ✓ Hợp lệ
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[10px] text-gray-500 flex items-center gap-1 font-mono">
+                        <Calendar className="w-3 h-3 text-gray-400" />
+                        <span>{r.reportedAt ? new Date(r.reportedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : 'Vừa xong'}</span>
+                      </span>
+                    </div>
 
-                  {r.description ? (
-                    <p className="text-[11px] text-gray-700 italic bg-gray-50 p-2 rounded-lg border border-gray-100">
-                      "{r.description}"
-                    </p>
-                  ) : (
-                    <p className="text-[10px] text-gray-400 italic">
-                      (Không kèm mô tả chi tiết)
-                    </p>
-                  )}
-                </div>
-              ))}
+                    <div className="text-[11px] text-gray-600 font-medium">
+                      Mức độ ghi nhận: <span className="font-bold text-gray-800">~{r.depthCm} cm</span>
+                    </div>
+
+                    {r.description ? (
+                      <p className={`text-[11px] italic p-2 rounded-lg border ${
+                        isReportSpam
+                          ? 'bg-red-50/70 border-red-200 text-red-900 font-medium'
+                          : 'bg-gray-50 border-gray-100 text-gray-700'
+                      }`}>
+                        "{r.description}"
+                      </p>
+                    ) : (
+                      <p className="text-[10px] text-gray-400 italic">
+                        (Không kèm mô tả chi tiết)
+                      </p>
+                    )}
+
+                    {r.aiReasoning && (
+                      <div className="text-[10px] text-gray-500 font-mono mt-1 flex items-start gap-1">
+                        <span className="text-gray-400">Đánh giá AI:</span>
+                        <span className={isReportSpam ? 'text-red-700 font-medium' : 'text-gray-600'}>
+                          {r.aiReasoning}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>

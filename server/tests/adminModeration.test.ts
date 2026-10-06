@@ -110,4 +110,66 @@ describe('Role-Based Flood Reporting & Admin Moderation', () => {
     expect(rejectClusterRes.status).toBe(200);
     expect(rejectClusterRes.body.rejectedCount).toBeGreaterThanOrEqual(2);
   });
+
+  it('Anti-Spam VETO: Should detect single spam reports ("123", "asd", "test") and cap credibility at 5%', async () => {
+    // 1. Numbers only spam
+    const numRes = await request(app).post('/api/reports').send({
+      coordinate: { lat: 10.740, lng: 106.710 },
+      depth_level: 'knee',
+      description: '123',
+    });
+    expect(numRes.status).toBe(201);
+    expect(numRes.body.report.status).toBe('pending');
+    expect(numRes.body.report.aiConfidence).toBe(0.05);
+    expect(numRes.body.report.aiReasoning).toContain('CẢNH BÁO SPAM');
+    expect(numRes.body.report.aiReasoning).toContain('chữ số vô nghĩa');
+
+    // 2. Keyboard mash spam
+    const mashRes = await request(app).post('/api/reports').send({
+      coordinate: { lat: 10.741, lng: 106.711 },
+      depth_level: 'knee',
+      description: 'asd',
+    });
+    expect(mashRes.status).toBe(201);
+    expect(mashRes.body.report.status).toBe('pending');
+    expect(mashRes.body.report.aiConfidence).toBe(0.05);
+    expect(mashRes.body.report.aiReasoning).toContain('CẢNH BÁO SPAM');
+  });
+
+  it('Spam Defense: 8 spam reports ("123", "asd", etc.) must NOT boost cluster score to 69% and must be flagged as spam cluster (5%)', async () => {
+    const spamTexts = ['123', 'asd', 'asdf', '12345', '...', 'test', 'qwe', 'zxc'];
+    const spamCoords = { lat: 10.7555, lng: 106.6999 };
+    let targetClusterId = '';
+
+    for (const text of spamTexts) {
+      const res = await request(app).post('/api/reports').send({
+        coordinate: spamCoords,
+        depth_level: 'knee',
+        description: text,
+      });
+      expect(res.status).toBe(201);
+      expect(res.body.report.status).toBe('pending');
+      expect(res.body.report.aiConfidence).toBe(0.05);
+      expect(res.body.report.isAutoApproved).toBe(false);
+      targetClusterId = res.body.report.clusterId;
+    }
+
+    // Verify admin cluster view
+    const adminRes = await request(app).get('/api/admin/reports');
+    expect(adminRes.status).toBe(200);
+    const spamCluster = adminRes.body.clusters.find((c: any) => c.clusterId === targetClusterId);
+    expect(spamCluster).toBeDefined();
+    expect(spamCluster.totalReports).toBe(8);
+    // Cluster confidence must NOT be 69%! It must be capped at 5% (0.05)
+    expect(spamCluster.aiConfidence).toBe(0.05);
+    expect(spamCluster.canAutoApprove).toBe(false);
+    expect(spamCluster.status).toBe('pending');
+    expect(spamCluster.aiReasoning).toContain('🚨 Cụm nghi vấn spam');
+
+    // Verify public map still has 0 reports from this spam attack
+    const publicRes = await request(app).get('/api/reports');
+    expect(publicRes.status).toBe(200);
+    const leakedReport = publicRes.body.reports.find((r: any) => r.clusterId === targetClusterId);
+    expect(leakedReport).toBeUndefined();
+  });
 });

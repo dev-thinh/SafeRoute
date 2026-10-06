@@ -1,7 +1,7 @@
 import { pool } from './pool';
 import { isDbConnected } from './initDb';
 import { UserReport, ReportCluster, AdminSettings } from '../types';
-import { evaluateReportCredibility, calculateDistanceMeters } from '../services/aiModerationService';
+import { evaluateReportCredibility, calculateDistanceMeters, detectGibberishOrSpam } from '../services/aiModerationService';
 
 export const REPORT_BASE_TTL_MS = 3 * 60 * 60 * 1000; // 3 hours
 export const REPORT_MAX_LIFETIME_MS = 12 * 60 * 60 * 1000; // 12 hours
@@ -120,11 +120,23 @@ export async function saveReport(report: UserReport): Promise<UserReport> {
   }
   report.clusterId = assignedClusterId;
 
-  // 2. Run 4-Pillar AI Credibility Evaluation
-  const totalClusterCount = clusterReports.length + 1;
+  // 2. Run 4-Pillar AI Credibility Evaluation with Anti-Spam Gatekeeper
+  const currentSpamCheck = detectGibberishOrSpam(report.description);
+  
+  // Only count VALID (non-spam, aiConfidence > 0.15) reports in cluster count
+  const validClusterReports = clusterReports.filter((r) => {
+    const isSpam = detectGibberishOrSpam(r.description).isSpam;
+    const conf = r.aiConfidence ?? 0.5;
+    return !isSpam && conf > 0.15;
+  });
+
+  // If current report is spam, valid cluster count is 0.
+  // Otherwise, count is validClusterReports + 1
+  const validClusterCount = currentSpamCheck.isSpam ? 0 : (validClusterReports.length + 1);
+
   const evalResult = await evaluateReportCredibility(
     report,
-    totalClusterCount,
+    validClusterCount,
     adminSettings.isAutoPilotEnabled,
     adminSettings.autoApproveThreshold,
     adminSettings.minClusterCountForAutoApprove
@@ -445,9 +457,29 @@ export async function getAdminReportClusters(): Promise<ReportCluster[]> {
       clusterReports.reduce((sum, r) => sum + r.depthCm, 0) / totalReports
     );
 
-    const maxConfidence = Math.max(...clusterReports.map((r) => r.aiConfidence || 0.5));
-    const representativeReason =
-      clusterReports.find((r) => r.aiReasoning)?.aiReasoning || 'Chờ đánh giá';
+    // Filter valid vs spam reports in cluster
+    const spamReportsInCluster = clusterReports.filter(
+      (r) => detectGibberishOrSpam(r.description).isSpam || (r.aiConfidence ?? 0.5) <= 0.15
+    );
+    const validReportsInCluster = clusterReports.filter(
+      (r) => !detectGibberishOrSpam(r.description).isSpam && (r.aiConfidence ?? 0.5) > 0.15
+    );
+
+    let maxConfidence: number;
+    let representativeReason: string;
+
+    if (validReportsInCluster.length === 0) {
+      // Entire cluster consists of spam/gibberish reports!
+      maxConfidence = 0.05;
+      representativeReason = `🚨 Cụm nghi vấn spam: Toàn bộ ${totalReports} báo cáo chứa nội dung rác / gõ phím vô nghĩa • Độ tin cậy: 5%`;
+    } else {
+      maxConfidence = Math.max(...validReportsInCluster.map((r) => r.aiConfidence || 0.5));
+      const repValid = validReportsInCluster.find((r) => r.aiReasoning);
+      representativeReason = repValid?.aiReasoning || 'Chờ đánh giá';
+      if (spamReportsInCluster.length > 0) {
+        representativeReason += ` (Lưu ý: Có ${spamReportsInCluster.length}/${totalReports} tin rác bị loại bỏ)`;
+      }
+    }
 
     // Status: approved if any is approved, rejected if all rejected, else pending
     let status: 'pending' | 'approved' | 'rejected' = 'pending';
@@ -468,7 +500,7 @@ export async function getAdminReportClusters(): Promise<ReportCluster[]> {
       ),
       aiConfidence: maxConfidence,
       aiReasoning: representativeReason,
-      canAutoApprove: totalReports >= adminSettings.minClusterCountForAutoApprove && maxConfidence >= adminSettings.autoApproveThreshold,
+      canAutoApprove: validReportsInCluster.length >= adminSettings.minClusterCountForAutoApprove && maxConfidence >= adminSettings.autoApproveThreshold,
       status,
       reports: clusterReports,
     });
