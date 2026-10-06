@@ -12,6 +12,7 @@ import {
   CloudRain,
   Loader2,
   PanelLeftClose,
+  AlertTriangle,
 } from 'lucide-react';
 import { VehicleSelector } from './VehicleSelector';
 import { TimeSelector } from './TimeSelector';
@@ -67,6 +68,8 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
   const [targetTime, setTargetTime] = useState<string>(() => new Date().toISOString());
   const [loading, setLoading] = useState(false);
   const [routeData, setRouteData] = useState<NavigateResponse | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [gpsError, setGpsError] = useState<string | null>(null);
 
   // Search autocomplete state
   const [activeField, setActiveField] = useState<'origin' | 'dest' | null>(null);
@@ -94,6 +97,7 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
   }, [searchQuery, activeField]);
 
   const handleSelectLocation = (loc: LocationItem) => {
+    setErrorMsg(null);
     if (activeField === 'origin') {
       onChangeOrigin(loc);
     } else if (activeField === 'dest') {
@@ -105,11 +109,13 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
 
   const handleGetCurrentLocation = () => {
     if (!navigator.geolocation) {
-      alert('Trình duyệt không hỗ trợ định vị GPS.');
+      setGpsError('Trình duyệt không hỗ trợ định vị GPS.');
+      setTimeout(() => setGpsError(null), 4000);
       return;
     }
 
     setGpsLoading(true);
+    setGpsError(null);
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const { latitude, longitude } = pos.coords;
@@ -132,7 +138,8 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
       },
       (err) => {
         console.warn('GPS location error:', err);
-        alert('Không thể xác định vị trí GPS. Vui lòng cấp quyền truy cập vị trí trên trình duyệt.');
+        setGpsError('Không thể xác định vị trí GPS. Vui lòng cấp quyền truy cập vị trí trên trình duyệt.');
+        setTimeout(() => setGpsError(null), 5000);
         setGpsLoading(false);
       },
       { enableHighAccuracy: true, timeout: 8000 }
@@ -141,6 +148,7 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
 
   const handleSwap = () => {
     if (loading) return;
+    setErrorMsg(null);
     const temp = { ...origin };
     onChangeOrigin(destination);
     onChangeDestination(temp);
@@ -149,6 +157,7 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
   const handleSearch = async () => {
     if (loading || !origin.label.trim() || !destination.label.trim()) return;
     setLoading(true);
+    setErrorMsg(null);
     try {
       let finalOrigin = { ...origin };
       let finalDest = { ...destination };
@@ -170,8 +179,12 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
       });
       setRouteData(data);
       onRoutesCalculated(data);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Route calculation failed', err);
+      const friendlyMsg =
+        err?.response?.data?.error ||
+        'Không thể tính toán lộ trình né ngập lúc này. Vui lòng kiểm tra lại địa chỉ hoặc thử lại sau.';
+      setErrorMsg(friendlyMsg);
     } finally {
       setLoading(false);
     }
@@ -424,6 +437,21 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                   ))}
                 </div>
               )}
+
+              {gpsError && (
+                <div className="p-2 bg-amber-50 border border-amber-200/90 rounded-xl text-[11px] text-amber-900 flex items-center gap-2 mt-1.5 animate-in fade-in">
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
+                  <span className="flex-1">{gpsError}</span>
+                  <button
+                    type="button"
+                    onClick={() => setGpsError(null)}
+                    className="p-0.5 text-amber-700 hover:text-amber-900 rounded cursor-pointer"
+                    title="Đóng thông báo"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Swap button */}
@@ -573,6 +601,27 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
               </>
             )}
           </button>
+
+          {/* Route calculation error notification */}
+          {errorMsg && (
+            <div className="p-3 bg-red-50 border border-red-200/90 rounded-xl text-xs flex items-start gap-2.5 text-red-900 animate-in fade-in">
+              <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <div className="font-bold text-red-900 mb-0.5 leading-snug">
+                  Không thể tính lộ trình
+                </div>
+                <p className="text-[11px] text-red-700 leading-normal">{errorMsg}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setErrorMsg(null)}
+                className="p-1 text-red-600 hover:text-red-800 hover:bg-red-100/60 rounded-lg transition cursor-pointer"
+                title="Đóng thông báo"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
 
           {/* Route Results Comparison Section */}
           {routeData && (

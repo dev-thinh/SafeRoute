@@ -8,7 +8,7 @@ import { RoutePlannerPanel, LocationItem } from './components/Navigation/RoutePl
 import { ReportFloodModal, SelectedReportLocation } from './components/Reporting/ReportFloodModal';
 import { ReportLocationPinOverlay } from './components/Reporting/ReportLocationPinOverlay';
 import { getActiveFloods, reverseGeocode } from './services/api';
-import { Droplet, PanelLeftOpen, MapPin, Target } from 'lucide-react';
+import { Droplet, PanelLeftOpen, MapPin, Target, AlertTriangle, X } from 'lucide-react';
 import { NavigateResponse, FloodEvent, UserReport } from './types';
 
 export const App: React.FC = () => {
@@ -16,6 +16,7 @@ export const App: React.FC = () => {
   const [selectedRouteType, setSelectedRouteType] = useState<'safe' | 'fastest'>('safe');
   const [floodEvents, setFloodEvents] = useState<FloodEvent[]>([]);
   const [reports, setReports] = useState<UserReport[]>([]);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Panel Collapsible State for responsive layout
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
@@ -167,12 +168,14 @@ export const App: React.FC = () => {
         },
         (err) => {
           console.warn('Geolocation error:', err);
-          alert('Không thể xác định vị trí GPS. Vui lòng cấp quyền vị trí trên trình duyệt.');
+          setToastMessage('Không thể xác định vị trí GPS. Vui lòng cấp quyền vị trí trên trình duyệt.');
+          setTimeout(() => setToastMessage(null), 4500);
         },
         { enableHighAccuracy: true, timeout: 8000 }
       );
     } else {
-      alert('Trình duyệt không hỗ trợ định vị GPS.');
+      setToastMessage('Trình duyệt không hỗ trợ định vị GPS.');
+      setTimeout(() => setToastMessage(null), 4500);
     }
   };
 
@@ -316,6 +319,22 @@ export const App: React.FC = () => {
         onZoomIn={() => zoomHandlersRef.current?.zoomIn()}
         onZoomOut={() => zoomHandlersRef.current?.zoomOut()}
       />
+
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="absolute top-5 left-1/2 -translate-x-1/2 z-[1200] bg-white/95 backdrop-blur-md px-4 py-2.5 rounded-2xl shadow-2xl border border-gray-200/90 flex items-center gap-2.5 animate-in fade-in slide-in-from-top-2">
+          <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+          <span className="text-xs font-semibold text-gray-800">{toastMessage}</span>
+          <button
+            type="button"
+            onClick={() => setToastMessage(null)}
+            className="p-1 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-600 transition cursor-pointer"
+            title="Đóng thông báo"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
       {/* 6. Report Flood Form Modal with marked location details */}
       <ReportFloodModal
