@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { randomUUID } from 'crypto';
 import { UserReport } from '../types';
 import { saveReport, getActiveReports, voteReport, inMemoryReports } from '../db/reportsRepo';
 
@@ -28,7 +29,7 @@ reportsRouter.post('/', async (req, res) => {
   }
 
   const report: UserReport = {
-    id: `report-${Date.now()}`,
+    id: randomUUID(),
     coordinate,
     depthLevel: depth_level,
     depthCm: depthLevelToCm[depth_level] || 25,

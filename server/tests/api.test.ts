@@ -33,7 +33,7 @@ describe('SafeRoute REST API', () => {
     expect(typeof res.body.risk_summary.potential_count).toBe('number');
   }, 15000);
 
-  it('POST /api/reports should accept crowdsourced flood report', async () => {
+  it('POST /api/reports should accept crowdsourced flood report and allow voting', async () => {
     const res = await request(app)
       .post('/api/reports')
       .send({
@@ -45,6 +45,26 @@ describe('SafeRoute REST API', () => {
     expect(res.status).toBe(201);
     expect(res.body.report.id).toBeDefined();
     expect(res.body.report.depthLevel).toBe('wheel');
+
+    const reportId = res.body.report.id;
+    // UUID v4 format regex
+    expect(reportId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+
+    // Test upvote
+    const voteRes = await request(app)
+      .post(`/api/reports/${reportId}/vote`)
+      .send({ type: 'upvote' });
+
+    expect(voteRes.status).toBe(200);
+    expect(voteRes.body.report.upvotes).toBe(2);
+
+    // Test resolved vote
+    const resolvedRes = await request(app)
+      .post(`/api/reports/${reportId}/vote`)
+      .send({ type: 'resolved' });
+
+    expect(resolvedRes.status).toBe(200);
+    expect(resolvedRes.body.report.downvotes).toBe(1);
   });
 
   it('GET /api/weather should return dashboard weather data and corridors at risk', async () => {

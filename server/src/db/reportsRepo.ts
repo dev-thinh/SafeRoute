@@ -16,8 +16,9 @@ export async function saveReport(report: UserReport): Promise<UserReport> {
         `INSERT INTO user_reports 
           (id, location_geom, address_text, depth_level, depth_cm, description, image_url, upvotes, downvotes, status, reported_at)
          VALUES 
-          (gen_random_uuid(), ST_SetSRID(ST_MakePoint($1, $2), 4326), $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+          ($1, ST_SetSRID(ST_MakePoint($2, $3), 4326), $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
         [
+          report.id,
           report.coordinate.lng,
           report.coordinate.lat,
           report.description || 'Báo cáo cộng đồng',
@@ -100,19 +101,36 @@ export async function voteReport(id: string, type: 'upvote' | 'resolved'): Promi
 
   if (isDbConnected) {
     try {
-      if (type === 'resolved') {
-        await pool.query(
-          `UPDATE user_reports 
+      const updateQuery = type === 'resolved'
+        ? `UPDATE user_reports 
            SET downvotes = downvotes + 1, 
                status = CASE WHEN downvotes + 1 >= 3 THEN 'resolved' ELSE status END 
-           WHERE id::text = $1`,
-          [id]
-        );
-      } else {
-        await pool.query(
-          `UPDATE user_reports SET upvotes = upvotes + 1 WHERE id::text = $1`,
-          [id]
-        );
+           WHERE id::text = $1
+           RETURNING id, ST_X(location_geom) as lng, ST_Y(location_geom) as lat, depth_level as "depthLevel", depth_cm as "depthCm", description, image_url as "imageUrl", upvotes, downvotes, status, reported_at as "reportedAt"`
+        : `UPDATE user_reports 
+           SET upvotes = upvotes + 1 
+           WHERE id::text = $1
+           RETURNING id, ST_X(location_geom) as lng, ST_Y(location_geom) as lat, depth_level as "depthLevel", depth_cm as "depthCm", description, image_url as "imageUrl", upvotes, downvotes, status, reported_at as "reportedAt"`;
+
+      const res = await pool.query(updateQuery, [id]);
+      if (res.rows.length > 0) {
+        const r = res.rows[0];
+        const dbUpdated: UserReport = {
+          id: r.id,
+          coordinate: { lat: parseFloat(r.lat), lng: parseFloat(r.lng) },
+          depthLevel: r.depthLevel,
+          depthCm: r.depthCm,
+          description: r.description,
+          imageUrl: r.imageUrl,
+          reportedAt: new Date(r.reportedAt),
+          upvotes: r.upvotes,
+          downvotes: r.downvotes,
+          status: r.status,
+        };
+        if (!memReport) {
+          inMemoryReports.unshift(dbUpdated);
+        }
+        return memReport || dbUpdated;
       }
     } catch (err: any) {
       console.warn('Failed to update report in PostgreSQL:', err.message);
