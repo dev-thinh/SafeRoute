@@ -25,9 +25,11 @@ Dự án định tuyến tránh các vùng ngập do triều cường và mưa l
    * Tự động định tuyến sang Flash khi gặp lỗi Quota (429) hoặc mạng; định kỳ 5 phút tự động kích hoạt lượt probe thăm dò để **hồi phục về Gemini Pro** ngay khi quota hoặc kết nối khả dụng trở lại.
    * Geocoding chuẩn xác: Tích hợp từ điển các tuyến đường xung yếu tại TP.HCM, loại bỏ hoàn toàn các điểm ngập ảo do lỗi tọa độ fallback.
 
-5. **Cộng đồng tương tác thời gian thực (Interactive Crowdsourcing)**:
+5. **Cộng đồng tương tác thời gian thực & Cơ chế Đồng thuận Động (Crowdsourced Dynamic Consensus Voting)**:
    * Báo điểm ngập trực quan với 4 mức độ: Mắt cá chân (<20cm), Nửa bánh xe (20-40cm), Đầu gối (40-60cm), Ngập sâu (>60cm).
-   * Tương tác trực tiếp trên Marker bản đồ: Nút 👍 *"Đang ngập"* (xác nhận cảnh báo) và ☀️ *"Nước đã rút"* (báo hết ngập).
+   * Tương tác trực tiếp trên Marker bản đồ: Nút *"Đang ngập"* (xác nhận cảnh báo) và *"Nước đã rút"* (báo hết ngập).
+   * **Thuật toán đồng thuận đa số linh hoạt (Consensus Algorithm)**: Điểm ngập chỉ tự động giải tỏa khi tổng số người đánh giá đạt tối thiểu $N \ge 3$ VÀ tỷ lệ báo nước rút đạt đa số áp đảo $\ge 60\%$ ($D / N \ge 0.60$).
+   * Thanh trực quan hóa tỷ lệ Consensus Bar hai màu và thống kê phần trăm minh bạch ngay trên Popup điểm ngập (`{U} đang ngập ({upPercent}%)` và `{D}/{N} báo đã rút ({downPercent}%)`).
    * Đồng bộ tức thì giữa bộ nhớ RAM và PostgreSQL thông qua chuẩn định danh UUID v4 nhất quán.
 
 6. **Thiết kế UI/UX hiện đại (Tuân thủ 40 Quy chuẩn AGENTS.md)**:

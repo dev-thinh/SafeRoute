@@ -61,6 +61,6 @@
 **Files:**
 - Modify: `README.md`
 
-- [ ] **Step 1: Cập nhật `README.md` phản ánh cơ chế tính toán đồng thuận tỷ lệ $\ge 60\%$**
-- [ ] **Step 2: Chạy kiểm thử toàn bộ `server` và `client`**
-- [ ] **Step 3: Commit Task 3 trên nhánh `dev`**
+- [x] **Step 1: Cập nhật `README.md` phản ánh cơ chế tính toán đồng thuận tỷ lệ $\ge 60\%$**
+- [x] **Step 2: Chạy kiểm thử toàn bộ `server` và `client`**
+- [x] **Step 3: Commit Task 3 trên nhánh `dev`**
