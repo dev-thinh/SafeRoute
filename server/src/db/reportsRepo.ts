@@ -82,7 +82,7 @@ export async function getActiveReports(): Promise<UserReport[]> {
     }
   }
 
-  return inMemoryReports;
+  return inMemoryReports.filter((r) => r.status === 'active');
 }
 
 /**
@@ -93,9 +93,16 @@ export async function voteReport(id: string, type: 'upvote' | 'resolved'): Promi
   if (memReport) {
     if (type === 'resolved') {
       memReport.downvotes += 1;
-      if (memReport.downvotes >= 3) memReport.status = 'resolved';
     } else {
       memReport.upvotes += 1;
+    }
+
+    const totalVotes = memReport.upvotes + memReport.downvotes;
+    // Consensus rule: minimum 3 sample votes and >= 60% votes confirm water has receded
+    if (totalVotes >= 3 && (memReport.downvotes / totalVotes) >= 0.60) {
+      memReport.status = 'resolved';
+    } else if (memReport.status === 'resolved' && (memReport.downvotes / totalVotes) < 0.60) {
+      memReport.status = 'active';
     }
   }
 
@@ -104,11 +111,20 @@ export async function voteReport(id: string, type: 'upvote' | 'resolved'): Promi
       const updateQuery = type === 'resolved'
         ? `UPDATE user_reports 
            SET downvotes = downvotes + 1, 
-               status = CASE WHEN downvotes + 1 >= 3 THEN 'resolved' ELSE status END 
+               status = CASE 
+                 WHEN (upvotes + downvotes + 1 >= 3) AND ((downvotes + 1)::float / (upvotes + downvotes + 1)::float >= 0.60) 
+                 THEN 'resolved' 
+                 ELSE status 
+               END 
            WHERE id::text = $1
            RETURNING id, ST_X(location_geom) as lng, ST_Y(location_geom) as lat, depth_level as "depthLevel", depth_cm as "depthCm", description, image_url as "imageUrl", upvotes, downvotes, status, reported_at as "reportedAt"`
         : `UPDATE user_reports 
-           SET upvotes = upvotes + 1 
+           SET upvotes = upvotes + 1,
+               status = CASE 
+                 WHEN (upvotes + 1 + downvotes >= 3) AND (downvotes::float / (upvotes + 1 + downvotes)::float >= 0.60) 
+                 THEN 'resolved' 
+                 ELSE 'active' 
+               END 
            WHERE id::text = $1
            RETURNING id, ST_X(location_geom) as lng, ST_Y(location_geom) as lat, depth_level as "depthLevel", depth_cm as "depthCm", description, image_url as "imageUrl", upvotes, downvotes, status, reported_at as "reportedAt"`;
 

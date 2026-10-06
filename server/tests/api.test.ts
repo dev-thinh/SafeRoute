@@ -50,21 +50,41 @@ describe('SafeRoute REST API', () => {
     // UUID v4 format regex
     expect(reportId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
 
-    // Test upvote
+    // Test upvote (now upvotes = 2, downvotes = 0)
     const voteRes = await request(app)
       .post(`/api/reports/${reportId}/vote`)
       .send({ type: 'upvote' });
 
     expect(voteRes.status).toBe(200);
     expect(voteRes.body.report.upvotes).toBe(2);
+    expect(voteRes.body.report.status).toBe('active');
 
-    // Test resolved vote
-    const resolvedRes = await request(app)
+    // Test 1st resolved vote (upvotes = 2, downvotes = 1, total = 3, 1/3 = 33% < 60% => status remains 'active')
+    const resolvedRes1 = await request(app)
       .post(`/api/reports/${reportId}/vote`)
       .send({ type: 'resolved' });
 
-    expect(resolvedRes.status).toBe(200);
-    expect(resolvedRes.body.report.downvotes).toBe(1);
+    expect(resolvedRes1.status).toBe(200);
+    expect(resolvedRes1.body.report.downvotes).toBe(1);
+    expect(resolvedRes1.body.report.status).toBe('active');
+
+    // Test 2nd resolved vote (upvotes = 2, downvotes = 2, total = 4, 2/4 = 50% < 60% => status remains 'active')
+    const resolvedRes2 = await request(app)
+      .post(`/api/reports/${reportId}/vote`)
+      .send({ type: 'resolved' });
+
+    expect(resolvedRes2.status).toBe(200);
+    expect(resolvedRes2.body.report.downvotes).toBe(2);
+    expect(resolvedRes2.body.report.status).toBe('active');
+
+    // Test 3rd resolved vote (upvotes = 2, downvotes = 3, total = 5, 3/5 = 60% >= 60% => auto-resolved!)
+    const resolvedRes3 = await request(app)
+      .post(`/api/reports/${reportId}/vote`)
+      .send({ type: 'resolved' });
+
+    expect(resolvedRes3.status).toBe(200);
+    expect(resolvedRes3.body.report.downvotes).toBe(3);
+    expect(resolvedRes3.body.report.status).toBe('resolved');
   });
 
   it('GET /api/weather should return dashboard weather data and corridors at risk', async () => {
