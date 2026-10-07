@@ -63,12 +63,18 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
   // 24-hour precise time inputs state
   const [inputHours, setInputHours] = useState(() => currentDate.getHours().toString().padStart(2, '0'));
   const [inputMinutes, setInputMinutes] = useState(() => currentDate.getMinutes().toString().padStart(2, '0'));
+  const [isEditingHours, setIsEditingHours] = useState(false);
+  const [isEditingMinutes, setIsEditingMinutes] = useState(false);
 
-  // Sync inputs whenever selectedTime changes externally
+  // Sync inputs whenever selectedTime changes externally, but never while user is editing
   useEffect(() => {
-    setInputHours(currentDate.getHours().toString().padStart(2, '0'));
-    setInputMinutes(currentDate.getMinutes().toString().padStart(2, '0'));
-  }, [currentDate]);
+    if (!isEditingHours) {
+      setInputHours(currentDate.getHours().toString().padStart(2, '0'));
+    }
+    if (!isEditingMinutes) {
+      setInputMinutes(currentDate.getMinutes().toString().padStart(2, '0'));
+    }
+  }, [currentDate, isEditingHours, isEditingMinutes]);
 
   // Ref for the popover element to prevent self-scroll from closing it
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -246,25 +252,29 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
     onChange(new Date().toISOString());
   };
 
-  // Handle 24-hour format manual input for hours (00-23)
+  // Handle manual input for hours (00-23)
   const handleHoursChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value.replace(/\D/g, '').slice(0, 2);
     setInputHours(raw);
-    const num = parseInt(raw, 10);
-    if (!isNaN(num) && num >= 0 && num <= 23) {
-      const nextDate = new Date(
-        currentDate.getFullYear(),
-        currentDate.getMonth(),
-        currentDate.getDate(),
-        num,
-        currentDate.getMinutes(),
-        0
-      );
-      onChange(nextDate.toISOString());
+    // Only dispatch onChange when a complete 2-digit number has been entered
+    if (raw.length === 2) {
+      const num = parseInt(raw, 10);
+      if (!isNaN(num) && num >= 0 && num <= 23) {
+        const nextDate = new Date(
+          currentDate.getFullYear(),
+          currentDate.getMonth(),
+          currentDate.getDate(),
+          num,
+          currentDate.getMinutes(),
+          0
+        );
+        onChange(nextDate.toISOString());
+      }
     }
   };
 
   const handleHoursBlur = () => {
+    setIsEditingHours(false);
     let num = parseInt(inputHours, 10);
     if (isNaN(num) || num < 0) num = 0;
     if (num > 23) num = 23;
@@ -281,25 +291,29 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
     onChange(nextDate.toISOString());
   };
 
-  // Handle 24-hour format manual input for minutes (00-59)
+  // Handle manual input for minutes (00-59)
   const handleMinutesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value.replace(/\D/g, '').slice(0, 2);
     setInputMinutes(raw);
-    const num = parseInt(raw, 10);
-    if (!isNaN(num) && num >= 0 && num <= 59) {
-      const nextDate = new Date(
-        currentDate.getFullYear(),
-        currentDate.getMonth(),
-        currentDate.getDate(),
-        currentDate.getHours(),
-        num,
-        0
-      );
-      onChange(nextDate.toISOString());
+    // Only dispatch onChange when a complete 2-digit number has been entered
+    if (raw.length === 2) {
+      const num = parseInt(raw, 10);
+      if (!isNaN(num) && num >= 0 && num <= 59) {
+        const nextDate = new Date(
+          currentDate.getFullYear(),
+          currentDate.getMonth(),
+          currentDate.getDate(),
+          currentDate.getHours(),
+          num,
+          0
+        );
+        onChange(nextDate.toISOString());
+      }
     }
   };
 
   const handleMinutesBlur = () => {
+    setIsEditingMinutes(false);
     let num = parseInt(inputMinutes, 10);
     if (isNaN(num) || num < 0) num = 0;
     if (num > 59) num = 59;
@@ -317,9 +331,14 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
   };
 
   const handleHoursKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.currentTarget.blur();
+      return;
+    }
     if (e.key === 'ArrowUp') {
       e.preventDefault();
       const nextH = (currentDate.getHours() + 1) % 24;
+      setInputHours(nextH.toString().padStart(2, '0'));
       const nextDate = new Date(
         currentDate.getFullYear(),
         currentDate.getMonth(),
@@ -332,6 +351,7 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
     } else if (e.key === 'ArrowDown') {
       e.preventDefault();
       const prevH = (currentDate.getHours() - 1 + 24) % 24;
+      setInputHours(prevH.toString().padStart(2, '0'));
       const nextDate = new Date(
         currentDate.getFullYear(),
         currentDate.getMonth(),
@@ -345,9 +365,14 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
   };
 
   const handleMinutesKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.currentTarget.blur();
+      return;
+    }
     if (e.key === 'ArrowUp') {
       e.preventDefault();
       const nextM = (currentDate.getMinutes() + 1) % 60;
+      setInputMinutes(nextM.toString().padStart(2, '0'));
       const nextDate = new Date(
         currentDate.getFullYear(),
         currentDate.getMonth(),
@@ -360,6 +385,7 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
     } else if (e.key === 'ArrowDown') {
       e.preventDefault();
       const prevM = (currentDate.getMinutes() - 1 + 60) % 60;
+      setInputMinutes(prevM.toString().padStart(2, '0'));
       const nextDate = new Date(
         currentDate.getFullYear(),
         currentDate.getMonth(),
@@ -515,10 +541,14 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
                         inputMode="numeric"
                         maxLength={2}
                         value={inputHours}
+                        onFocus={(e) => {
+                          setIsEditingHours(true);
+                          e.target.select();
+                        }}
                         onChange={handleHoursChange}
                         onBlur={handleHoursBlur}
                         onKeyDown={handleHoursKeyDown}
-                        className="w-7 text-center text-sm font-bold text-slate-900 bg-slate-100 hover:bg-slate-200/70 focus:bg-white rounded py-0.5 outline-none transition"
+                        className="w-7 text-center text-sm font-bold text-slate-900 bg-slate-100 hover:bg-slate-200/70 focus:bg-white rounded py-0.5 outline-none transition cursor-text select-all"
                         title="Giờ (00-23)"
                         aria-label="Giờ"
                       />
@@ -528,10 +558,14 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
                         inputMode="numeric"
                         maxLength={2}
                         value={inputMinutes}
+                        onFocus={(e) => {
+                          setIsEditingMinutes(true);
+                          e.target.select();
+                        }}
                         onChange={handleMinutesChange}
                         onBlur={handleMinutesBlur}
                         onKeyDown={handleMinutesKeyDown}
-                        className="w-7 text-center text-sm font-bold text-slate-900 bg-slate-100 hover:bg-slate-200/70 focus:bg-white rounded py-0.5 outline-none transition"
+                        className="w-7 text-center text-sm font-bold text-slate-900 bg-slate-100 hover:bg-slate-200/70 focus:bg-white rounded py-0.5 outline-none transition cursor-text select-all"
                         title="Phút (00-59)"
                         aria-label="Phút"
                       />
