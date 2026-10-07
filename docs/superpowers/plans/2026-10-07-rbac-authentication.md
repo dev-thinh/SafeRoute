@@ -47,11 +47,11 @@
   export function verifyToken(token: string): AuthUser | null;
   ```
 
-- [ ] **Step 1: Write the failing unit tests for user repo and token helpers**
-- [ ] **Step 2: Run `npm --workspace=server test tests/usersRepo.test.ts` to confirm failure**
-- [ ] **Step 3: Implement `usersRepo.ts` with seed accounts (`admin/admin123` & `user/user123`)**
-- [ ] **Step 4: Run tests to confirm pass**
-- [ ] **Step 5: Commit on `dev`**
+- [x] **Step 1: Write the failing unit tests for user repo and token helpers**
+- [x] **Step 2: Run `npm --workspace=server test tests/usersRepo.test.ts` to confirm failure**
+- [x] **Step 3: Implement `usersRepo.ts` with seed accounts (`admin/admin123` & `user/user123`)**
+- [x] **Step 4: Run tests to confirm pass**
+- [x] **Step 5: Commit on `dev`**
 
 ---
 
@@ -73,13 +73,13 @@
   - Protected `POST /api/reports`: rejects unauthenticated requests with 401
   - Protected `/api/admin/*`: rejects non-admin with 403
 
-- [ ] **Step 1: Write integration tests in `server/tests/auth.test.ts`**
-- [ ] **Step 2: Implement `authMiddleware.ts` (`requireAuth`, `requireAdmin`, `optionalAuth`)**
-- [ ] **Step 3: Implement `authRouter.ts` and mount in `app.ts`**
-- [ ] **Step 4: Apply `requireAuth` to `reportsRouter.post('/')` and `requireAdmin` to `adminRouter`**
-- [ ] **Step 5: Update existing tests in `adminModeration.test.ts` and `api.test.ts` to provide admin/user auth token**
-- [ ] **Step 6: Run full backend test suite `npm run test:server` (all 13 files pass)**
-- [ ] **Step 7: Commit on `dev`**
+- [x] **Step 1: Write integration tests in `server/tests/auth.test.ts`**
+- [x] **Step 2: Implement `authMiddleware.ts` (`requireAuth`, `requireAdmin`, `optionalAuth`)**
+- [x] **Step 3: Implement `authRouter.ts` and mount in `app.ts`**
+- [x] **Step 4: Apply `requireAuth` to `reportsRouter.post('/')` and `requireAdmin` to `adminRouter`**
+- [x] **Step 5: Update existing tests in `adminModeration.test.ts` and `api.test.ts` to provide admin/user auth token**
+- [x] **Step 6: Run full backend test suite `npm run test:server` (all 14 files pass)**
+- [x] **Step 7: Commit on `dev`**
 
 ---
 
@@ -96,10 +96,10 @@
   - `api.getMe(): Promise<AuthUser>`
   - Axios request interceptor attaching `Authorization: Bearer <token>` from `localStorage`
 
-- [ ] **Step 1: Add Auth types to `client/src/types/index.ts`**
-- [ ] **Step 2: Implement auth API functions & request interceptor in `client/src/services/api.ts`**
-- [ ] **Step 3: Run `npm run build` in `client` to verify 0 errors**
-- [ ] **Step 4: Commit on `dev`**
+- [x] **Step 1: Add Auth types to `client/src/types/index.ts`**
+- [x] **Step 2: Implement auth API functions & request interceptor in `client/src/services/api.ts`**
+- [x] **Step 3: Run `npm run build` in `client` to verify 0 errors**
+- [x] **Step 4: Commit on `dev`**
 
 ---
 
@@ -125,9 +125,9 @@
   - Form validation with Vietnamese error handling
   - Full adherence to 40 UI/UX rules (glassmorphism, `border-sky-100/90`, buttons $\ge 44\text{px}$)
 
-- [ ] **Step 1: Create `client/src/components/Auth/AuthModal.tsx`**
-- [ ] **Step 2: Run `npm run build` in `client` to verify compile**
-- [ ] **Step 3: Commit on `dev`**
+- [x] **Step 1: Create `client/src/components/Auth/AuthModal.tsx`**
+- [x] **Step 2: Run `npm run build` in `client` to verify compile**
+- [x] **Step 3: Commit on `dev`**
 
 ---
 
@@ -148,9 +148,9 @@
   - If User or Admin: Allow report pinning immediately
   - Admin retains 100% access to navigation, weather, news, and direct report moderation
 
-- [ ] **Step 1: Update `TopUtilityBar.tsx` with user state & auth actions**
-- [ ] **Step 2: Update `App.tsx` with auth state, modal triggers, and role-based gating**
-- [ ] **Step 3: Run `npm run build` in `client`**
-- [ ] **Step 4: Run `npm run test:server`**
-- [ ] **Step 5: Commit on `dev`**
-- [ ] **Step 6: Comprehensive verification & final user walkthrough**
+- [x] **Step 1: Update `TopUtilityBar.tsx` with user state & auth actions**
+- [x] **Step 2: Update `App.tsx` with auth state, modal triggers, and role-based gating**
+- [x] **Step 3: Run `npm run build` in `client`**
+- [x] **Step 4: Run `npm run test:server`**
+- [x] **Step 5: Commit on `dev`**
+- [x] **Step 6: Comprehensive verification & final user walkthrough**
