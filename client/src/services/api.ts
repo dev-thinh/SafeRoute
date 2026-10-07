@@ -43,7 +43,7 @@ export const HCMC_PRESETS = [
 
 export const searchLocation = async (query: string): Promise<{ label: string; lat: number; lng: number }[]> => {
   const trimmed = query.trim();
-  if (!trimmed) return HCMC_PRESETS.slice(0, 5);
+  if (!trimmed) return [];
 
   try {
     const res = await api.get('/geocoding/search', { params: { q: trimmed } });

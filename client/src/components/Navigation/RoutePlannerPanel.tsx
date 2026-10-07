@@ -19,7 +19,6 @@ import {
 import { VehicleSelector } from './VehicleSelector';
 import { TimeSelector } from './TimeSelector';
 import { RouteComparisonCard } from './RouteComparisonCard';
-import { QuickPresetChips } from './QuickPresetChips';
 import { NewsFeedTab } from '../News/NewsFeedTab';
 import { WeatherTab } from '../Weather/WeatherTab';
 import {
@@ -118,15 +117,6 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
     }
     setActiveField(null);
     setSearchQuery('');
-  };
-
-  const handlePresetSelect = (preset: LocationItem, targetField: 'origin' | 'dest') => {
-    setErrorMsg(null);
-    if (targetField === 'origin') {
-      onChangeOrigin(preset);
-    } else {
-      onChangeDestination(preset);
-    }
   };
 
   const handleGetCurrentLocation = () => {
@@ -454,8 +444,12 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                     </div>
                   ) : suggestions.length === 0 ? (
                     <div className="p-4 text-xs text-slate-500 text-center flex flex-col items-center justify-center gap-1">
-                      <span className="font-semibold text-slate-700">Không tìm thấy địa chỉ</span>
-                      <span className="text-[11px] text-slate-400">Thử nhập tên đường hoặc địa danh phổ biến</span>
+                      <span className="font-semibold text-slate-700">
+                        {searchQuery.trim().length === 0 ? 'Nhập địa chỉ để tìm kiếm' : 'Không tìm thấy địa chỉ'}
+                      </span>
+                      <span className="text-[11px] text-slate-400">
+                        {searchQuery.trim().length === 0 ? 'Nhập tên đường, tòa nhà hoặc số nhà' : 'Thử nhập lại tên đường hoặc khu vực khác'}
+                      </span>
                     </div>
                   ) : (
                     suggestions.map((item, idx) => (
@@ -593,8 +587,12 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                     </div>
                   ) : suggestions.length === 0 ? (
                     <div className="p-4 text-xs text-slate-500 text-center flex flex-col items-center justify-center gap-1">
-                      <span className="font-semibold text-slate-700">Không tìm thấy địa chỉ</span>
-                      <span className="text-[11px] text-slate-400">Thử nhập tên đường hoặc địa danh phổ biến</span>
+                      <span className="font-semibold text-slate-700">
+                        {searchQuery.trim().length === 0 ? 'Nhập địa chỉ để tìm kiếm' : 'Không tìm thấy địa chỉ'}
+                      </span>
+                      <span className="text-[11px] text-slate-400">
+                        {searchQuery.trim().length === 0 ? 'Nhập tên đường, tòa nhà hoặc số nhà' : 'Thử nhập lại tên đường hoặc khu vực khác'}
+                      </span>
                     </div>
                   ) : (
                     suggestions.map((item, idx) => (
@@ -620,13 +618,6 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
               )}
             </div>
           </div>
-
-          {/* Quick HCMC Preset Chips */}
-          <QuickPresetChips
-            activeField={activeField}
-            onSelectPreset={handlePresetSelect}
-            disabled={loading}
-          />
 
           <VehicleSelector vehicle={vehicle} onChange={setVehicle} disabled={loading} />
           <TimeSelector
