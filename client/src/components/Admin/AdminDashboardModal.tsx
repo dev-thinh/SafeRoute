@@ -322,7 +322,10 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-bold text-xs text-gray-900 font-mono">
+                        <span
+                          className="font-bold text-xs text-gray-900 font-mono"
+                          title={`Tọa độ tâm cụm báo cáo: ${cluster.coordinate.lat}, ${cluster.coordinate.lng}`}
+                        >
                           Tọa độ: {cluster.coordinate.lat.toFixed(4)}, {cluster.coordinate.lng.toFixed(4)}
                         </span>
                         <span
@@ -371,6 +374,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
 
                   {/* AI Reasoning Bar */}
                   <div
+                    title={cluster.aiReasoning}
                     className={`p-2.5 rounded-xl border flex items-center gap-2 text-xs ${
                       isSpamCluster
                         ? 'bg-pastel-coral-50/70 border-pastel-coral-200 text-pastel-coral-900'
@@ -382,7 +386,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                     ) : (
                       <Bot className="w-3.5 h-3.5 text-pastel-sky-600 flex-shrink-0" />
                     )}
-                    <p className="text-[11px] font-medium line-clamp-1">{cluster.aiReasoning}</p>
+                    <p className="text-[11px] font-medium line-clamp-1" title={cluster.aiReasoning}>{cluster.aiReasoning}</p>
                   </div>
 
                   {/* Action buttons */}
@@ -406,6 +410,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                             type="button"
                             disabled={isBusy}
                             onClick={() => handleRejectCluster(cluster.clusterId)}
+                            title="Bác bỏ cụm báo cáo này"
                             className="py-1.5 px-3 bg-pastel-coral-50 hover:bg-pastel-coral-100 text-rose-800 border border-pastel-coral-200 font-bold text-[11px] rounded-xl transition active:scale-95 cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shadow-xs"
                           >
                             <Trash2 className="w-3 h-3" />
@@ -415,6 +420,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                             type="button"
                             disabled={isBusy}
                             onClick={() => handleApproveCluster(cluster.clusterId)}
+                            title="Duyệt cụm báo cáo và đưa lên bản đồ SafeRoute trực tiếp"
                             className="py-1.5 px-3.5 bg-pastel-mint-600 hover:bg-pastel-mint-700 text-white font-bold text-[11px] rounded-xl shadow-glass-xs transition active:scale-95 cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
                           >
                             {isBusy ? (

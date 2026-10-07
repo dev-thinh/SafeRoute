@@ -187,12 +187,13 @@ export const NewsFeedTab: React.FC<NewsFeedTabProps> = ({ onSelectLocation, onRe
             </div>
 
             {/* Article Title */}
-            <h4 className="text-xs font-bold text-gray-900 leading-snug hover:text-pastel-sky-700 transition">
+            <h4 className="text-xs font-bold text-gray-900 leading-snug hover:text-pastel-sky-700 transition" title={item.title}>
               <a
                 href={item.url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-start justify-between gap-1.5 group"
+                title={`Mở bài viết gốc: ${item.title}`}
               >
                 <span className="group-hover:text-pastel-sky-700 transition">{item.title}</span>
                 <ExternalLink className="w-3.5 h-3.5 text-gray-400 group-hover:text-pastel-sky-600 flex-shrink-0 mt-0.5 transition" />
@@ -200,7 +201,7 @@ export const NewsFeedTab: React.FC<NewsFeedTabProps> = ({ onSelectLocation, onRe
             </h4>
 
             {/* Summary */}
-            <p className="text-[11px] text-gray-600 leading-relaxed line-clamp-2">
+            <p className="text-[11px] text-gray-600 leading-relaxed line-clamp-2" title={item.summary}>
               {item.summary}
             </p>
 
@@ -215,6 +216,7 @@ export const NewsFeedTab: React.FC<NewsFeedTabProps> = ({ onSelectLocation, onRe
                   {item.extractedLocations.map((loc, idx) => (
                     <div
                       key={idx}
+                      title={`${loc.streetName} (${loc.district}) • Dự báo ngập ~${loc.depthCm} cm`}
                       className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-pastel-amber-50/80 border border-pastel-amber-200 rounded-xl text-[11px] text-amber-950 font-medium shadow-xs"
                     >
                       <MapPin className="w-3 h-3 text-pastel-amber-700 flex-shrink-0" />

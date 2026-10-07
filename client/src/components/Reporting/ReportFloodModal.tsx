@@ -186,7 +186,10 @@ export const ReportFloodModal: React.FC<{
               <span className="text-[10px] font-bold text-pastel-sky-800 uppercase tracking-wider block">
                 Vị trí đã đánh dấu
               </span>
-              <p className="text-xs font-bold text-gray-900 mt-0.5 line-clamp-2 leading-snug">
+              <p
+                className="text-xs font-bold text-gray-900 mt-0.5 line-clamp-2 leading-snug"
+                title={location.label || `Tọa độ: ${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}`}
+              >
                 {location.label || `Tọa độ: ${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}`}
               </p>
               <p className="text-[10px] text-gray-500 font-mono mt-0.5">

@@ -89,7 +89,10 @@ const SingleReportMarker: React.FC<{
           </div>
 
           {report.description && (
-            <p className="text-slate-700 text-[11px] mt-1.5 italic bg-slate-50 p-2 rounded-xl border border-slate-150 leading-relaxed">
+            <p
+              title={report.description}
+              className="text-slate-700 text-[11px] mt-1.5 italic bg-slate-50 p-2 rounded-xl border border-slate-150 leading-relaxed"
+            >
               "{report.description}"
             </p>
           )}

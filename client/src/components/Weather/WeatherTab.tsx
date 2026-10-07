@@ -225,7 +225,7 @@ export const WeatherTab: React.FC<WeatherTabProps> = ({ onSelectLocation }) => {
                 className={`p-2.5 rounded-2xl border transition-all ${badge.bg}`}
               >
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-bold text-slate-900 truncate">
+                  <span className="text-xs font-bold text-slate-900 truncate" title={quad.name}>
                     {quad.name}
                   </span>
                   <span className="flex items-center gap-1 text-[10px] font-semibold">
@@ -239,7 +239,7 @@ export const WeatherTab: React.FC<WeatherTabProps> = ({ onSelectLocation }) => {
                   </span>
                   <span className="text-[10px] font-medium opacity-80 font-mono">mm/h</span>
                 </div>
-                <p className="text-[10px] mt-1 leading-tight opacity-90 line-clamp-1 font-medium">
+                <p className="text-[10px] mt-1 leading-tight opacity-90 line-clamp-1 font-medium" title={quad.alertText}>
                   {quad.alertText}
                 </p>
               </div>
@@ -379,20 +379,21 @@ export const WeatherTab: React.FC<WeatherTabProps> = ({ onSelectLocation }) => {
                 <div className="flex items-start justify-between gap-1.5">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <span className="font-bold text-xs text-slate-900 truncate">
+                      <span className="font-bold text-xs text-slate-900 truncate" title={`${c.streetName} (${c.district})`}>
                         {c.streetName}
                       </span>
                       <span className="text-[10px] px-1.5 py-0.5 bg-slate-100 text-slate-700 rounded-lg font-medium flex-shrink-0">
                         {c.district}
                       </span>
                     </div>
-                    <p className="text-[10px] text-slate-500 mt-0.5 line-clamp-1">
+                    <p className="text-[10px] text-slate-500 mt-0.5 line-clamp-1" title={c.description}>
                       {c.description}
                     </p>
                   </div>
 
                   <span
                     className={`flex-shrink-0 text-[10px] px-2 py-0.5 rounded-lg border flex items-center gap-1.5 ${badge.bg}`}
+                    title={badge.text}
                   >
                     <span className={`w-1.5 h-1.5 rounded-full ${badge.dotBg} flex-shrink-0`} />
                     <span>{badge.text}</span>
@@ -400,7 +401,10 @@ export const WeatherTab: React.FC<WeatherTabProps> = ({ onSelectLocation }) => {
                 </div>
 
                 <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100 text-[10px]">
-                  <div className="flex items-center gap-2 text-slate-600">
+                  <div
+                    className="flex items-center gap-2 text-slate-600"
+                    title={`Mưa hiện tại: ${c.currentRainMm} mm/h, Ngưỡng chịu tải: ${c.rainThresholdMm} mm/h`}
+                  >
                     <span>
                       Mưa: <strong className={c.currentRainMm >= c.rainThresholdMm ? 'text-rose-600 font-mono' : 'text-slate-800 font-mono'}>{c.currentRainMm} mm/h</strong>
                     </span>

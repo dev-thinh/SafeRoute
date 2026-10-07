@@ -149,7 +149,7 @@ export const ClusterDetailModal: React.FC<ClusterDetailModalProps> = ({
               />
             </div>
 
-            <p className="text-[11px] text-gray-700 leading-relaxed font-medium">
+            <p className="text-[11px] text-gray-700 leading-relaxed font-medium" title={cluster.aiReasoning}>
               {cluster.aiReasoning}
             </p>
           </div>
@@ -168,7 +168,10 @@ export const ClusterDetailModal: React.FC<ClusterDetailModalProps> = ({
               <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block">
                 Tọa độ tâm cụm
               </span>
-              <span className="text-[11px] font-bold text-gray-900 font-mono mt-0.5 block">
+              <span
+                className="text-[11px] font-bold text-gray-900 font-mono mt-0.5 block"
+                title={`Tọa độ tâm: ${cluster.coordinate.lat}, ${cluster.coordinate.lng}`}
+              >
                 {cluster.coordinate.lat.toFixed(4)}, {cluster.coordinate.lng.toFixed(4)}
               </span>
             </div>
@@ -234,6 +237,7 @@ export const ClusterDetailModal: React.FC<ClusterDetailModalProps> = ({
 
                     {r.description ? (
                       <p
+                        title={r.description}
                         className={`text-[11px] italic p-2.5 rounded-xl border ${
                           isReportSpam
                             ? 'bg-pastel-coral-50/70 border-pastel-coral-200 text-rose-950 font-medium'
@@ -249,7 +253,10 @@ export const ClusterDetailModal: React.FC<ClusterDetailModalProps> = ({
                     {r.aiReasoning && (
                       <div className="text-[10px] text-gray-500 font-mono mt-1 flex items-start gap-1">
                         <span className="text-gray-400">Đánh giá AI:</span>
-                        <span className={isReportSpam ? 'text-rose-700 font-medium' : 'text-gray-600'}>
+                        <span
+                          title={r.aiReasoning}
+                          className={isReportSpam ? 'text-rose-700 font-medium' : 'text-gray-600'}
+                        >
                           {r.aiReasoning}
                         </span>
                       </div>

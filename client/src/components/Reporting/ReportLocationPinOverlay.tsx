@@ -213,13 +213,14 @@ export const ReportLocationPinOverlay: React.FC<ReportLocationPinOverlayProps> =
                 </div>
               ) : (
                 suggestions.map((item, idx) => (
-                  <div
+                    <div
                     key={idx}
                     onMouseDown={() => {
                       setSearchQuery(item.label);
                       setIsFocused(false);
                       onSelectLocation?.(item.lat, item.lng, item.label);
                     }}
+                    title={`${item.label} (${item.lat.toFixed(4)}, ${item.lng.toFixed(4)})`}
                     className="p-2.5 text-xs text-slate-800 hover:bg-pastel-sky-50 hover:text-blue-900 cursor-pointer transition flex items-start gap-2 active:bg-pastel-sky-100"
                   >
                     <MapPin className="w-3.5 h-3.5 text-blue-600 mt-0.5 flex-shrink-0" />

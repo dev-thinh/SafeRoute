@@ -269,6 +269,8 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
         <button
           type="button"
           onClick={() => setMainTab('routes')}
+          title="Tìm kiếm và so sánh lộ trình né ngập"
+          aria-label="Chuyển sang tab Tìm lộ trình"
           className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold transition-all duration-200 min-h-[38px] cursor-pointer ${
             mainTab === 'routes'
               ? 'bg-white text-blue-700 shadow-sm shadow-blue-500/10 ring-1 ring-black/5'
@@ -282,6 +284,8 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
         <button
           type="button"
           onClick={() => setMainTab('news')}
+          title="Xem tin tức ngập lụt được AI tổng hợp"
+          aria-label="Chuyển sang tab Tin tức ngập lụt"
           className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold transition-all duration-200 min-h-[38px] cursor-pointer ${
             mainTab === 'news'
               ? 'bg-white text-blue-700 shadow-sm shadow-blue-500/10 ring-1 ring-black/5'
@@ -295,6 +299,8 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
         <button
           type="button"
           onClick={() => setMainTab('weather')}
+          title="Xem tình hình mưa & triều cường TP.HCM"
+          aria-label="Chuyển sang tab Thời tiết và triều cường"
           className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold transition-all duration-200 min-h-[38px] cursor-pointer ${
             mainTab === 'weather'
               ? 'bg-white text-blue-700 shadow-sm shadow-blue-500/10 ring-1 ring-black/5'
@@ -398,6 +404,7 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                   type="text"
                   disabled={loading}
                   value={activeField === 'origin' ? searchQuery : origin.label}
+                  title={origin.label || 'Nhập địa chỉ xuất phát...'}
                   onFocus={() => {
                     setActiveField('origin');
                     setSearchQuery(origin.label);
@@ -426,6 +433,7 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                       setSearchQuery('');
                     }}
                     className="text-slate-400 hover:text-slate-600 p-0.5 active:scale-90 transition cursor-pointer"
+                    title="Xóa địa chỉ xuất phát"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -458,6 +466,7 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                       <div
                         key={idx}
                         onMouseDown={() => handleSelectLocation(item)}
+                        title={`${item.label} (${item.lat.toFixed(4)}, ${item.lng.toFixed(4)})`}
                         className="p-2.5 text-xs text-slate-800 hover:bg-pastel-mint-50 hover:text-pastel-mint-900 cursor-pointer transition flex items-start gap-2 active:bg-pastel-mint-100"
                       >
                         <MapPin className="w-3.5 h-3.5 text-pastel-mint-600 mt-0.5 flex-shrink-0" />
@@ -534,6 +543,7 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                   type="text"
                   disabled={loading}
                   value={activeField === 'dest' ? searchQuery : destination.label}
+                  title={destination.label || 'Nhập địa chỉ điểm đến...'}
                   onFocus={() => {
                     setActiveField('dest');
                     setSearchQuery(destination.label);
@@ -562,6 +572,7 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                       setSearchQuery('');
                     }}
                     className="text-slate-400 hover:text-slate-600 p-0.5 active:scale-90 transition cursor-pointer"
+                    title="Xóa địa chỉ điểm đến"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -594,6 +605,7 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                       <div
                         key={idx}
                         onMouseDown={() => handleSelectLocation(item)}
+                        title={`${item.label} (${item.lat.toFixed(4)}, ${item.lng.toFixed(4)})`}
                         className="p-2.5 text-xs text-slate-800 hover:bg-pastel-coral-50 hover:text-pastel-coral-900 cursor-pointer transition flex items-start gap-2 active:bg-pastel-coral-100"
                       >
                         <Target className="w-3.5 h-3.5 text-pastel-coral-600 mt-0.5 flex-shrink-0" />
@@ -676,7 +688,10 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
             <div className="space-y-2.5 pt-2 border-t border-slate-150">
               {/* Visual Flood Detection Alert Banner */}
               {routeData.safe_route.isFlooded ? (
-                <div className="p-3 bg-pastel-coral-50 border border-pastel-coral-200/90 rounded-2xl text-xs space-y-1">
+                <div
+                  className="p-3 bg-pastel-coral-50 border border-pastel-coral-200/90 rounded-2xl text-xs space-y-1"
+                  title={`Mọi ngả đường đều ngập sâu ${routeData.safe_route.maxFloodDepthCm} cm (${routeData.safe_route.floodedDistanceMeters} m). Khu vực ngập diện rộng.`}
+                >
                   <div className="flex items-center gap-1.5 font-bold text-pastel-coral-900">
                     <AlertOctagon className="w-4 h-4 text-pastel-coral-600 flex-shrink-0" />
                     <span>
@@ -688,7 +703,10 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                   </p>
                 </div>
               ) : routeData.fastest_route.isFlooded ? (
-                <div className="p-3 bg-pastel-mint-50 border border-pastel-mint-200 rounded-2xl text-xs space-y-1">
+                <div
+                  className="p-3 bg-pastel-mint-50 border border-pastel-mint-200 rounded-2xl text-xs space-y-1"
+                  title={`Tuyến nhanh nhất ngập ${routeData.fastest_route.maxFloodDepthCm} cm (${routeData.fastest_route.floodedDistanceMeters} m). Đã chuyển sang lộ trình khô ráo.`}
+                >
                   <div className="flex items-center gap-1.5 font-bold text-pastel-mint-900">
                     <ShieldCheck className="w-4 h-4 text-pastel-mint-600 flex-shrink-0" />
                     <span>
