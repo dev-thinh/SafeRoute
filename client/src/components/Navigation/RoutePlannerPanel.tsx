@@ -310,9 +310,9 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                 </div>
               </div>
 
-              <div className="flex items-center gap-2.5 p-2.5 sm:p-3 bg-white rounded-2xl border-2 border-emerald-500/80 shadow-md hover:border-emerald-600 hover:shadow-lg focus-within:border-emerald-600 focus-within:ring-4 focus-within:ring-emerald-100 focus-within:shadow-lg transition-all">
-                <div className="w-8 h-8 rounded-xl bg-emerald-500 text-white flex items-center justify-center font-black text-xs shadow-xs flex-shrink-0">
-                  <MapPin className="w-4 h-4 text-white" />
+              <div className="flex items-center gap-2 px-3 py-1.5 sm:py-2 bg-white rounded-xl border-2 border-emerald-500/80 shadow-xs hover:border-emerald-600 hover:shadow-sm focus-within:border-emerald-600 focus-within:ring-2 focus-within:ring-emerald-100 transition-all min-h-[38px]">
+                <div className="w-6 h-6 rounded-lg bg-emerald-500 text-white flex items-center justify-center font-black text-xs shadow-xs flex-shrink-0">
+                  <MapPin className="w-3.5 h-3.5 text-white" />
                 </div>
                 <input
                   type="text"
@@ -337,7 +337,7 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                     });
                   }}
                   placeholder="Nhập địa chỉ xuất phát..."
-                  className="text-xs sm:text-sm bg-transparent w-full outline-none font-bold text-slate-900 placeholder:text-slate-400 placeholder:font-normal disabled:opacity-50"
+                  className="text-xs bg-transparent w-full outline-none font-bold text-slate-900 placeholder:text-slate-400 placeholder:font-normal disabled:opacity-50 py-0.5"
                 />
                 {origin.label && !loading && (
                   <button
@@ -346,10 +346,10 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                       onChangeOrigin({ label: '', lat: 0, lng: 0 });
                       setSearchQuery('');
                     }}
-                    className="w-6 h-6 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition active:scale-90 cursor-pointer shrink-0"
+                    className="w-5 h-5 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition active:scale-90 cursor-pointer shrink-0"
                     title="Xóa địa chỉ xuất phát"
                   >
-                    <X className="w-3.5 h-3.5" />
+                    <X className="w-3 h-3" />
                   </button>
                 )}
               </div>
@@ -426,9 +426,9 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                 onClick={handleSwap}
                 title="Đảo chiều điểm đi và điểm đến"
                 aria-label="Đảo chiều điểm đi và điểm đến"
-                className="group p-2 bg-white hover:bg-blue-50 border-2 border-slate-300 hover:border-blue-500 text-slate-600 hover:text-blue-600 rounded-full shadow-md hover:shadow-lg transition-all active:scale-90 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                className="group p-1.5 bg-white hover:bg-blue-50 border-2 border-slate-300 hover:border-blue-500 text-slate-600 hover:text-blue-600 rounded-full shadow-xs hover:shadow-md transition-all active:scale-90 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <ArrowUpDown className="w-3.5 h-3.5 group-hover:rotate-180 transition-transform duration-300" />
+                <ArrowUpDown className="w-3 h-3 group-hover:rotate-180 transition-transform duration-300" />
               </button>
             </div>
 
@@ -455,9 +455,9 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                 </button>
               </div>
 
-              <div className="flex items-center gap-2.5 p-2.5 sm:p-3 bg-white rounded-2xl border-2 border-rose-500/80 shadow-md hover:border-rose-600 hover:shadow-lg focus-within:border-rose-600 focus-within:ring-4 focus-within:ring-rose-100 focus-within:shadow-lg transition-all">
-                <div className="w-8 h-8 rounded-xl bg-rose-500 text-white flex items-center justify-center font-black text-xs shadow-xs flex-shrink-0">
-                  <Target className="w-4 h-4 text-white" />
+              <div className="flex items-center gap-2 px-3 py-1.5 sm:py-2 bg-white rounded-xl border-2 border-rose-500/80 shadow-xs hover:border-rose-600 hover:shadow-sm focus-within:border-rose-600 focus-within:ring-2 focus-within:ring-rose-100 transition-all min-h-[38px]">
+                <div className="w-6 h-6 rounded-lg bg-rose-500 text-white flex items-center justify-center font-black text-xs shadow-xs flex-shrink-0">
+                  <Target className="w-3.5 h-3.5 text-white" />
                 </div>
                 <input
                   type="text"
@@ -482,7 +482,7 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                     });
                   }}
                   placeholder="Nhập địa chỉ điểm đến..."
-                  className="text-xs sm:text-sm bg-transparent w-full outline-none font-bold text-slate-900 placeholder:text-slate-400 placeholder:font-normal disabled:opacity-50"
+                  className="text-xs bg-transparent w-full outline-none font-bold text-slate-900 placeholder:text-slate-400 placeholder:font-normal disabled:opacity-50 py-0.5"
                 />
                 {destination.label && !loading && (
                   <button
@@ -491,10 +491,10 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                       onChangeDestination({ label: '', lat: 0, lng: 0 });
                       setSearchQuery('');
                     }}
-                    className="w-6 h-6 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition active:scale-90 cursor-pointer shrink-0"
+                    className="w-5 h-5 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition active:scale-90 cursor-pointer shrink-0"
                     title="Xóa địa chỉ điểm đến"
                   >
-                    <X className="w-3.5 h-3.5" />
+                    <X className="w-3 h-3" />
                   </button>
                 )}
               </div>

@@ -1,15 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import {
-  Calendar as CalendarIcon,
-  Clock,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  X,
-  RotateCcw,
-  Sparkles,
-  Check,
-} from 'lucide-react';
+import React, { useMemo } from 'react';
+import { Clock, Calendar, ChevronDown } from 'lucide-react';
 
 interface TimeSelectorProps {
   selectedTime: string;
@@ -17,473 +7,294 @@ interface TimeSelectorProps {
   disabled?: boolean;
 }
 
-const isSameDay = (d1: Date, d2: Date): boolean => {
-  return (
-    d1.getFullYear() === d2.getFullYear() &&
-    d1.getMonth() === d2.getMonth() &&
-    d1.getDate() === d2.getDate()
-  );
-};
-
-const formatDayLabel = (d: Date): string => {
-  const now = new Date();
-  const tomorrow = new Date(now);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-
-  const dd = d.getDate().toString().padStart(2, '0');
+// Format local date key "YYYY-MM-DD"
+const toLocalDateKey = (d: Date): string => {
+  const yyyy = d.getFullYear();
   const mm = (d.getMonth() + 1).toString().padStart(2, '0');
-
-  if (isSameDay(d, now)) {
-    return `Hôm nay, ${dd}/${mm}`;
-  }
-  if (isSameDay(d, tomorrow)) {
-    return `Ngày mai, ${dd}/${mm}`;
-  }
-
-  const days = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
-  return `${days[d.getDay()]}, ${dd}/${mm}`;
+  const dd = d.getDate().toString().padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
 };
+
+// Format local time key "HH:mm"
+const toLocalTimeKey = (d: Date): string => {
+  const hh = d.getHours().toString().padStart(2, '0');
+  const mm = d.getMinutes().toString().padStart(2, '0');
+  return `${hh}:${mm}`;
+};
+
+const TIME_PRESETS = [
+  { value: '06:00', label: '06:00 - Sáng sớm' },
+  { value: '06:30', label: '06:30' },
+  { value: '07:00', label: '07:00 - Bắt đầu đi làm' },
+  { value: '07:30', label: '07:30 - Cao điểm sáng' },
+  { value: '08:00', label: '08:00 - Giờ làm việc' },
+  { value: '08:30', label: '08:30' },
+  { value: '09:00', label: '09:00' },
+  { value: '10:00', label: '10:00' },
+  { value: '11:00', label: '11:00' },
+  { value: '12:00', label: '12:00 - Buổi trưa' },
+  { value: '13:00', label: '13:00' },
+  { value: '14:00', label: '14:00' },
+  { value: '15:00', label: '15:00' },
+  { value: '16:00', label: '16:00' },
+  { value: '16:30', label: '16:30' },
+  { value: '17:00', label: '17:00 - Tan tầm bắt đầu' },
+  { value: '17:30', label: '17:30 - Đỉnh tan tầm' },
+  { value: '18:00', label: '18:00 - Tan tầm tối' },
+  { value: '18:30', label: '18:30' },
+  { value: '19:00', label: '19:00' },
+  { value: '19:30', label: '19:30 - Đỉnh triều cường' },
+  { value: '20:00', label: '20:00 - Buổi tối' },
+  { value: '20:30', label: '20:30' },
+  { value: '21:00', label: '21:00' },
+  { value: '22:00', label: '22:00' },
+  { value: '23:00', label: '23:00 - Khuya' },
+];
 
 export const TimeSelector: React.FC<TimeSelectorProps> = ({
   selectedTime,
   onChange,
   disabled,
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const currentDate = useMemo(() => {
+    return selectedTime ? new Date(selectedTime) : new Date();
+  }, [selectedTime]);
 
-  const currentDate = selectedTime ? new Date(selectedTime) : new Date();
+  const currentDateKey = toLocalDateKey(currentDate);
+  const currentTimeKey = toLocalTimeKey(currentDate);
 
-  // Calendar month state
-  const [viewYear, setViewYear] = useState(currentDate.getFullYear());
-  const [viewMonth, setViewMonth] = useState(currentDate.getMonth()); // 0-indexed
+  // Generate 14 upcoming days safely in local time
+  const dateOptions = useMemo(() => {
+    const list: { key: string; label: string }[] = [];
+    const now = new Date();
+    const daysOfWeek = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
 
-  // Synchronize view month when popover opens
-  useEffect(() => {
-    if (isOpen) {
-      setViewYear(currentDate.getFullYear());
-      setViewMonth(currentDate.getMonth());
-    }
-  }, [isOpen]);
+    for (let i = 0; i < 14; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
+      const key = toLocalDateKey(d);
+      const dd = d.getDate().toString().padStart(2, '0');
+      const mm = (d.getMonth() + 1).toString().padStart(2, '0');
 
-  // Click outside to close
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
+      let label = '';
+      if (i === 0) {
+        label = `Hôm nay (${dd}/${mm})`;
+      } else if (i === 1) {
+        label = `Ngày mai (${dd}/${mm})`;
+      } else if (i === 2) {
+        label = `Ngày kia (${dd}/${mm})`;
+      } else {
+        label = `${daysOfWeek[d.getDay()]}, ${dd}/${mm}`;
       }
-    };
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+
+      list.push({ key, label });
     }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isOpen]);
+    return list;
+  }, []);
 
-  // Keyboard accessibility
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        setIsOpen(false);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen]);
+  // Handle date change from dropdown
+  const handleDateSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newDateKey = e.target.value;
+    const [yStr, mStr, dStr] = newDateKey.split('-');
+    const year = parseInt(yStr, 10);
+    const month = parseInt(mStr, 10) - 1;
+    const day = parseInt(dStr, 10);
 
-  // Handlers for quick presets
+    // Keep current selected hours and minutes
+    const nextDate = new Date(year, month, day, currentDate.getHours(), currentDate.getMinutes(), 0);
+    onChange(nextDate.toISOString());
+  };
+
+  // Handle time change from dropdown
+  const handleTimeSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newTimeVal = e.target.value;
+    const [hStr, mStr] = newTimeVal.split(':');
+    const hours = parseInt(hStr, 10);
+    const minutes = parseInt(mStr, 10);
+
+    const nextDate = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth(),
+      currentDate.getDate(),
+      hours,
+      minutes,
+      0
+    );
+    onChange(nextDate.toISOString());
+  };
+
+  // Quick preset shortcuts
   const handleSetNow = () => {
     onChange(new Date().toISOString());
   };
 
-  const handleAddHour = (hoursToAdd = 1) => {
-    const base = selectedTime ? new Date(selectedTime) : new Date();
-    const next = new Date(base.getTime() + hoursToAdd * 60 * 60 * 1000);
+  const handleAddHour = () => {
+    const next = new Date(currentDate.getTime() + 60 * 60 * 1000);
     onChange(next.toISOString());
   };
 
   const handleSetRushHour = () => {
-    const base = selectedTime ? new Date(selectedTime) : new Date();
-    const next = new Date(base.getTime());
-    next.setHours(17, 30, 0, 0);
+    const next = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth(),
+      currentDate.getDate(),
+      17,
+      30,
+      0
+    );
     onChange(next.toISOString());
   };
 
   const handleSetHighTide = () => {
-    const base = selectedTime ? new Date(selectedTime) : new Date();
-    const next = new Date(base.getTime());
-    next.setHours(19, 30, 0, 0);
+    const next = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth(),
+      currentDate.getDate(),
+      19,
+      30,
+      0
+    );
     onChange(next.toISOString());
   };
 
-  // Select a specific day
-  const handleSelectDay = (day: number) => {
-    const next = new Date(currentDate.getTime());
-    next.setFullYear(viewYear);
-    next.setMonth(viewMonth);
-    next.setDate(day);
-    onChange(next.toISOString());
+  // Handle minute-exact manual time change
+  const handleExactTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    if (!val) return;
+    const [hStr, mStr] = val.split(':');
+    const hours = parseInt(hStr, 10);
+    const minutes = parseInt(mStr, 10);
+
+    const nextDate = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth(),
+      currentDate.getDate(),
+      hours,
+      minutes,
+      0
+    );
+    onChange(nextDate.toISOString());
   };
 
-  // Set hours and minutes
-  const handleTimeChange = (hour: number, minute: number) => {
-    const next = new Date(currentDate.getTime());
-    next.setHours(hour, minute, 0, 0);
-    onChange(next.toISOString());
-  };
-
-  // Quick preset days
-  const now = new Date();
-  const tomorrow = new Date(now);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const dayAfterTomorrow = new Date(now);
-  dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
-
-  // Calendar month days calculation
-  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
-  const firstDayOfWeek = (new Date(viewYear, viewMonth, 1).getDay() + 6) % 7; // Monday = 0
-
-  const handlePrevMonth = () => {
-    if (viewMonth === 0) {
-      setViewMonth(11);
-      setViewYear((y) => y - 1);
-    } else {
-      setViewMonth((m) => m - 1);
-    }
-  };
-
-  const handleNextMonth = () => {
-    if (viewMonth === 11) {
-      setViewMonth(0);
-      setViewYear((y) => y + 1);
-    } else {
-      setViewMonth((m) => m + 1);
-    }
-  };
-
-  const hoursString = currentDate.getHours().toString().padStart(2, '0');
-  const minutesString = currentDate.getMinutes().toString().padStart(2, '0');
+  const isPresetMatch = TIME_PRESETS.some((p) => p.value === currentTimeKey);
 
   return (
-    <div className="space-y-2 select-none relative font-sans" ref={dropdownRef}>
+    <div className="space-y-2 select-none font-sans">
       {/* 1. Header Label */}
       <div className="flex items-center justify-between px-0.5">
         <label className="text-[10px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
           <Clock className="w-3.5 h-3.5 text-blue-600" />
-          <span>Thời gian khởi hành & Dự báo ngập</span>
+          <span>Thời gian khởi hành</span>
         </label>
         <span className="text-[10px] text-blue-700 font-bold bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
           Mô phỏng ngập
         </span>
       </div>
 
-      {/* 2. Interactive Trigger Button / Display Card */}
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => setIsOpen(!isOpen)}
-        aria-expanded={isOpen}
-        className={`w-full p-3 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between text-left shadow-sm ${
-          isOpen
-            ? 'bg-white border-blue-600 ring-4 ring-blue-100 shadow-md'
-            : 'bg-white hover:bg-slate-50/80 border-slate-300 hover:border-blue-400 hover:shadow-md'
-        } disabled:opacity-50 disabled:cursor-not-allowed`}
-      >
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 flex items-center justify-center flex-shrink-0 shadow-xs">
-            <CalendarIcon className="w-5 h-5 text-blue-600" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs sm:text-sm font-black text-slate-900">
-                {formatDayLabel(currentDate)}
-              </span>
-              <span className="text-xs sm:text-sm font-black text-blue-700 font-mono bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-200 shadow-xs">
-                {hoursString}:{minutesString}
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-500 font-medium mt-0.5">
-              Chạm để đổi ngày giờ hoặc chọn giờ cao điểm
-            </p>
+      {/* 2. Dual External Dropdowns: Chọn ngày & Chọn giờ */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {/* Dropdown 1: Chọn ngày */}
+        <div className="relative">
+          <div className="flex items-center gap-2 px-3 py-2 bg-white rounded-xl border border-slate-300 hover:border-blue-500 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-100 shadow-xs transition-all">
+            <Calendar className="w-4 h-4 text-blue-600 shrink-0 pointer-events-none" />
+            <select
+              disabled={disabled}
+              value={currentDateKey}
+              onChange={handleDateSelect}
+              className="w-full text-xs font-bold text-slate-900 bg-transparent outline-none cursor-pointer appearance-none pr-5 disabled:opacity-50"
+              title="Chọn ngày khởi hành"
+              aria-label="Chọn ngày khởi hành"
+            >
+              {dateOptions.map((opt) => (
+                <option key={opt.key} value={opt.key}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 pointer-events-none" />
           </div>
         </div>
 
-        <div className="flex items-center gap-1 text-slate-400">
-          <ChevronDown
-            className={`w-4 h-4 transition-transform duration-200 ${
-              isOpen ? 'rotate-180 text-blue-600' : ''
-            }`}
-          />
+        {/* Dropdown 2: Chọn giờ */}
+        <div className="relative">
+          <div className="flex items-center gap-2 px-3 py-2 bg-white rounded-xl border border-slate-300 hover:border-blue-500 focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-100 shadow-xs transition-all">
+            <Clock className="w-4 h-4 text-blue-600 shrink-0 pointer-events-none" />
+            <select
+              disabled={disabled}
+              value={isPresetMatch ? currentTimeKey : 'custom'}
+              onChange={handleTimeSelect}
+              className="w-full text-xs font-bold text-slate-900 bg-transparent outline-none cursor-pointer appearance-none pr-5 disabled:opacity-50 font-mono"
+              title="Chọn giờ khởi hành"
+              aria-label="Chọn giờ khởi hành"
+            >
+              {!isPresetMatch && (
+                <option value="custom">
+                  {currentTimeKey} (Tùy chỉnh)
+                </option>
+              )}
+              {TIME_PRESETS.map((p) => (
+                <option key={p.value} value={p.value}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 pointer-events-none" />
+          </div>
         </div>
-      </button>
-
-      {/* 3. Quick preset pills below the trigger */}
-      <div className="grid grid-cols-4 gap-1.5 text-xs">
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={handleSetNow}
-          className="py-2 px-1.5 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 hover:border-slate-300 active:scale-95 font-bold text-slate-700 shadow-xs transition-all text-center min-h-[38px] cursor-pointer disabled:opacity-50"
-          title="Đặt về thời gian hiện tại"
-        >
-          Hiện tại
-        </button>
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={() => handleAddHour(1)}
-          className="py-2 px-1.5 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 hover:border-slate-300 active:scale-95 font-bold text-slate-700 shadow-xs transition-all text-center min-h-[38px] cursor-pointer disabled:opacity-50"
-          title="Tăng thêm 1 tiếng"
-        >
-          +1 tiếng
-        </button>
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={handleSetRushHour}
-          className="py-2 px-1.5 bg-pastel-sky-50 border border-sky-200 text-blue-900 rounded-xl hover:bg-pastel-sky-100 active:scale-95 font-bold shadow-xs transition-all text-center min-h-[38px] cursor-pointer disabled:opacity-50"
-          title="Giờ tan tầm 17:30"
-        >
-          17:30
-        </button>
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={handleSetHighTide}
-          className="py-2 px-1.5 bg-pastel-lavender-50 border border-purple-200 text-purple-900 rounded-xl hover:bg-pastel-lavender-100 active:scale-95 font-bold shadow-xs transition-all text-center min-h-[38px] cursor-pointer disabled:opacity-50"
-          title="Đỉnh triều cường 19:30"
-        >
-          19:30
-        </button>
       </div>
 
-      {/* 4. Elegant Interactive Dropdown Popover */}
-      {isOpen && (
-        <div className="absolute top-full left-0 right-0 z-50 mt-2 bg-white/98 backdrop-blur-2xl rounded-3xl border border-sky-200 shadow-2xl p-4 sm:p-5 space-y-4 animate-in fade-in zoom-in-95 duration-150">
-          {/* Popover Header */}
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center">
-                <Sparkles className="w-4 h-4" />
-              </div>
-              <div>
-                <h4 className="text-xs font-bold text-slate-900 leading-tight">
-                  Tùy chỉnh thời gian khởi hành
-                </h4>
-                <p className="text-[10px] text-slate-500 font-medium">
-                  Mô phỏng bản đồ ngập lụt tại thời điểm chọn
-                </p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setIsOpen(false)}
-              className="w-7 h-7 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition cursor-pointer"
-              title="Đóng (Esc)"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Quick Date Pills: Hôm nay, Ngày mai, Ngày kia */}
-          <div className="grid grid-cols-3 gap-1.5">
-            {[
-              { label: 'Hôm nay', date: now },
-              { label: 'Ngày mai', date: tomorrow },
-              { label: 'Ngày kia', date: dayAfterTomorrow },
-            ].map((item, idx) => {
-              const isSelected = isSameDay(currentDate, item.date);
-              return (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => {
-                    const next = new Date(currentDate.getTime());
-                    next.setFullYear(item.date.getFullYear(), item.date.getMonth(), item.date.getDate());
-                    onChange(next.toISOString());
-                  }}
-                  className={`py-2 px-2 text-xs font-bold rounded-xl border transition active:scale-95 cursor-pointer ${
-                    isSelected
-                      ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
-                      : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
-                  }`}
-                >
-                  {item.label}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Mini Calendar View */}
-          <div className="bg-slate-50/70 rounded-2xl border border-slate-200/80 p-3 space-y-2.5">
-            {/* Month & Year Navigation */}
-            <div className="flex items-center justify-between text-xs font-bold text-slate-800 px-1">
-              <span>
-                Tháng {viewMonth + 1} / {viewYear}
-              </span>
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={handlePrevMonth}
-                  className="w-7 h-7 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 flex items-center justify-center transition active:scale-90 cursor-pointer shadow-xs"
-                  title="Tháng trước"
-                >
-                  <ChevronLeft className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={handleNextMonth}
-                  className="w-7 h-7 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 flex items-center justify-center transition active:scale-90 cursor-pointer shadow-xs"
-                  title="Tháng sau"
-                >
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-
-            {/* Days of week */}
-            <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-400">
-              {['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].map((d) => (
-                <div key={d} className="py-0.5">
-                  {d}
-                </div>
-              ))}
-            </div>
-
-            {/* Calendar grid */}
-            <div className="grid grid-cols-7 gap-1 text-xs">
-              {/* Empty padding cells for start of month */}
-              {Array.from({ length: firstDayOfWeek }).map((_, i) => (
-                <div key={`empty-${i}`} className="w-7 h-7" />
-              ))}
-
-              {/* Day numbers */}
-              {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
-                const thisDate = new Date(viewYear, viewMonth, day);
-                const isSelected = isSameDay(currentDate, thisDate);
-                const isToday = isSameDay(now, thisDate);
-
-                return (
-                  <button
-                    key={day}
-                    type="button"
-                    onClick={() => handleSelectDay(day)}
-                    className={`w-7 h-7 mx-auto rounded-xl text-xs font-bold font-mono transition-all active:scale-90 flex items-center justify-center cursor-pointer ${
-                      isSelected
-                        ? 'bg-blue-600 text-white shadow-sm'
-                        : isToday
-                        ? 'bg-blue-100 text-blue-800 border border-blue-300 font-black'
-                        : 'text-slate-700 hover:bg-white hover:shadow-xs'
-                    }`}
-                  >
-                    {day}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Time Picker Section */}
-          <div className="space-y-2 pt-1 border-t border-slate-100">
-            <div className="flex items-center justify-between text-xs font-bold text-slate-700">
-              <span className="flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-blue-600" />
-                <span>Giờ khởi hành (24h)</span>
-              </span>
-              <span className="font-mono text-blue-700 font-bold bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-200">
-                {hoursString}:{minutesString}
-              </span>
-            </div>
-
-            {/* Hour & Minute Selection Controls */}
-            <div className="grid grid-cols-2 gap-2">
-              {/* Hours Select */}
-              <div className="space-y-1">
-                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">
-                  Giờ (00 - 23)
-                </span>
-                <select
-                  value={currentDate.getHours()}
-                  onChange={(e) =>
-                    handleTimeChange(parseInt(e.target.value, 10), currentDate.getMinutes())
-                  }
-                  className="w-full text-xs font-bold font-mono p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-blue-500 focus:bg-white transition cursor-pointer"
-                >
-                  {Array.from({ length: 24 }, (_, i) => i).map((h) => (
-                    <option key={h} value={h}>
-                      {h.toString().padStart(2, '0')} giờ
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Minutes Select */}
-              <div className="space-y-1">
-                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">
-                  Phút (00 - 55)
-                </span>
-                <select
-                  value={Math.floor(currentDate.getMinutes() / 5) * 5}
-                  onChange={(e) =>
-                    handleTimeChange(currentDate.getHours(), parseInt(e.target.value, 10))
-                  }
-                  className="w-full text-xs font-bold font-mono p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-blue-500 focus:bg-white transition cursor-pointer"
-                >
-                  {Array.from({ length: 12 }, (_, i) => i * 5).map((m) => (
-                    <option key={m} value={m}>
-                      {m.toString().padStart(2, '0')} phút
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Quick Time Milestones */}
-            <div className="grid grid-cols-4 gap-1 pt-1">
-              {[
-                { label: '07:30', h: 7, m: 30, desc: 'Sáng' },
-                { label: '12:00', h: 12, m: 0, desc: 'Trưa' },
-                { label: '17:30', h: 17, m: 30, desc: 'Tan tầm' },
-                { label: '19:30', h: 19, m: 30, desc: 'Đỉnh triều' },
-              ].map((milestone, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => handleTimeChange(milestone.h, milestone.m)}
-                  className="p-1.5 rounded-xl bg-slate-50 hover:bg-blue-50 hover:text-blue-700 text-slate-700 border border-slate-200 text-center transition active:scale-95 cursor-pointer text-[11px] font-bold"
-                  title={`${milestone.label} (${milestone.desc})`}
-                >
-                  <span className="font-mono block">{milestone.label}</span>
-                  <span className="text-[9px] text-slate-500 font-normal">{milestone.desc}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Action Footer */}
-          <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
-            <button
-              type="button"
-              onClick={handleSetNow}
-              className="py-2 px-3 text-xs font-bold text-slate-700 hover:text-blue-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition flex items-center gap-1.5 cursor-pointer active:scale-95"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Về hiện tại</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setIsOpen(false)}
-              className="py-2 px-5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-xl transition shadow-md hover:shadow-lg flex items-center gap-1.5 cursor-pointer active:scale-95"
-            >
-              <Check className="w-3.5 h-3.5" />
-              <span>Xác nhận</span>
-            </button>
-          </div>
+      {/* 3. Quick Action Pills & Precise Minute Input */}
+      <div className="flex items-center justify-between gap-1.5 flex-wrap">
+        <div className="grid grid-cols-4 gap-1.5 text-xs flex-1">
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={handleSetNow}
+            className="py-1.5 px-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-slate-300 active:scale-95 font-bold text-slate-700 shadow-xs transition-all text-center min-h-[32px] cursor-pointer disabled:opacity-50 text-[11px]"
+            title="Đặt lại về thời gian hiện tại"
+          >
+            Hiện tại
+          </button>
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={handleAddHour}
+            className="py-1.5 px-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-slate-300 active:scale-95 font-bold text-slate-700 shadow-xs transition-all text-center min-h-[32px] cursor-pointer disabled:opacity-50 text-[11px]"
+            title="Tăng thêm 1 tiếng"
+          >
+            +1 tiếng
+          </button>
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={handleSetRushHour}
+            className="py-1.5 px-2 bg-pastel-sky-50 border border-sky-200 text-blue-900 rounded-lg hover:bg-pastel-sky-100 active:scale-95 font-bold shadow-xs transition-all text-center min-h-[32px] cursor-pointer disabled:opacity-50 text-[11px]"
+            title="Giờ tan tầm 17:30"
+          >
+            17:30
+          </button>
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={handleSetHighTide}
+            className="py-1.5 px-2 bg-pastel-lavender-50 border border-purple-200 text-purple-900 rounded-lg hover:bg-pastel-lavender-100 active:scale-95 font-bold shadow-xs transition-all text-center min-h-[32px] cursor-pointer disabled:opacity-50 text-[11px]"
+            title="Đỉnh triều cường 19:30"
+          >
+            19:30
+          </button>
         </div>
-      )}
+
+        {/* Precise Minute Picker Button */}
+        <div className="flex items-center gap-1 bg-white px-2 py-1 rounded-lg border border-slate-200 shadow-xs" title="Chỉnh giờ chính xác từng phút">
+          <input
+            type="time"
+            disabled={disabled}
+            value={currentTimeKey}
+            onChange={handleExactTimeChange}
+            className="text-[11px] font-mono font-bold text-slate-800 bg-transparent outline-none cursor-pointer"
+            aria-label="Chọn giờ phút chính xác"
+          />
+        </div>
+      </div>
     </div>
   );
 };
