@@ -176,13 +176,13 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
     setOpenDropdown(type);
   };
 
-  // Generate 14 upcoming days with full, non-truncated labels
+  // Generate 7 upcoming days (optimal forecast window) with full, non-truncated labels
   const dateOptions = useMemo(() => {
     const list: { key: string; label: string; fullLabel: string }[] = [];
     const now = new Date();
     const daysOfWeek = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
 
-    for (let i = 0; i < 14; i++) {
+    for (let i = 0; i < 7; i++) {
       const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
       const key = toLocalDateKey(d);
       const dd = d.getDate().toString().padStart(2, '0');
@@ -533,62 +533,72 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
                 top: popoverCoords.top,
                 left: popoverCoords.left,
                 width: popoverCoords.width,
-                maxHeight: '260px',
+                maxHeight: '280px',
               }}
               onClick={(e) => e.stopPropagation()}
               onWheel={(e) => e.stopPropagation()}
-              className="bg-white rounded-2xl border-2 border-slate-300 shadow-2xl overflow-y-auto animate-in fade-in zoom-in-95 duration-150 py-1"
+              className="bg-white rounded-2xl border-2 border-slate-300 shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150"
             >
               {openDropdown === 'date' && (
-                <div className="divide-y divide-slate-100">
-                  <div className="px-3.5 py-2 bg-slate-50 text-xs font-bold text-slate-500 uppercase tracking-wider sticky top-0 z-10">
-                    Chọn ngày khởi hành
+                <>
+                  <div className="px-3.5 py-2.5 bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-700 uppercase tracking-wider shrink-0 flex items-center justify-between select-none">
+                    <span>Chọn ngày khởi hành</span>
+                    <span className="text-xs text-blue-700 font-bold bg-blue-100/70 px-2 py-0.5 rounded-full border border-blue-200">
+                      7 ngày tới
+                    </span>
                   </div>
-                  {dateOptions.map((opt) => {
-                    const isSelected = opt.key === currentDateKey;
-                    return (
-                      <button
-                        key={opt.key}
-                        type="button"
-                        onClick={() => handleSelectDate(opt.key)}
-                        className={`w-full flex items-center justify-between px-3.5 py-2.5 text-sm transition text-left cursor-pointer ${
-                          isSelected
-                            ? 'bg-blue-600 text-white font-bold'
-                            : 'text-slate-800 hover:bg-blue-50 hover:text-blue-700 font-semibold'
-                        }`}
-                      >
-                        <span>{opt.label}</span>
-                        {isSelected && <Check className="w-4 h-4 text-white shrink-0" />}
-                      </button>
-                    );
-                  })}
-                </div>
+                  <div className="overflow-y-auto max-h-[220px] divide-y divide-slate-100 py-1 flex-1">
+                    {dateOptions.map((opt) => {
+                      const isSelected = opt.key === currentDateKey;
+                      return (
+                        <button
+                          key={opt.key}
+                          type="button"
+                          onClick={() => handleSelectDate(opt.key)}
+                          className={`w-full flex items-center justify-between px-3.5 py-2.5 text-sm transition text-left cursor-pointer ${
+                            isSelected
+                              ? 'bg-blue-600 text-white font-bold'
+                              : 'text-slate-800 hover:bg-blue-50 hover:text-blue-700 font-semibold'
+                          }`}
+                        >
+                          <span>{opt.label}</span>
+                          {isSelected && <Check className="w-4 h-4 text-white shrink-0" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
               )}
 
               {openDropdown === 'time' && (
-                <div className="divide-y divide-slate-100">
-                  <div className="px-3.5 py-2 bg-slate-50 text-xs font-bold text-slate-500 uppercase tracking-wider sticky top-0 z-10">
-                    Chọn mốc giờ (24h)
+                <>
+                  <div className="px-3.5 py-2.5 bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-700 uppercase tracking-wider shrink-0 flex items-center justify-between select-none">
+                    <span>Chọn mốc giờ (24h)</span>
+                    <span className="text-xs text-blue-700 font-bold bg-blue-100/70 px-2 py-0.5 rounded-full border border-blue-200">
+                      Theo giờ
+                    </span>
                   </div>
-                  {TIME_PRESETS.map((p) => {
-                    const isSelected = p.value === currentTimeKey;
-                    return (
-                      <button
-                        key={p.value}
-                        type="button"
-                        onClick={() => handleSelectTime(p.value)}
-                        className={`w-full flex items-center justify-between px-3.5 py-2.5 text-sm transition text-left cursor-pointer ${
-                          isSelected
-                            ? 'bg-blue-600 text-white font-bold'
-                            : 'text-slate-800 hover:bg-blue-50 hover:text-blue-700 font-semibold'
-                        }`}
-                      >
-                        <span>{p.label}</span>
-                        {isSelected && <Check className="w-4 h-4 text-white shrink-0" />}
-                      </button>
-                    );
-                  })}
-                </div>
+                  <div className="overflow-y-auto max-h-[220px] divide-y divide-slate-100 py-1 flex-1">
+                    {TIME_PRESETS.map((p) => {
+                      const isSelected = p.value === currentTimeKey;
+                      return (
+                        <button
+                          key={p.value}
+                          type="button"
+                          onClick={() => handleSelectTime(p.value)}
+                          className={`w-full flex items-center justify-between px-3.5 py-2.5 text-sm transition text-left cursor-pointer ${
+                            isSelected
+                              ? 'bg-blue-600 text-white font-bold'
+                              : 'text-slate-800 hover:bg-blue-50 hover:text-blue-700 font-semibold'
+                          }`}
+                        >
+                          <span>{p.label}</span>
+                          {isSelected && <Check className="w-4 h-4 text-white shrink-0" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
               )}
             </div>
           </div>,
