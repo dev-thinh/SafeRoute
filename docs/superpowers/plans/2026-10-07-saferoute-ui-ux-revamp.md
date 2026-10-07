@@ -35,7 +35,7 @@
 - Consumes: Tailwind CSS base configuration
 - Produces: Extended pastel color palette (`pastel-mint`, `pastel-coral`, `pastel-sky`, `pastel-yellow`, `pastel-apricot`, `pastel-rose`, `pastel-lavender`), glass shadows (`shadow-glass`, `shadow-glass-hover`, `shadow-pastel-glow`), custom glassmorphic backdrop classes.
 
-- [ ] **Step 1: Update tailwind.config.js with pastel colors and shadow tokens**
+- [x] **Step 1: Update tailwind.config.js with pastel colors and shadow tokens**
 
 Add custom colors and shadows to `client/tailwind.config.js`:
 ```javascript
@@ -111,7 +111,7 @@ export default {
 };
 ```
 
-- [ ] **Step 2: Add smooth transitions and glassmorphism helpers in client/src/index.css**
+- [x] **Step 2: Add smooth transitions and glassmorphism helpers in client/src/index.css**
 
 Update `client/src/index.css` with enhanced glass backdrop styles and animations:
 ```css
@@ -181,12 +181,12 @@ html, body, #root {
 }
 ```
 
-- [ ] **Step 3: Test build verification**
+- [x] **Step 3: Test build verification**
 
 Run: `npm run build` in `client`
 Expected: PASS with 0 errors.
 
-- [ ] **Step 4: Commit changes**
+- [x] **Step 4: Commit changes**
 
 ```bash
 git add client/tailwind.config.js client/src/index.css
@@ -206,7 +206,7 @@ git commit -m "feat(ui): add pastel design tokens and glassmorphism styles"
 - Consumes: `onOpenAdmin: () => void`, `onOpenWeather: () => void`, `pendingAdminCount: number`, `onFitRoute?: () => void`, `hasRoute: boolean`
 - Produces: Consolidated, collision-free top-right utility dock `TopUtilityBar`
 
-- [ ] **Step 1: Create client/src/components/Navigation/TopUtilityBar.tsx**
+- [x] **Step 1: Create client/src/components/Navigation/TopUtilityBar.tsx**
 
 Create the component with:
 - Quick weather summary chip (e.g. icon CloudRain + text "Khí tượng & Triều" that opens the Weather tab).
@@ -214,23 +214,23 @@ Create the component with:
 - Admin Moderation button (ShieldCheck icon with pending badge).
 - Clean horizontal flexbox layout with pastel glass styling and active scale animations.
 
-- [ ] **Step 2: Remove colliding FitRouteButton from client/src/components/Map/MapView.tsx**
+- [x] **Step 2: Remove colliding FitRouteButton from client/src/components/Map/MapView.tsx**
 
 Expose a fit bounds callback via `onRegisterFitRoute` ref or trigger from parent, and remove the hardcoded `leaflet-top leaflet-right` button in `MapView.tsx` that previously collided with the Admin button.
 
-- [ ] **Step 3: Integrate TopUtilityBar and reposition bottom-right dock in client/src/App.tsx**
+- [x] **Step 3: Integrate TopUtilityBar and reposition bottom-right dock in client/src/App.tsx**
 
 In `App.tsx`:
 - Render `<TopUtilityBar />` at `absolute top-4 right-4 z-[1000]` instead of separate overlapping buttons.
 - Position `<FloodDepthLegend />` and FAB "Báo ngập tại đây" cleanly in bottom-right without collision.
 - Wire up tab switching so clicking the Weather pill in `TopUtilityBar` sets `mainTab = 'weather'` in `RoutePlannerPanel`.
 
-- [ ] **Step 4: Test build verification**
+- [x] **Step 4: Test build verification**
 
 Run: `npm run build` in `client`
 Expected: PASS with 0 errors.
 
-- [ ] **Step 5: Commit changes**
+- [x] **Step 5: Commit changes**
 
 ```bash
 git add client/src/components/Navigation/TopUtilityBar.tsx client/src/App.tsx client/src/components/Map/MapView.tsx
@@ -251,7 +251,7 @@ git commit -m "feat(ui): create TopUtilityBar and eliminate top-right layout col
 - Consumes: `origin`, `destination`, `onChangeOrigin`, `onChangeDestination`, `onRoutesCalculated`, `selectedRouteType`, `onSelectRouteType`
 - Produces: Beautiful, responsive navigation panel with HCMC landmark quick presets, pastel origin/destination inputs, and refined segmented controls.
 
-- [ ] **Step 1: Create client/src/components/Navigation/QuickPresetChips.tsx**
+- [x] **Step 1: Create client/src/components/Navigation/QuickPresetChips.tsx**
 
 Define popular HCMC presets:
 - Sân bay Tân Sơn Nhất (10.8184, 106.6588)
@@ -262,12 +262,12 @@ Define popular HCMC presets:
 - Ngã 4 Hàng Xanh (10.8016, 106.7114)
 Render as a horizontally scrollable chip bar with pastel mint/coral badge indicators for 1-tap setting.
 
-- [ ] **Step 2: Redesign VehicleSelector.tsx & TimeSelector.tsx**
+- [x] **Step 2: Redesign VehicleSelector.tsx & TimeSelector.tsx**
 
 - `VehicleSelector`: Modern pastel segmented pill with Bike and Car icons, tactile feedback, and subtle glow.
 - `TimeSelector`: Clean local datetime picker with "Hiện tại", "+1 tiếng", and "17:30 Tan tầm" pastel shortcut buttons.
 
-- [ ] **Step 3: Redesign RoutePlannerPanel.tsx with Pastel Glassmorphism**
+- [x] **Step 3: Redesign RoutePlannerPanel.tsx with Pastel Glassmorphism**
 
 - Brand Header: Sóng nước `Waves` với logo pastel phát sáng, nút thu gọn mượt mà.
 - Segmented Pill Tab bar: Lộ trình - Tin tức - Thời tiết.
@@ -276,12 +276,12 @@ Render as a horizontally scrollable chip bar with pastel mint/coral badge indica
 - Swap button: Circular floating pill with 180° rotation on click.
 - Primary CTA Button: Electric Sky Blue gradient `from-blue-600 to-indigo-600` with `shadow-pastel-blue`.
 
-- [ ] **Step 4: Test build verification**
+- [x] **Step 4: Test build verification**
 
 Run: `npm run build` in `client`
 Expected: PASS with 0 errors.
 
-- [ ] **Step 5: Commit changes**
+- [x] **Step 5: Commit changes**
 
 ```bash
 git add client/src/components/Navigation/QuickPresetChips.tsx client/src/components/Navigation/VehicleSelector.tsx client/src/components/Navigation/TimeSelector.tsx client/src/components/Navigation/RoutePlannerPanel.tsx
@@ -301,28 +301,28 @@ git commit -m "feat(ui): redesign RoutePlannerPanel with pastel glassmorphism an
 - Consumes: Route results (safe route vs fastest route), flood events, community reports
 - Produces: High-contrast pastel comparison cards, collapsible bottom-right legend, and polished community report popups.
 
-- [ ] **Step 1: Redesign RouteComparisonCard.tsx**
+- [x] **Step 1: Redesign RouteComparisonCard.tsx**
 
 - Safe Route Card: Mint pastel surface (`bg-emerald-50/70 border-emerald-300 ring-2 ring-emerald-200`), shield icon with gentle pulse, badge "Đã né 100% ngập" khi thành công.
 - Fastest Route Card: Sky pastel surface (`bg-sky-50/70 border-sky-300 ring-2 ring-sky-200`), lightning icon.
 - Clear flood severity breakdown (cm and meters flooded).
 
-- [ ] **Step 2: Redesign FloodDepthLegend.tsx**
+- [x] **Step 2: Redesign FloodDepthLegend.tsx**
 
 - Relocate from top-right to bottom-right (`bottom-6 right-6`), docked cleanly beside/above the FAB.
 - Collapsible toggle: When collapsed, displays a mini glass pill `[⚠️ 4 mức ngập]`; when expanded, displays the full 4-tier pastel scale (Butter Yellow, Apricot, Coral Pink, Crimson Red) with cm thresholds.
 
-- [ ] **Step 3: Redesign ReportMarker.tsx**
+- [x] **Step 3: Redesign ReportMarker.tsx**
 
 - Community report marker: Blue droplet icon with radar ring.
 - Popup card: Pastel status badges, consensus ratio bar (đang ngập vs nước đã rút), upvote/resolve buttons with tactile feedback.
 
-- [ ] **Step 4: Test build verification**
+- [x] **Step 4: Test build verification**
 
 Run: `npm run build` in `client`
 Expected: PASS with 0 errors.
 
-- [ ] **Step 5: Commit changes**
+- [x] **Step 5: Commit changes**
 
 ```bash
 git add client/src/components/Navigation/RouteComparisonCard.tsx client/src/components/Map/FloodDepthLegend.tsx client/src/components/Map/ReportMarker.tsx
@@ -340,24 +340,24 @@ git commit -m "feat(ui): redesign RouteComparisonCard, FloodDepthLegend and Repo
 - Consumes: `isPinning`, `coord`, `address`, `isLoadingAddress`, `onConfirm`, `onCancel`, `onLocateMe`, `onZoomIn`, `onZoomOut`
 - Produces: Immersive, distraction-free map pinning experience.
 
-- [ ] **Step 1: Redesign Center Reticle & Radar Pulse**
+- [x] **Step 1: Redesign Center Reticle & Radar Pulse**
 
 - Center concentric radar rings: smooth `animate-radar` pulse.
 - Floating Pin: SVG with sharp ground tip, droplet cut-out, ground shadow that shrinks/fades when map drags.
 - Guaranteed center-lock zoom (Anti-pattern #3 preserved).
 
-- [ ] **Step 2: Redesign Address Search Card & Bottom Action Bar**
+- [x] **Step 2: Redesign Address Search Card & Bottom Action Bar**
 
 - Top Address Card: Floating glass bar with search input, live reverse-geocode ticker, and coordinates badge.
 - Right Floating Zoom Buttons (+ / -): Glass vertical pill for 1-tap zooming.
 - Bottom Action Dock: Cancel button, GPS "Vị trí của tôi" button, and Confirm button with >=44px touch target.
 
-- [ ] **Step 3: Test build verification**
+- [x] **Step 3: Test build verification**
 
 Run: `npm run build` in `client`
 Expected: PASS with 0 errors.
 
-- [ ] **Step 4: Commit changes**
+- [x] **Step 4: Commit changes**
 
 ```bash
 git add client/src/components/Reporting/ReportLocationPinOverlay.tsx
@@ -376,25 +376,25 @@ git commit -m "feat(ui): elevate ReportLocationPinOverlay with modern glass reti
 - Consumes: Weather API data, News API data, `onSelectLocation` callback
 - Produces: Visually rich pastel data tabs.
 
-- [ ] **Step 1: Redesign WeatherTab.tsx**
+- [x] **Step 1: Redesign WeatherTab.tsx**
 
 - Tide Status Card: Pastel Cyan & Sky gradient with peak tide height and lunar calendar display.
 - 4-Quadrant Precipitation Cards: Pastel tiles with live rainfall rates (mm/h).
 - 12-Hour Hourly Rain Timeline: Rounded vertical bars with pastel gradients.
 - Vulnerable Corridors List: Clean cards with depth badges and "Xem vị trí" map pin buttons.
 
-- [ ] **Step 2: Redesign NewsFeedTab.tsx**
+- [x] **Step 2: Redesign NewsFeedTab.tsx**
 
 - News header with "Cập nhật tin" button and status alert banner.
 - Article cards with pastel source tags (VnExpress in pastel red, Tuổi Trẻ in pastel blue, Thanh Niên in pastel indigo).
 - AI Extracted Hotspots: Pastel amber tags with direct "Ghim" buttons to locate on map.
 
-- [ ] **Step 3: Test build verification**
+- [x] **Step 3: Test build verification**
 
 Run: `npm run build` in `client`
 Expected: PASS with 0 errors.
 
-- [ ] **Step 4: Commit changes**
+- [x] **Step 4: Commit changes**
 
 ```bash
 git add client/src/components/Weather/WeatherTab.tsx client/src/components/News/NewsFeedTab.tsx
@@ -414,7 +414,7 @@ git commit -m "feat(ui): redesign WeatherTab and NewsFeedTab with pastel data vi
 - Consumes: Report form state, admin moderation data, cluster inspection
 - Produces: Enterprise-grade modal dialogs with standard Header-Body-Footer structure.
 
-- [ ] **Step 1: Redesign ReportFloodModal.tsx**
+- [x] **Step 1: Redesign ReportFloodModal.tsx**
 
 - Standard 3-part modal: Header (Droplet icon + Title + Close X) -> Content Body -> Action Footer.
 - Location preview card in pastel sky blue with "Đổi vị trí" button.
@@ -422,19 +422,19 @@ git commit -m "feat(ui): redesign WeatherTab and NewsFeedTab with pastel data vi
 - Duplicate prevention banner for reports submitted within 2 hours.
 - Submit button with loading spinner and friendly Vietnamese confirmations.
 
-- [ ] **Step 2: Redesign AdminDashboardModal.tsx & ClusterDetailModal.tsx**
+- [x] **Step 2: Redesign AdminDashboardModal.tsx & ClusterDetailModal.tsx**
 
 - Admin Header: Shield icon, Auto-Pilot AI toggle switch, summary stat cards.
 - Segmented tabs: "Cụm tin chờ duyệt" vs "Điểm đang hiển thị".
 - AI Confidence Meters: Pastel gradient progress bars distinguishing verified reports from spam.
 - Cluster Detail Modal: Drill-down inspection of individual citizen reports with one-click approve/reject actions.
 
-- [ ] **Step 3: Test build verification**
+- [x] **Step 3: Test build verification**
 
 Run: `npm run build` in `client`
 Expected: PASS with 0 errors.
 
-- [ ] **Step 4: Commit changes**
+- [x] **Step 4: Commit changes**
 
 ```bash
 git add client/src/components/Reporting/ReportFloodModal.tsx client/src/components/Admin/AdminDashboardModal.tsx client/src/components/Admin/ClusterDetailModal.tsx
@@ -448,25 +448,25 @@ git commit -m "feat(ui): redesign ReportFloodModal and Admin moderation modals"
 **Files:**
 - All client source files
 
-- [ ] **Step 1: Run full production build verification**
+- [x] **Step 1: Run full production build verification**
 
 Run: `npm run build` in `client`
 Expected: Built in < 15s with 0 errors.
 
-- [ ] **Step 2: Self-review against 40 UI/UX rules**
+- [x] **Step 2: Self-review against 40 UI/UX rules**
 
 Checklist:
-- [ ] No layout collisions (TopUtilityBar consolidated at top-right).
-- [ ] Báo ngập FAB and FloodDepthLegend docked at bottom-right.
-- [ ] Center-lock zoom during report pinning strictly maintained.
-- [ ] 100% `lucide-react` icons.
-- [ ] Pastel color tokens applied consistently.
-- [ ] Touch targets >= 44x44px.
-- [ ] 5 interaction states (Default, Hover, Active, Disabled, Loading) present on all buttons.
-- [ ] Vietnamese error and status messages friendly and natural.
-- [ ] Git branch confirmed on `dev` (never `main`).
+- [x] No layout collisions (TopUtilityBar consolidated at top-right).
+- [x] Báo ngập FAB and FloodDepthLegend docked at bottom-right.
+- [x] Center-lock zoom during report pinning strictly maintained.
+- [x] 100% `lucide-react` icons.
+- [x] Pastel color tokens applied consistently.
+- [x] Touch targets >= 44x44px.
+- [x] 5 interaction states (Default, Hover, Active, Disabled, Loading) present on all buttons.
+- [x] Vietnamese error and status messages friendly and natural.
+- [x] Git branch confirmed on `dev` (never `main`).
 
-- [ ] **Step 3: Commit and summarize execution**
+- [x] **Step 3: Commit and summarize execution**
 
 ```bash
 git status
