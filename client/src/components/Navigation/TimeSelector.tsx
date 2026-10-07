@@ -48,10 +48,16 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
 
   // Custom dropdown open state: 'date' | 'time' | null
   const [openDropdown, setOpenDropdown] = useState<'date' | 'time' | null>(null);
-  const [popoverCoords, setPopoverCoords] = useState<{ top: number; left: number; width: number }>({
+  const [popoverCoords, setPopoverCoords] = useState<{
+    top: number;
+    left: number;
+    width: number;
+    maxHeight: number;
+  }>({
     top: 0,
     left: 0,
     width: 280,
+    maxHeight: 360,
   });
 
   // 24-hour precise time inputs state
@@ -67,6 +73,40 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
   // Ref for the popover element to prevent self-scroll from closing it
   const popoverRef = useRef<HTMLDivElement>(null);
 
+  // Compute smart popover position with screen-boundary clamping & flipping
+  const computePopoverPosition = (type: 'date' | 'time') => {
+    const btn = type === 'date' ? dateBtnRef.current : timeBtnRef.current;
+    if (!btn) return null;
+    const rect = btn.getBoundingClientRect();
+
+    // If button scrolled completely offscreen, close dropdown
+    if (rect.bottom < 0 || rect.top > window.innerHeight) {
+      return null;
+    }
+
+    // Increased target height: 360px for time (plenty of time slots), 320px for date
+    const targetHeight = type === 'time' ? 360 : 320;
+    const popoverWidth = Math.max(rect.width, 300);
+    const left = Math.min(Math.max(12, rect.left), window.innerWidth - popoverWidth - 12);
+
+    const margin = 12;
+    const spaceBelow = window.innerHeight - rect.bottom - margin;
+    const spaceAbove = rect.top - margin;
+
+    // Flip to open ABOVE button if below space is cramped and above has more room
+    const shouldOpenAbove = spaceBelow < targetHeight && spaceAbove > spaceBelow;
+
+    if (shouldOpenAbove) {
+      const availableHeight = Math.min(targetHeight, Math.max(160, spaceAbove));
+      const top = Math.max(margin, rect.top - availableHeight - 6);
+      return { top, left, width: popoverWidth, maxHeight: availableHeight };
+    } else {
+      const availableHeight = Math.min(targetHeight, Math.max(160, spaceBelow));
+      const top = rect.bottom + 6;
+      return { top, left, width: popoverWidth, maxHeight: availableHeight };
+    }
+  };
+
   // Close or reposition dropdown on window resize, scroll, or Escape key
   useEffect(() => {
     if (!openDropdown) return;
@@ -80,41 +120,21 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
         return;
       }
 
-      const btn = openDropdown === 'date' ? dateBtnRef.current : timeBtnRef.current;
-      if (!btn) return;
-      const rect = btn.getBoundingClientRect();
-
-      // If button scrolled completely offscreen, close dropdown
-      if (rect.bottom < 0 || rect.top > window.innerHeight) {
+      const pos = computePopoverPosition(openDropdown);
+      if (!pos) {
         setOpenDropdown(null);
-        return;
+      } else {
+        setPopoverCoords(pos);
       }
-
-      // Smoothly track button position on outer container scroll
-      const expectedHeight = 260;
-      const spaceBelow = window.innerHeight - rect.bottom;
-      const shouldOpenAbove = spaceBelow < expectedHeight && rect.top > expectedHeight;
-
-      const top = shouldOpenAbove ? Math.max(10, rect.top - expectedHeight - 6) : rect.bottom + 6;
-      const popoverWidth = Math.max(rect.width, 300);
-      const left = Math.min(Math.max(12, rect.left), window.innerWidth - popoverWidth - 12);
-
-      setPopoverCoords({ top, left, width: popoverWidth });
     };
 
     const handleResize = () => {
-      const btn = openDropdown === 'date' ? dateBtnRef.current : timeBtnRef.current;
-      if (!btn) return;
-      const rect = btn.getBoundingClientRect();
-      const expectedHeight = 260;
-      const spaceBelow = window.innerHeight - rect.bottom;
-      const shouldOpenAbove = spaceBelow < expectedHeight && rect.top > expectedHeight;
-
-      const top = shouldOpenAbove ? Math.max(10, rect.top - expectedHeight - 6) : rect.bottom + 6;
-      const popoverWidth = Math.max(rect.width, 300);
-      const left = Math.min(Math.max(12, rect.left), window.innerWidth - popoverWidth - 12);
-
-      setPopoverCoords({ top, left, width: popoverWidth });
+      const pos = computePopoverPosition(openDropdown);
+      if (!pos) {
+        setOpenDropdown(null);
+      } else {
+        setPopoverCoords(pos);
+      }
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -138,19 +158,9 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
       setOpenDropdown(null);
       return;
     }
-    const btn = type === 'date' ? dateBtnRef.current : timeBtnRef.current;
-    if (!btn) return;
-    const rect = btn.getBoundingClientRect();
-
-    const expectedHeight = 260;
-    const spaceBelow = window.innerHeight - rect.bottom;
-    const shouldOpenAbove = spaceBelow < expectedHeight && rect.top > expectedHeight;
-
-    const top = shouldOpenAbove ? Math.max(10, rect.top - expectedHeight - 6) : rect.bottom + 6;
-    const popoverWidth = Math.max(rect.width, 300);
-    const left = Math.min(Math.max(12, rect.left), window.innerWidth - popoverWidth - 12);
-
-    setPopoverCoords({ top, left, width: popoverWidth });
+    const pos = computePopoverPosition(type);
+    if (!pos) return;
+    setPopoverCoords(pos);
     setOpenDropdown(type);
   };
 
@@ -457,7 +467,7 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
                 top: popoverCoords.top,
                 left: popoverCoords.left,
                 width: popoverCoords.width,
-                maxHeight: '280px',
+                maxHeight: `${popoverCoords.maxHeight || 360}px`,
               }}
               onClick={(e) => e.stopPropagation()}
               onWheel={(e) => e.stopPropagation()}
@@ -468,7 +478,7 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
                   <div className="px-3.5 py-2.5 bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-700 uppercase tracking-wider shrink-0 select-none">
                     <span>Chọn ngày khởi hành</span>
                   </div>
-                  <div className="overflow-y-auto max-h-[220px] divide-y divide-slate-100 py-1 flex-1">
+                  <div className="overflow-y-auto divide-y divide-slate-100 py-1 flex-1">
                     {dateOptions.map((opt) => {
                       const isSelected = opt.key === currentDateKey;
                       return (
@@ -527,7 +537,7 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
                       />
                     </div>
                   </div>
-                  <div className="overflow-y-auto max-h-[190px] divide-y divide-slate-100 py-1 flex-1">
+                  <div className="overflow-y-auto divide-y divide-slate-100 py-1 flex-1">
                     {TIME_PRESETS.map((p) => {
                       const isSelected = p.value === currentTimeKey;
                       return (
