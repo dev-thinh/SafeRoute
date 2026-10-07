@@ -63,6 +63,10 @@ export interface UserReport {
    isAutoApproved?: boolean;
    reviewedBy?: 'ai' | 'admin';
    reviewedAt?: Date;
+   userId?: string;
+   authorName?: string;
+   authorRole?: UserRole;
+   isOfficial?: boolean;
 }
 
 export interface ReportCluster {
@@ -85,4 +89,19 @@ export interface AdminSettings {
    isAutoPilotEnabled: boolean;
    autoApproveThreshold: number;
    minClusterCountForAutoApprove: number;
+}
+
+export type UserRole = 'guest' | 'user' | 'admin';
+
+export interface AuthUser {
+  id: string;
+  username: string;
+  fullName: string;
+  role: UserRole;
+  createdAt: string;
+}
+
+export interface UserRecord extends AuthUser {
+  passwordHash: string;
+  salt: string;
 }

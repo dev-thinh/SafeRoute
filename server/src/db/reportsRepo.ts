@@ -141,7 +141,9 @@ async function getAllRecentReports(): Promise<UserReport[]> {
           cluster_id as "clusterId",
           is_auto_approved as "isAutoApproved",
           reviewed_by as "reviewedBy",
-          reviewed_at as "reviewedAt"
+          reviewed_at as "reviewedAt",
+          is_official as "isOfficial",
+          author_role as "authorRole"
          FROM user_reports 
          WHERE reported_at >= NOW() - INTERVAL '2 hours'
          ORDER BY reported_at DESC`
@@ -165,6 +167,8 @@ async function getAllRecentReports(): Promise<UserReport[]> {
           isAutoApproved: Boolean(r.isAutoApproved),
           reviewedBy: r.reviewedBy || undefined,
           reviewedAt: r.reviewedAt ? new Date(r.reviewedAt) : undefined,
+          isOfficial: Boolean(r.isOfficial),
+          authorRole: r.authorRole || undefined,
         }));
       }
     } catch (err: any) {
@@ -213,52 +217,92 @@ export async function saveReport(report: UserReport): Promise<UserReport> {
   }
   report.clusterId = assignedClusterId;
 
-  // 2. Run 4-Pillar AI Credibility Evaluation with Anti-Spam Gatekeeper
-  const currentSpamCheck = detectGibberishOrSpam(report.description);
-  
-  // Only count VALID (non-spam, aiConfidence > 0.15) reports in cluster count
-  const validClusterReports = clusterReports.filter((r) => {
-    const isSpam = detectGibberishOrSpam(r.description).isSpam;
-    const conf = r.aiConfidence ?? 0.5;
-    return !isSpam && conf > 0.15;
-  });
+  // 2. Admin Dispatch vs Community Report
+  const isAdminReport =
+    report.authorRole === 'admin' ||
+    report.isOfficial === true ||
+    report.reviewedBy === 'admin';
 
-  // If current report is spam, valid cluster count is 0.
-  // Otherwise, count is validClusterReports + 1
-  const validClusterCount = currentSpamCheck.isSpam ? 0 : (validClusterReports.length + 1);
-
-  const evalResult = await evaluateReportCredibility(
-    report,
-    validClusterCount,
-    adminSettings.isAutoPilotEnabled,
-    adminSettings.autoApproveThreshold,
-    adminSettings.minClusterCountForAutoApprove
-  );
-
-  report.aiConfidence = evalResult.confidenceScore;
-  report.aiReasoning = evalResult.aiReasoning;
-
-  if (evalResult.canAutoApprove) {
+  if (isAdminReport) {
+    // Admin Dispatch: Instant auto-approval, 100% confidence, official incident broadcast
     report.status = 'approved';
-    report.isAutoApproved = true;
-    report.reviewedBy = 'ai';
+    report.isOfficial = true;
+    report.authorRole = 'admin';
+    report.reviewedBy = 'admin';
     report.reviewedAt = now;
+    report.aiConfidence = 1.0;
+    report.aiReasoning =
+      report.aiReasoning || 'Báo cáo xác thực bởi Quản trị viên (Official Admin Dispatch)';
 
-    // Auto-promote all other pending reports in the same cluster
+    // Promote all pending community reports in the same cluster as confirmed
     for (const r of clusterReports) {
       if (r.status === 'pending') {
         r.status = 'approved';
-        r.isAutoApproved = true;
-        r.reviewedBy = 'ai';
+        r.reviewedBy = 'admin';
         r.reviewedAt = now;
         if (isDbConnected) {
-          pool.query(`UPDATE user_reports SET status = 'approved', is_auto_approved = true, reviewed_by = 'ai', reviewed_at = NOW() WHERE id::text = $1`, [r.id]).catch(() => {});
+          pool
+            .query(
+              `UPDATE user_reports SET status = 'approved', reviewed_by = 'admin', reviewed_at = NOW() WHERE id::text = $1`,
+              [r.id]
+            )
+            .catch(() => {});
         }
       }
     }
   } else {
-    report.status = 'pending';
-    report.isAutoApproved = false;
+    // Regular community report: Run 4-Pillar AI Credibility Evaluation with Anti-Spam Gatekeeper
+    const currentSpamCheck = detectGibberishOrSpam(report.description);
+
+    // Only count VALID (non-spam, aiConfidence > 0.15) reports in cluster count
+    const validClusterReports = clusterReports.filter((r) => {
+      const isSpam = detectGibberishOrSpam(r.description).isSpam;
+      const conf = r.aiConfidence ?? 0.5;
+      return !isSpam && conf > 0.15;
+    });
+
+    // If current report is spam, valid cluster count is 0.
+    // Otherwise, count is validClusterReports + 1
+    const validClusterCount = currentSpamCheck.isSpam ? 0 : validClusterReports.length + 1;
+
+    const evalResult = await evaluateReportCredibility(
+      report,
+      validClusterCount,
+      adminSettings.isAutoPilotEnabled,
+      adminSettings.autoApproveThreshold,
+      adminSettings.minClusterCountForAutoApprove
+    );
+
+    report.aiConfidence = evalResult.confidenceScore;
+    report.aiReasoning = evalResult.aiReasoning;
+
+    if (evalResult.canAutoApprove) {
+      report.status = 'approved';
+      report.isAutoApproved = true;
+      report.reviewedBy = 'ai';
+      report.reviewedAt = now;
+
+      // Auto-promote all other pending reports in the same cluster
+      for (const r of clusterReports) {
+        if (r.status === 'pending') {
+          r.status = 'approved';
+          r.isAutoApproved = true;
+          r.reviewedBy = 'ai';
+          r.reviewedAt = now;
+          if (isDbConnected) {
+            pool
+              .query(
+                `UPDATE user_reports SET status = 'approved', is_auto_approved = true, reviewed_by = 'ai', reviewed_at = NOW() WHERE id::text = $1`,
+                [r.id]
+              )
+              .catch(() => {});
+          }
+        }
+      }
+    } else {
+      report.status = 'pending';
+      report.isAutoApproved = false;
+    }
   }
 
   // 3. Save to In-Memory store
@@ -269,14 +313,14 @@ export async function saveReport(report: UserReport): Promise<UserReport> {
     try {
       await pool.query(
         `INSERT INTO user_reports 
-          (id, location_geom, address_text, depth_level, depth_cm, description, image_url, upvotes, downvotes, status, reported_at, last_verified_at, ai_confidence, ai_reasoning, cluster_id, is_auto_approved, reviewed_by, reviewed_at)
+          (id, location_geom, address_text, depth_level, depth_cm, description, image_url, upvotes, downvotes, status, reported_at, last_verified_at, ai_confidence, ai_reasoning, cluster_id, is_auto_approved, reviewed_by, reviewed_at, is_official, author_role)
          VALUES 
-          ($1, ST_SetSRID(ST_MakePoint($2, $3), 4326), $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)`,
+          ($1, ST_SetSRID(ST_MakePoint($2, $3), 4326), $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)`,
         [
           report.id,
           report.coordinate.lng,
           report.coordinate.lat,
-          report.description || 'Báo cáo cộng đồng',
+          report.description || (report.isOfficial ? 'Cảnh báo chính thức (Admin)' : 'Báo cáo cộng đồng'),
           report.depthLevel,
           report.depthCm,
           report.description || null,
@@ -289,9 +333,11 @@ export async function saveReport(report: UserReport): Promise<UserReport> {
           report.aiConfidence,
           report.aiReasoning,
           report.clusterId,
-          report.isAutoApproved,
+          Boolean(report.isAutoApproved),
           report.reviewedBy || null,
           report.reviewedAt || null,
+          Boolean(report.isOfficial),
+          report.authorRole || 'user',
         ]
       );
     } catch (err: any) {
@@ -330,7 +376,9 @@ export async function getActiveReports(targetTime?: Date): Promise<UserReport[]>
           cluster_id as "clusterId",
           is_auto_approved as "isAutoApproved",
           reviewed_by as "reviewedBy",
-          reviewed_at as "reviewedAt"
+          reviewed_at as "reviewedAt",
+          is_official as "isOfficial",
+          author_role as "authorRole"
          FROM user_reports 
          WHERE (status = 'approved' OR status = 'active')
            AND reported_at >= $1::timestamptz - INTERVAL '12 hours'
@@ -357,6 +405,8 @@ export async function getActiveReports(targetTime?: Date): Promise<UserReport[]>
           isAutoApproved: Boolean(r.isAutoApproved),
           reviewedBy: r.reviewedBy || undefined,
           reviewedAt: r.reviewedAt ? new Date(r.reviewedAt) : undefined,
+          isOfficial: Boolean(r.isOfficial),
+          authorRole: r.authorRole || undefined,
         }));
       }
       return [];
@@ -497,7 +547,9 @@ export async function getAdminReportClusters(): Promise<ReportCluster[]> {
           cluster_id as "clusterId",
           is_auto_approved as "isAutoApproved",
           reviewed_by as "reviewedBy",
-          reviewed_at as "reviewedAt"
+          reviewed_at as "reviewedAt",
+          is_official as "isOfficial",
+          author_role as "authorRole"
          FROM user_reports 
          WHERE status NOT IN ('rejected', 'resolved')
            AND reported_at >= NOW() - INTERVAL '24 hours'
@@ -522,6 +574,8 @@ export async function getAdminReportClusters(): Promise<ReportCluster[]> {
           isAutoApproved: Boolean(r.isAutoApproved),
           reviewedBy: r.reviewedBy || undefined,
           reviewedAt: r.reviewedAt ? new Date(r.reviewedAt) : undefined,
+          isOfficial: Boolean(r.isOfficial),
+          authorRole: r.authorRole || undefined,
         }));
       }
     } catch (err: any) {

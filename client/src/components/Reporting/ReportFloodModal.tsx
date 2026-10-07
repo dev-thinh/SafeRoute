@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { X, MapPin, Edit3, Loader2, Check, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { X, MapPin, Edit3, Loader2, Check, CheckCircle2, AlertTriangle, ShieldCheck, Radio } from 'lucide-react';
 import { submitReport } from '../../services/api';
+import { AuthUser } from '../../types';
 
 export interface SelectedReportLocation {
   lat: number;
@@ -31,10 +32,12 @@ function calculateDistanceM(lat1: number, lon1: number, lat2: number, lon2: numb
 export const ReportFloodModal: React.FC<{
   isOpen: boolean;
   location: SelectedReportLocation | null;
+  currentUser?: AuthUser | null;
   onClose: () => void;
   onReportSubmitted: () => void;
   onRePickLocation: () => void;
-}> = ({ isOpen, location, onClose, onReportSubmitted, onRePickLocation }) => {
+}> = ({ isOpen, location, currentUser, onClose, onReportSubmitted, onRePickLocation }) => {
+  const isAdmin = currentUser?.role === 'admin';
   const [depthLevel, setDepthLevel] = useState<'ankle' | 'wheel' | 'knee' | 'deep'>('wheel');
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
@@ -75,7 +78,7 @@ export const ReportFloodModal: React.FC<{
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (loading || alreadyReported) return;
+    if (loading || (!isAdmin && alreadyReported)) return;
     setLoading(true);
     setErrorMsg(null);
     try {
@@ -124,14 +127,16 @@ export const ReportFloodModal: React.FC<{
       <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-gray-900/40 backdrop-blur-md p-4 animate-in fade-in duration-200">
         <div className="bg-white/95 backdrop-blur-xl rounded-3xl p-6 sm:p-7 w-full max-w-sm shadow-glass-xl border border-white/70 flex flex-col items-center text-center gap-3.5 animate-in zoom-in-95 duration-200">
           <div className="w-14 h-14 rounded-2xl bg-pastel-mint-50 border border-pastel-mint-200 flex items-center justify-center text-emerald-600 shadow-sm">
-            <CheckCircle2 className="w-7 h-7" />
+            {isAdmin ? <ShieldCheck className="w-7 h-7 text-blue-600" /> : <CheckCircle2 className="w-7 h-7" />}
           </div>
           <div>
             <h3 className="font-bold text-base text-gray-900 leading-tight">
-              Đã tiếp nhận báo cáo của bạn!
+              {isAdmin ? 'Đã phát cảnh báo ngập thành công!' : 'Đã tiếp nhận báo cáo của bạn!'}
             </h3>
             <p className="text-xs text-gray-600 leading-relaxed mt-2">
-              Cảm ơn tinh thần đóng góp của bạn. Báo cáo đã được chuyển đến ban điều phối để kiểm duyệt trước khi đưa lên bản đồ điều hướng.
+              {isAdmin
+                ? 'Điểm ngập đã được đưa trực tiếp lên bản đồ công cộng. Toàn bộ người dân và thuật toán tìm đường đã được cập nhật ngay lập tức để né tránh vị trí này.'
+                : 'Cảm ơn tinh thần đóng góp của bạn. Báo cáo đã được chuyển đến ban điều phối để kiểm duyệt trước khi đưa lên bản đồ điều hướng.'}
             </p>
           </div>
           <button
@@ -139,7 +144,7 @@ export const ReportFloodModal: React.FC<{
             onClick={handleFinish}
             className="w-full mt-2 py-3.5 min-h-[48px] bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold text-sm rounded-xl shadow-lg transition-all cursor-pointer whitespace-nowrap"
           >
-            Đã hiểu
+            {isAdmin ? 'Hoàn tất & Xem bản đồ' : 'Đã hiểu'}
           </button>
         </div>
       </div>
@@ -156,11 +161,21 @@ export const ReportFloodModal: React.FC<{
               <img src="/logo.png" alt="SafeRoute" className="w-full h-full object-contain" />
             </div>
             <div>
-              <h3 className="font-bold text-base text-slate-900 leading-tight">
-                Báo cáo điểm ngập tức thì
-              </h3>
-              <p className="text-[11px] text-gray-500 font-medium mt-0.5">
-                Cập nhật ngay vào bản đồ cho toàn bộ cộng đồng
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-base text-slate-900 leading-tight">
+                  {isAdmin ? 'Phát cảnh báo điểm ngập' : 'Báo cáo điểm ngập tức thì'}
+                </h3>
+                {isAdmin && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200/80 rounded-full text-[11px] font-bold">
+                    <ShieldCheck className="w-3 h-3 text-blue-600" />
+                    <span>Admin</span>
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 font-medium mt-0.5">
+                {isAdmin
+                  ? 'Cảnh báo chính thức được đưa thẳng lên bản đồ điều hướng'
+                  : 'Cập nhật ngay vào bản đồ cho toàn bộ cộng đồng'}
               </p>
             </div>
           </div>
@@ -170,7 +185,7 @@ export const ReportFloodModal: React.FC<{
             onClick={onClose}
             className="w-9 h-9 min-h-[36px] min-w-[36px] rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100/80 flex items-center justify-center transition-all active:scale-95 cursor-pointer"
             aria-label="Đóng biểu mẫu"
-            title="Đóng (Esc)"
+            title="Đóng"
           >
             <X className="w-5 h-5" />
           </button>
@@ -183,16 +198,16 @@ export const ReportFloodModal: React.FC<{
               <MapPin className="w-4 h-4" />
             </div>
             <div className="min-w-0">
-              <span className="text-[10px] font-bold text-pastel-sky-800 uppercase tracking-wider block">
+              <span className="text-xs font-bold text-pastel-sky-800 uppercase tracking-wider block">
                 Vị trí đã đánh dấu
               </span>
               <p
-                className="text-xs font-bold text-gray-900 mt-0.5 line-clamp-2 leading-snug"
+                className="text-sm font-bold text-gray-900 mt-0.5 line-clamp-2 leading-snug"
                 title={location.label || `Tọa độ: ${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}`}
               >
                 {location.label || `Tọa độ: ${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}`}
               </p>
-              <p className="text-[10px] text-gray-500 font-mono mt-0.5">
+              <p className="text-xs text-gray-500 mt-0.5">
                 {location.lat.toFixed(5)}, {location.lng.toFixed(5)}
               </p>
             </div>
@@ -201,9 +216,9 @@ export const ReportFloodModal: React.FC<{
           <button
             type="button"
             onClick={onRePickLocation}
-            className="flex items-center gap-1.5 text-xs text-pastel-sky-800 hover:text-pastel-sky-950 font-bold bg-white/90 hover:bg-white px-3 py-2 min-h-[38px] rounded-xl border border-pastel-sky-200/80 shadow-glass-xs hover:shadow-glass-sm transition-all flex-shrink-0 active:scale-95 cursor-pointer"
+            className="flex items-center gap-1.5 text-sm text-pastel-sky-800 hover:text-pastel-sky-950 font-semibold bg-white/90 hover:bg-white px-3 py-2 min-h-[38px] rounded-xl border border-pastel-sky-200/80 shadow-glass-xs hover:shadow-glass-sm transition-all flex-shrink-0 active:scale-95 cursor-pointer"
           >
-            <Edit3 className="w-3.5 h-3.5" />
+            <Edit3 className="w-4 h-4" />
             <span>Đổi vị trí</span>
           </button>
         </div>
@@ -215,16 +230,28 @@ export const ReportFloodModal: React.FC<{
           </div>
         )}
 
-        {alreadyReported && (
-          <div className="p-3 bg-pastel-mint-50 border border-pastel-mint-200 text-emerald-950 text-xs rounded-2xl flex items-start gap-2.5">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+        {isAdmin ? (
+          <div className="p-3 bg-gradient-to-r from-blue-50/90 via-indigo-50/70 to-blue-50/90 border border-blue-200/80 rounded-2xl flex items-start gap-2.5 shadow-xs">
+            <ShieldCheck className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="font-bold text-xs">Bạn đã gửi báo cáo tại khu vực này</p>
-              <p className="text-[11px] text-emerald-800 mt-0.5 leading-relaxed">
-                Hệ thống đã tiếp nhận dữ liệu và đang kiểm duyệt. Bạn không cần gửi lặp lại.
+              <p className="font-bold text-xs text-blue-950">Chế độ Quản trị viên (Official Dispatch)</p>
+              <p className="text-xs text-blue-800 mt-0.5 leading-relaxed">
+                Điểm ngập sẽ được duyệt và hiển thị trực tiếp lên bản đồ ngay lập tức với độ tin cậy 100%, không cần qua hàng chờ duyệt.
               </p>
             </div>
           </div>
+        ) : (
+          alreadyReported && (
+            <div className="p-3 bg-pastel-mint-50 border border-pastel-mint-200 text-emerald-950 text-xs rounded-2xl flex items-start gap-2.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold text-xs">Bạn đã gửi báo cáo tại khu vực này</p>
+                <p className="text-xs text-emerald-800 mt-0.5 leading-relaxed">
+                  Hệ thống đã tiếp nhận dữ liệu và đang kiểm duyệt. Bạn không cần gửi lặp lại.
+                </p>
+              </div>
+            </div>
+          )
         )}
 
         {/* 3. Form Content */}
@@ -244,14 +271,14 @@ export const ReportFloodModal: React.FC<{
                     : 'border-gray-200/90 hover:border-pastel-amber-200 bg-white/80 hover:bg-pastel-amber-50/30'
                 }`}
               >
-                <div className="font-bold text-amber-950 flex items-center justify-between">
+                <div className="font-bold text-sm text-amber-950 flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
                     <span className="w-2.5 h-2.5 rounded-full bg-pastel-amber-500 shadow-xs" />
                     <span>Mắt cá chân</span>
                   </div>
-                  {depthLevel === 'ankle' && <Check className="w-3.5 h-3.5 text-amber-800" />}
+                  {depthLevel === 'ankle' && <Check className="w-4 h-4 text-amber-800" />}
                 </div>
-                <div className="text-[10px] text-amber-800 font-medium mt-1">
+                <div className="text-xs text-amber-800 font-medium mt-1">
                   &lt; 20 cm • Xe qua tốt
                 </div>
               </button>
@@ -266,14 +293,14 @@ export const ReportFloodModal: React.FC<{
                     : 'border-gray-200/90 hover:border-pastel-amber-300 bg-white/80 hover:bg-pastel-amber-50/30'
                 }`}
               >
-                <div className="font-bold text-amber-950 flex items-center justify-between">
+                <div className="font-bold text-sm text-amber-950 flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
                     <span className="w-2.5 h-2.5 rounded-full bg-amber-600 shadow-xs" />
                     <span>Nửa bánh xe</span>
                   </div>
-                  {depthLevel === 'wheel' && <Check className="w-3.5 h-3.5 text-amber-800" />}
+                  {depthLevel === 'wheel' && <Check className="w-4 h-4 text-amber-800" />}
                 </div>
-                <div className="text-[10px] text-amber-900 font-medium mt-1">
+                <div className="text-xs text-amber-900 font-medium mt-1">
                   20 - 40 cm • Cần cẩn thận
                 </div>
               </button>
@@ -288,14 +315,14 @@ export const ReportFloodModal: React.FC<{
                     : 'border-gray-200/90 hover:border-pastel-coral-200 bg-white/80 hover:bg-pastel-coral-50/30'
                 }`}
               >
-                <div className="font-bold text-pastel-coral-900 flex items-center justify-between">
+                <div className="font-bold text-sm text-pastel-coral-900 flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
                     <span className="w-2.5 h-2.5 rounded-full bg-rose-600 shadow-xs" />
                     <span>Đầu gối / Ngập pô</span>
                   </div>
-                  {depthLevel === 'knee' && <Check className="w-3.5 h-3.5 text-rose-700" />}
+                  {depthLevel === 'knee' && <Check className="w-4 h-4 text-rose-700" />}
                 </div>
-                <div className="text-[10px] text-pastel-coral-800 font-medium mt-1">
+                <div className="text-xs text-pastel-coral-800 font-medium mt-1">
                   40 - 60 cm • Nguy cơ chết máy
                 </div>
               </button>
@@ -310,14 +337,14 @@ export const ReportFloodModal: React.FC<{
                     : 'border-gray-200/90 hover:border-rose-200 bg-white/80 hover:bg-rose-50/30'
                 }`}
               >
-                <div className="font-bold text-rose-950 flex items-center justify-between">
+                <div className="font-bold text-sm text-rose-950 flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
                     <span className="w-2.5 h-2.5 rounded-full bg-rose-600 shadow-xs" />
                     <span>Ngập sâu</span>
                   </div>
-                  {depthLevel === 'deep' && <Check className="w-3.5 h-3.5 text-rose-800" />}
+                  {depthLevel === 'deep' && <Check className="w-4 h-4 text-rose-800" />}
                 </div>
-                <div className="text-[10px] text-rose-800 font-medium mt-1">
+                <div className="text-xs text-rose-800 font-medium mt-1">
                   &gt; 60 cm • Tuyệt đối không vào
                 </div>
               </button>
@@ -326,13 +353,13 @@ export const ReportFloodModal: React.FC<{
 
           <div>
             <label className="block text-xs font-bold text-gray-800 uppercase tracking-wider mb-1.5">
-              Mô tả chi tiết (tùy chọn)
+              Mô tả chi tiết - Không bắt buộc
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="VD: Nước chảy xiết trước số nhà 15, nhiều xe máy chết máy..."
-              className="w-full text-xs p-3.5 border border-gray-200/90 rounded-2xl outline-none focus:border-pastel-sky-500 focus:ring-2 focus:ring-pastel-sky-400/30 font-medium text-gray-800 transition resize-none bg-gray-50/50 focus:bg-white shadow-xs"
+              className="w-full text-sm p-3.5 border border-gray-200/90 rounded-2xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 font-medium text-gray-800 transition resize-none bg-gray-50/50 focus:bg-white shadow-xs"
               rows={3}
             />
           </div>
@@ -342,15 +369,17 @@ export const ReportFloodModal: React.FC<{
             <button
               type="button"
               onClick={onClose}
-              className="py-3 px-6 min-h-[46px] bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 font-bold text-xs rounded-xl transition active:scale-95 cursor-pointer shadow-sm whitespace-nowrap shrink-0"
+              className="py-3 px-6 min-h-[46px] bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 font-bold text-sm rounded-xl transition active:scale-95 cursor-pointer shadow-sm whitespace-nowrap shrink-0"
             >
               Hủy
             </button>
             <button
               type="submit"
-              disabled={loading || alreadyReported}
-              className={`flex-1 py-3 px-4 min-h-[46px] font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2 active:scale-95 cursor-pointer whitespace-nowrap ${
-                alreadyReported
+              disabled={loading || (!isAdmin && alreadyReported)}
+              className={`flex-1 py-3 px-4 min-h-[46px] font-bold text-sm rounded-xl transition-all flex items-center justify-center gap-2 active:scale-95 cursor-pointer whitespace-nowrap ${
+                isAdmin
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:from-blue-800 active:to-indigo-800 text-white shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed'
+                  : alreadyReported
                   ? 'bg-emerald-600 text-white shadow-md opacity-90 cursor-not-allowed'
                   : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed'
               }`}
@@ -358,7 +387,12 @@ export const ReportFloodModal: React.FC<{
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin text-white" />
-                  <span>Đang gửi báo cáo...</span>
+                  <span>{isAdmin ? 'Đang phát cảnh báo...' : 'Đang gửi báo cáo...'}</span>
+                </>
+              ) : isAdmin ? (
+                <>
+                  <Radio className="w-4 h-4" />
+                  <span>Phát cảnh báo ngập ngay</span>
                 </>
               ) : alreadyReported ? (
                 <>

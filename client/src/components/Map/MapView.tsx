@@ -496,7 +496,7 @@ export const MapView: React.FC<MapViewProps> = ({
                   <span>Điểm xuất phát</span>
                 </div>
                 <p className="mt-1 text-gray-800 font-medium leading-snug">{origin.label}</p>
-                <p className="text-[10px] text-gray-400 font-mono mt-0.5">
+                <p className="text-xs text-gray-500 mt-0.5">
                   {origin.lat.toFixed(5)}, {origin.lng.toFixed(5)}
                 </p>
               </div>
@@ -527,7 +527,7 @@ export const MapView: React.FC<MapViewProps> = ({
                   <span>Điểm đến</span>
                 </div>
                 <p className="mt-1 text-gray-800 font-medium leading-snug">{destination.label}</p>
-                <p className="text-[10px] text-gray-400 font-mono mt-0.5">
+                <p className="text-xs text-gray-500 mt-0.5">
                   {destination.lat.toFixed(5)}, {destination.lng.toFixed(5)}
                 </p>
               </div>

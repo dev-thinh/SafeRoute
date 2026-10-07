@@ -78,7 +78,7 @@ export const ReportLocationPinOverlay: React.FC<ReportLocationPinOverlayProps> =
             }`}
           >
             {/* Tooltip badge */}
-            <div className="mb-1.5 px-3 py-1 bg-slate-900/90 text-white text-[11px] font-semibold rounded-full shadow-lg border border-slate-700 whitespace-nowrap flex items-center gap-1.5 backdrop-blur-md">
+            <div className="mb-1.5 px-3 py-1 bg-slate-900/90 text-white text-xs font-semibold rounded-full shadow-lg border border-slate-700 whitespace-nowrap flex items-center gap-1.5 backdrop-blur-md">
               <span
                 className={`w-2 h-2 rounded-full ${
                   isMoving ? 'bg-amber-400 animate-ping' : 'bg-pastel-sky-500'
@@ -135,16 +135,16 @@ export const ReportLocationPinOverlay: React.FC<ReportLocationPinOverlayProps> =
               <img src="/logo.png" alt="SafeRoute" className="w-full h-full object-contain" />
             </div>
             <div>
-              <h4 className="text-xs font-extrabold text-slate-900 leading-tight">
+              <h4 className="text-sm font-bold text-slate-900 leading-tight">
                 Chọn điểm báo ngập trên bản đồ
               </h4>
-              <p className="text-[11px] text-slate-500 leading-tight mt-0.5">
+              <p className="text-xs text-slate-500 leading-tight mt-0.5">
                 Kéo bản đồ hoặc gõ địa chỉ để căn chỉnh tâm ngập
               </p>
             </div>
           </div>
           {isLoadingAddress && !isSearching && (
-            <span className="flex items-center gap-1 text-[11px] text-blue-600 font-semibold">
+            <span className="flex items-center gap-1 text-xs text-blue-600 font-semibold">
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
               <span>Đang định vị...</span>
             </span>
@@ -168,7 +168,7 @@ export const ReportLocationPinOverlay: React.FC<ReportLocationPinOverlayProps> =
               }}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Nhập tên đường, địa chỉ hoặc địa danh..."
-              className="text-xs bg-transparent w-full outline-none font-semibold text-slate-800 placeholder-slate-400"
+              className="text-sm bg-transparent w-full outline-none font-semibold text-slate-800 placeholder-slate-400"
             />
             {searchQuery && (
               <button
@@ -185,17 +185,17 @@ export const ReportLocationPinOverlay: React.FC<ReportLocationPinOverlayProps> =
           </div>
 
           {/* Current coordinates preview under input */}
-          <div className="px-1 mt-1.5 flex items-center justify-between text-[10px] text-slate-400 font-mono">
+          <div className="px-1 mt-1.5 flex items-center justify-between text-xs text-slate-500">
             <span>Tọa độ tâm: {coord.lat.toFixed(5)}, {coord.lng.toFixed(5)}</span>
-            {isMoving && <span className="text-amber-500 font-sans font-bold animate-pulse">Đang di chuyển bản đồ...</span>}
+            {isMoving && <span className="text-amber-600 font-bold animate-pulse">Đang di chuyển bản đồ...</span>}
           </div>
 
           {/* Dropdown Suggestions */}
           {isFocused && (
             <div className="absolute top-full left-0 right-0 z-50 bg-white border border-slate-200 rounded-2xl shadow-2xl mt-1.5 max-h-56 overflow-y-auto divide-y divide-slate-100 animate-in fade-in">
-              <div className="p-2 bg-slate-50/95 backdrop-blur-sm text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between sticky top-0 z-10">
+              <div className="p-2.5 bg-slate-50/95 backdrop-blur-sm text-xs font-bold text-slate-600 uppercase tracking-wider flex items-center justify-between sticky top-0 z-10">
                 <span className="flex items-center gap-1">
-                  <Search className="w-3 h-3 text-blue-600" />
+                  <Search className="w-3.5 h-3.5 text-blue-600" />
                   Gợi ý địa chỉ
                 </span>
               </div>
@@ -203,13 +203,13 @@ export const ReportLocationPinOverlay: React.FC<ReportLocationPinOverlayProps> =
               {isSearching ? (
                 <div className="py-7 flex flex-col items-center justify-center gap-2 text-slate-500">
                   <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-                  <span className="text-xs font-semibold text-slate-700">Đang tìm kiếm địa chỉ...</span>
-                  <span className="text-[10px] text-slate-400">Vui lòng chờ trong giây lát</span>
+                  <span className="text-sm font-semibold text-slate-700">Đang tìm kiếm địa chỉ...</span>
+                  <span className="text-xs text-slate-400">Vui lòng chờ trong giây lát</span>
                 </div>
               ) : suggestions.length === 0 ? (
                 <div className="p-4 text-xs text-slate-500 text-center flex flex-col items-center justify-center gap-1">
-                  <span className="font-semibold text-slate-700">Không tìm thấy địa chỉ</span>
-                  <span className="text-[11px] text-slate-400">Thử nhập tên đường hoặc địa danh phổ biến</span>
+                  <span className="text-sm font-semibold text-slate-700">Không tìm thấy địa chỉ</span>
+                  <span className="text-xs text-slate-400">Thử nhập tên đường hoặc địa danh phổ biến</span>
                 </div>
               ) : (
                 suggestions.map((item, idx) => (
@@ -220,16 +220,16 @@ export const ReportLocationPinOverlay: React.FC<ReportLocationPinOverlayProps> =
                       setIsFocused(false);
                       onSelectLocation?.(item.lat, item.lng, item.label);
                     }}
-                    title={`${item.label} (${item.lat.toFixed(4)}, ${item.lng.toFixed(4)})`}
-                    className="p-2.5 text-xs text-slate-800 hover:bg-pastel-sky-50 hover:text-blue-900 cursor-pointer transition flex items-start gap-2 active:bg-pastel-sky-100"
+                    title={`${item.label} • ${item.lat.toFixed(4)}, ${item.lng.toFixed(4)}`}
+                    className="p-3 text-sm text-slate-800 hover:bg-pastel-sky-50 hover:text-blue-900 cursor-pointer transition flex items-start gap-2.5 active:bg-pastel-sky-100"
                   >
-                    <MapPin className="w-3.5 h-3.5 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <MapPin className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-slate-900 leading-snug">
                         {item.label}
                       </div>
-                      <div className="text-[10px] text-slate-400 mt-0.5 font-mono">
-                        {item.lat.toFixed(4)}, {item.lng.toFixed(4)}
+                      <div className="text-xs text-slate-400 mt-0.5">
+                        Tọa độ: {item.lat.toFixed(4)}, {item.lng.toFixed(4)}
                       </div>
                     </div>
                   </div>
@@ -246,7 +246,7 @@ export const ReportLocationPinOverlay: React.FC<ReportLocationPinOverlayProps> =
         <button
           type="button"
           onClick={onCancel}
-          className="shrink-0 flex items-center justify-center gap-1.5 px-4 py-3 min-h-[48px] bg-white hover:bg-slate-100 text-slate-800 text-xs font-bold rounded-2xl border border-slate-300 shadow-lg hover:text-slate-950 active:scale-95 cursor-pointer whitespace-nowrap"
+          className="shrink-0 flex items-center justify-center gap-1.5 px-4 py-3 min-h-[48px] bg-white hover:bg-slate-100 text-slate-800 text-sm font-semibold rounded-2xl border border-slate-300 shadow-lg hover:text-slate-950 active:scale-95 cursor-pointer whitespace-nowrap"
         >
           <X className="w-4 h-4 text-slate-600" />
           <span>Hủy</span>
@@ -257,7 +257,7 @@ export const ReportLocationPinOverlay: React.FC<ReportLocationPinOverlayProps> =
           type="button"
           onClick={onLocateMe}
           title="Di chuyển đến vị trí hiện tại của tôi"
-          className="shrink-0 flex items-center justify-center gap-1.5 px-3.5 py-3 min-h-[48px] bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-2xl border border-blue-200 shadow-lg active:scale-95 cursor-pointer whitespace-nowrap"
+          className="shrink-0 flex items-center justify-center gap-1.5 px-3.5 py-3 min-h-[48px] bg-blue-50 hover:bg-blue-100 text-blue-700 text-sm font-semibold rounded-2xl border border-blue-200 shadow-lg active:scale-95 cursor-pointer whitespace-nowrap"
         >
           <Navigation className="w-4 h-4 text-blue-600" />
           <span className="hidden sm:inline">Vị trí của tôi</span>
@@ -269,7 +269,7 @@ export const ReportLocationPinOverlay: React.FC<ReportLocationPinOverlayProps> =
           type="button"
           onClick={onConfirm}
           disabled={isMoving}
-          className="flex-1 min-w-0 flex items-center justify-center gap-2 py-3 px-4 min-h-[48px] bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-bold rounded-2xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap"
+          className="flex-1 min-w-0 flex items-center justify-center gap-2 py-3 px-4 min-h-[48px] bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-sm font-bold rounded-2xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap"
         >
           <Check className="w-4 h-4" />
           <span>Xác nhận vị trí</span>
@@ -283,7 +283,7 @@ export const ReportLocationPinOverlay: React.FC<ReportLocationPinOverlayProps> =
             <button
               type="button"
               onClick={onZoomIn}
-              title="Phóng to tâm bản đồ (+)"
+              title="Phóng to tâm bản đồ"
               className="w-11 h-11 flex items-center justify-center text-slate-700 hover:text-blue-600 hover:bg-pastel-sky-50 transition font-bold active:scale-90 cursor-pointer"
             >
               <Plus className="w-5 h-5" />
@@ -294,7 +294,7 @@ export const ReportLocationPinOverlay: React.FC<ReportLocationPinOverlayProps> =
             <button
               type="button"
               onClick={onZoomOut}
-              title="Thu nhỏ tâm bản đồ (-)"
+              title="Thu nhỏ tâm bản đồ"
               className="w-11 h-11 flex items-center justify-center text-slate-700 hover:text-blue-600 hover:bg-pastel-sky-50 transition font-bold active:scale-90 cursor-pointer"
             >
               <Minus className="w-5 h-5" />

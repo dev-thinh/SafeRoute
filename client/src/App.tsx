@@ -9,9 +9,10 @@ import { ReportFloodModal, SelectedReportLocation } from './components/Reporting
 import { ReportLocationPinOverlay } from './components/Reporting/ReportLocationPinOverlay';
 import { AdminDashboardModal } from './components/Admin/AdminDashboardModal';
 import { TopUtilityBar } from './components/Navigation/TopUtilityBar';
-import { getActiveFloods, reverseGeocode, getAdminReports } from './services/api';
-import { MapPin, MapPinPlus, Target, AlertTriangle, X } from 'lucide-react';
-import { NavigateResponse, FloodEvent, UserReport } from './types';
+import { AuthModal } from './components/Auth/AuthModal';
+import { getActiveFloods, reverseGeocode, getAdminReports, getMe, getAuthToken, setAuthToken } from './services/api';
+import { MapPin, MapPinPlus, Target, AlertTriangle, X, ShieldAlert } from 'lucide-react';
+import { NavigateResponse, FloodEvent, UserReport, AuthUser } from './types';
 
 export const App: React.FC = () => {
   const [routes, setRoutes] = useState<NavigateResponse | null>(null);
@@ -24,9 +25,13 @@ export const App: React.FC = () => {
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [pendingAdminCount, setPendingAdminCount] = useState(0);
 
-  // Panel State
+  // RBAC Authentication State
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [authReason, setAuthReason] = useState<string | null>(null);
+
+  // Panel Collapsed State
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
-  const [activeTab, setActiveTab] = useState<'routes' | 'news' | 'weather'>('routes');
 
   // Zoom & Fit handlers ref from MapView
   const zoomHandlersRef = useRef<{ zoomIn: () => void; zoomOut: () => void } | null>(null);
@@ -81,6 +86,43 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     loadFloods();
+  }, []);
+
+  // Automatically determine Point A (origin) using user's current GPS location on startup
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        setOrigin({
+          label: 'Đang xác định địa chỉ GPS...',
+          lat: latitude,
+          lng: longitude,
+        });
+        setMapCenter([latitude, longitude]);
+
+        reverseGeocode(latitude, longitude)
+          .then((rev) => {
+            setOrigin({
+              label: rev.label || 'Vị trí hiện tại của bạn',
+              lat: latitude,
+              lng: longitude,
+            });
+          })
+          .catch(() => {
+            setOrigin({
+              label: `Tọa độ: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`,
+              lat: latitude,
+              lng: longitude,
+            });
+          });
+      },
+      (err) => {
+        console.info('GPS permission not granted or timeout:', err.message);
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
   }, []);
 
   // Debounced reverse geocode when map center moves during pinning mode
@@ -190,8 +232,64 @@ export const App: React.FC = () => {
       });
   };
 
-  // Start pinning mode for report flood
+  // Check active auth session on mount
+  useEffect(() => {
+    const token = getAuthToken();
+    if (token) {
+      getMe()
+        .then((res) => {
+          if (res?.user) {
+            setCurrentUser(res.user);
+          }
+        })
+        .catch((err) => {
+          console.warn('Session expired or invalid, reverting to guest', err);
+          setAuthToken(null);
+          setCurrentUser(null);
+        });
+    }
+  }, []);
+
+  // Reload admin data when user switches to admin
+  useEffect(() => {
+    if (currentUser?.role === 'admin') {
+      loadFloods();
+    }
+  }, [currentUser]);
+
+  const handleOpenAuth = (reason?: string) => {
+    setAuthReason(reason || null);
+    setIsAuthOpen(true);
+  };
+
+  const handleLogout = () => {
+    setAuthToken(null);
+    setCurrentUser(null);
+    setIsAdminOpen(false);
+    setToastMessage('Đã đăng xuất tài khoản thành công.');
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const handleAuthSuccess = (user: AuthUser) => {
+    setCurrentUser(user);
+    setToastMessage(`Đăng nhập thành công! Chào mừng ${user.fullName}.`);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  const handleOpenAdmin = () => {
+    if (!currentUser || currentUser.role !== 'admin') {
+      handleOpenAuth('Vui lòng đăng nhập với tài khoản Quản trị viên (admin/admin123) để vào trung tâm quản trị.');
+      return;
+    }
+    setIsAdminOpen(true);
+  };
+
+  // Start pinning mode for report flood (requires registered citizen or admin)
   const handleStartReportPinning = () => {
+    if (!currentUser) {
+      handleOpenAuth('Vui lòng đăng nhập hoặc tạo tài khoản để báo ngập. Tính năng này giúp bảo vệ bản đồ khỏi tin giả và nội dung spam!');
+      return;
+    }
     setIsPinningReport(true);
     setIsReportOpen(false);
   };
@@ -259,10 +357,7 @@ export const App: React.FC = () => {
           onStartPickOnMap={setPickingField}
           onCancelPickOnMap={() => setPickingField(null)}
           onRefreshFloods={loadFloods}
-          onSelectLocation={(lat, lng) => setMapCenter([lat, lng])}
           onToggleCollapse={() => setIsPanelCollapsed(true)}
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
         />
       )}
 
@@ -273,13 +368,13 @@ export const App: React.FC = () => {
           onClick={() => setIsPanelCollapsed(false)}
           className="absolute top-4 left-4 z-[1000] flex items-center gap-2.5 px-3.5 py-2.5 bg-white/92 backdrop-blur-xl border border-sky-100/90 rounded-2xl shadow-xl hover:bg-white text-slate-800 font-bold text-xs active:scale-95 transition-all cursor-pointer min-h-[44px]"
           aria-label="Mở bảng điều khiển SafeRoute"
-          title="Mở bảng điều khiển SafeRoute (tìm lộ trình, tin tức, thời tiết)"
+          title="Mở bảng điều khiển SafeRoute"
         >
           <div className="w-6 h-6 rounded-lg bg-white border border-slate-200/80 flex items-center justify-center overflow-hidden p-0.5 shadow-xs">
             <img src="/logo.png" alt="SafeRoute" className="w-full h-full object-contain" />
           </div>
           <span className="font-extrabold text-slate-900 tracking-tight">SafeRoute</span>
-          <span className="text-[10px] bg-pastel-mint-100 text-pastel-mint-800 px-2 py-0.5 rounded-full font-bold border border-pastel-mint-200">
+          <span className="text-xs bg-pastel-mint-100 text-pastel-mint-800 px-2 py-0.5 rounded-full font-bold border border-pastel-mint-200">
             Mở bảng
           </span>
         </button>
@@ -322,11 +417,10 @@ export const App: React.FC = () => {
       {/* Top Right Consolidated Utility Bar */}
       {!isPinningReport && (
         <TopUtilityBar
-          onOpenAdmin={() => setIsAdminOpen(true)}
-          onOpenWeather={() => {
-            setActiveTab('weather');
-            setIsPanelCollapsed(false);
-          }}
+          onOpenAdmin={handleOpenAdmin}
+          onOpenAuth={() => handleOpenAuth()}
+          onLogout={handleLogout}
+          currentUser={currentUser}
           pendingAdminCount={pendingAdminCount}
           onFitRoute={() => fitRouteRef.current?.()}
           hasRoute={!!(routes?.safe_route || routes?.fastest_route)}
@@ -351,7 +445,7 @@ export const App: React.FC = () => {
             <div className="text-xs font-bold text-slate-900 whitespace-nowrap">
               {pickingField === 'origin' ? 'Ghim điểm xuất phát' : 'Ghim điểm đến'}
             </div>
-            <div className="text-[11px] text-slate-500 whitespace-nowrap hidden sm:block">
+            <div className="text-xs text-slate-500 whitespace-nowrap hidden sm:block">
               Chạm hoặc click vị trí trên bản đồ để ghim
             </div>
           </div>
@@ -375,14 +469,20 @@ export const App: React.FC = () => {
           <button
             type="button"
             onClick={handleStartReportPinning}
-            className="flex items-center gap-2.5 px-5 py-3.5 min-h-[48px] bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-[0.98] text-white font-bold text-xs rounded-2xl shadow-pastel-blue hover:shadow-lg transition-all cursor-pointer whitespace-nowrap"
-            title="Báo ngập tại vị trí"
-            aria-label="Báo ngập tại vị trí trên bản đồ"
+            className="flex items-center gap-2.5 px-5 py-3.5 min-h-[48px] bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-[0.98] text-white font-bold text-sm rounded-2xl shadow-pastel-blue hover:shadow-lg transition-all cursor-pointer whitespace-nowrap"
+            title={currentUser?.role === 'admin' ? 'Phát cảnh báo ngập chính thức' : 'Báo ngập tại vị trí'}
+            aria-label={currentUser?.role === 'admin' ? 'Phát cảnh báo ngập chính thức' : 'Báo ngập tại vị trí trên bản đồ'}
           >
-            <div className="w-6 h-6 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
-              <MapPinPlus className="w-4 h-4 text-white" />
+            <div className="w-7 h-7 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+              {currentUser?.role === 'admin' ? (
+                <ShieldAlert className="w-4 h-4 text-white" />
+              ) : (
+                <MapPinPlus className="w-4 h-4 text-white" />
+              )}
             </div>
-            <span className="font-extrabold tracking-wide">Báo ngập tại đây</span>
+            <span className="font-extrabold tracking-wide">
+              {currentUser?.role === 'admin' ? 'Phát cảnh báo ngập' : 'Báo ngập tại đây'}
+            </span>
           </button>
         </div>
       )}
@@ -422,6 +522,7 @@ export const App: React.FC = () => {
       <ReportFloodModal
         isOpen={isReportOpen}
         location={selectedReportLocation}
+        currentUser={currentUser}
         onClose={() => setIsReportOpen(false)}
         onReportSubmitted={loadFloods}
         onRePickLocation={handleRePickLocation}
@@ -432,6 +533,18 @@ export const App: React.FC = () => {
         isOpen={isAdminOpen}
         onClose={() => setIsAdminOpen(false)}
         onDataChanged={loadFloods}
+        onSelectLocation={(lat, lng) => {
+          setMapCenter([lat, lng]);
+          setIsAdminOpen(false);
+        }}
+      />
+
+      {/* 8. RBAC Authentication Modal */}
+      <AuthModal
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
+        onSuccess={handleAuthSuccess}
+        reasonMessage={authReason}
       />
     </div>
   );

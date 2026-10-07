@@ -1,14 +1,32 @@
 import { describe, it, expect } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../src/app';
+import { generateToken } from '../src/db/usersRepo';
 
 describe('Role-Based Flood Reporting & Admin Moderation', () => {
   const app = createApp();
+
+  const userToken = generateToken({
+    id: 'user_citizen_001',
+    username: 'user',
+    fullName: 'Người dân TP.HCM',
+    role: 'user',
+    createdAt: new Date().toISOString(),
+  });
+
+  const adminToken = generateToken({
+    id: 'user_admin_001',
+    username: 'admin',
+    fullName: 'Quản trị viên SafeRoute',
+    role: 'admin',
+    createdAt: new Date().toISOString(),
+  });
 
   it('Public: POST /api/reports should save report as pending and quarantine it from public map', async () => {
     // 1. Submit a report
     const res = await request(app)
       .post('/api/reports')
+      .set('Authorization', `Bearer ${userToken}`)
       .send({
         coordinate: { lat: 10.748, lng: 106.708 },
         depth_level: 'knee',
@@ -32,7 +50,9 @@ describe('Role-Based Flood Reporting & Admin Moderation', () => {
     expect(foundInPublic).toBeUndefined();
 
     // 3. Admin endpoint must see this report inside its cluster
-    const adminRes = await request(app).get('/api/admin/reports');
+    const adminRes = await request(app)
+      .get('/api/admin/reports')
+      .set('Authorization', `Bearer ${adminToken}`);
     expect(adminRes.status).toBe(200);
     expect(adminRes.body.clusters).toBeInstanceOf(Array);
     const cluster = adminRes.body.clusters.find((c: any) =>
@@ -43,7 +63,9 @@ describe('Role-Based Flood Reporting & Admin Moderation', () => {
     expect(cluster.totalReports).toBeGreaterThanOrEqual(1);
 
     // 4. Admin manually approves the report
-    const approveRes = await request(app).post(`/api/admin/reports/${reportId}/approve`);
+    const approveRes = await request(app)
+      .post(`/api/admin/reports/${reportId}/approve`)
+      .set('Authorization', `Bearer ${adminToken}`);
     expect(approveRes.status).toBe(200);
     expect(approveRes.body.report.status).toBe('approved');
     expect(approveRes.body.report.reviewedBy).toBe('admin');
@@ -55,7 +77,9 @@ describe('Role-Based Flood Reporting & Admin Moderation', () => {
     expect(foundApproved.status).toBe('approved');
 
     // 6. Admin takes down the report
-    const takedownRes = await request(app).post(`/api/admin/reports/${reportId}/takedown`);
+    const takedownRes = await request(app)
+      .post(`/api/admin/reports/${reportId}/takedown`)
+      .set('Authorization', `Bearer ${adminToken}`);
     expect(takedownRes.status).toBe(200);
     expect(takedownRes.body.success).toBe(true);
 
@@ -66,12 +90,15 @@ describe('Role-Based Flood Reporting & Admin Moderation', () => {
   });
 
   it('Admin Settings: GET & POST /api/admin/settings should allow toggling Auto-Pilot', async () => {
-    const getRes = await request(app).get('/api/admin/settings');
+    const getRes = await request(app)
+      .get('/api/admin/settings')
+      .set('Authorization', `Bearer ${adminToken}`);
     expect(getRes.status).toBe(200);
     expect(getRes.body.settings.minClusterCountForAutoApprove).toBe(5);
 
     const postRes = await request(app)
       .post('/api/admin/settings')
+      .set('Authorization', `Bearer ${adminToken}`)
       .send({ isAutoPilotEnabled: false, autoApproveThreshold: 0.90 });
 
     expect(postRes.status).toBe(200);
@@ -81,6 +108,7 @@ describe('Role-Based Flood Reporting & Admin Moderation', () => {
     // Reset back
     await request(app)
       .post('/api/admin/settings')
+      .set('Authorization', `Bearer ${adminToken}`)
       .send({ isAutoPilotEnabled: true, autoApproveThreshold: 0.85, minClusterCountForAutoApprove: 5 });
   });
 
@@ -88,6 +116,7 @@ describe('Role-Based Flood Reporting & Admin Moderation', () => {
     // Submit 2 reports at same location from 2 different users
     const r1 = await request(app)
       .post('/api/reports')
+      .set('Authorization', `Bearer ${userToken}`)
       .set('x-client-token', 'user-cluster-1')
       .send({
         coordinate: { lat: 10.735, lng: 106.720 },
@@ -96,6 +125,7 @@ describe('Role-Based Flood Reporting & Admin Moderation', () => {
       });
     const r2 = await request(app)
       .post('/api/reports')
+      .set('Authorization', `Bearer ${userToken}`)
       .set('x-client-token', 'user-cluster-2')
       .send({
         coordinate: { lat: 10.7351, lng: 106.7201 },
@@ -107,12 +137,16 @@ describe('Role-Based Flood Reporting & Admin Moderation', () => {
     expect(r2.body.report.clusterId).toBe(clusterId);
 
     // Approve entire cluster
-    const approveClusterRes = await request(app).post(`/api/admin/clusters/${clusterId}/approve`);
+    const approveClusterRes = await request(app)
+      .post(`/api/admin/clusters/${clusterId}/approve`)
+      .set('Authorization', `Bearer ${adminToken}`);
     expect(approveClusterRes.status).toBe(200);
     expect(approveClusterRes.body.approvedCount).toBeGreaterThanOrEqual(2);
 
     // Reject entire cluster
-    const rejectClusterRes = await request(app).post(`/api/admin/clusters/${clusterId}/reject`);
+    const rejectClusterRes = await request(app)
+      .post(`/api/admin/clusters/${clusterId}/reject`)
+      .set('Authorization', `Bearer ${adminToken}`);
     expect(rejectClusterRes.status).toBe(200);
     expect(rejectClusterRes.body.rejectedCount).toBeGreaterThanOrEqual(2);
   });
@@ -121,6 +155,7 @@ describe('Role-Based Flood Reporting & Admin Moderation', () => {
     // 1. Numbers only spam
     const numRes = await request(app)
       .post('/api/reports')
+      .set('Authorization', `Bearer ${userToken}`)
       .set('x-client-token', 'single-spam-1')
       .send({
         coordinate: { lat: 10.740, lng: 106.710 },
@@ -136,6 +171,7 @@ describe('Role-Based Flood Reporting & Admin Moderation', () => {
     // 2. Keyboard mash spam
     const mashRes = await request(app)
       .post('/api/reports')
+      .set('Authorization', `Bearer ${userToken}`)
       .set('x-client-token', 'single-spam-2')
       .send({
         coordinate: { lat: 10.741, lng: 106.711 },
@@ -157,6 +193,7 @@ describe('Role-Based Flood Reporting & Admin Moderation', () => {
       const text = spamTexts[i];
       const res = await request(app)
         .post('/api/reports')
+        .set('Authorization', `Bearer ${userToken}`)
         .set('x-client-token', `spam-bot-net-${i}`)
         .send({
           coordinate: spamCoords,
@@ -171,7 +208,9 @@ describe('Role-Based Flood Reporting & Admin Moderation', () => {
     }
 
     // Verify admin cluster view
-    const adminRes = await request(app).get('/api/admin/reports');
+    const adminRes = await request(app)
+      .get('/api/admin/reports')
+      .set('Authorization', `Bearer ${adminToken}`);
     expect(adminRes.status).toBe(200);
     const spamCluster = adminRes.body.clusters.find((c: any) => c.clusterId === targetClusterId);
     expect(spamCluster).toBeDefined();
@@ -196,6 +235,7 @@ describe('Role-Based Flood Reporting & Admin Moderation', () => {
     // 1st submission -> Allowed
     const res1 = await request(app)
       .post('/api/reports')
+      .set('Authorization', `Bearer ${userToken}`)
       .set('x-client-token', clientToken)
       .send({
         coordinate: loc,
@@ -207,6 +247,7 @@ describe('Role-Based Flood Reporting & Admin Moderation', () => {
     // 2nd submission at same location from same client -> Blocked with 429
     const res2 = await request(app)
       .post('/api/reports')
+      .set('Authorization', `Bearer ${userToken}`)
       .set('x-client-token', clientToken)
       .send({
         coordinate: { lat: 10.7702, lng: 106.6901 }, // ~25m away
@@ -221,6 +262,7 @@ describe('Role-Based Flood Reporting & Admin Moderation', () => {
     // 2 reports ~50m apart from 2 different users
     const r1 = await request(app)
       .post('/api/reports')
+      .set('Authorization', `Bearer ${userToken}`)
       .set('x-client-token', 'user-alpha-001')
       .send({
         coordinate: { lat: 10.7800, lng: 106.6800 },
@@ -231,6 +273,7 @@ describe('Role-Based Flood Reporting & Admin Moderation', () => {
 
     const r2 = await request(app)
       .post('/api/reports')
+      .set('Authorization', `Bearer ${userToken}`)
       .set('x-client-token', 'user-beta-002')
       .send({
         coordinate: { lat: 10.7803, lng: 106.6802 }, // ~40m away
@@ -239,7 +282,9 @@ describe('Role-Based Flood Reporting & Admin Moderation', () => {
       });
     expect(r2.status).toBe(201);
 
-    const adminRes = await request(app).get('/api/admin/reports');
+    const adminRes = await request(app)
+      .get('/api/admin/reports')
+      .set('Authorization', `Bearer ${adminToken}`);
     expect(adminRes.status).toBe(200);
 
     // Find the merged cluster containing these reports
@@ -255,6 +300,7 @@ describe('Role-Based Flood Reporting & Admin Moderation', () => {
   it('Spatial Merging: 3 reports at user coordinates (10.7605, 106.6806), (10.7592, 106.6849), (10.7626, 106.6823) must merge into 1 cluster', async () => {
     const r1 = await request(app)
       .post('/api/reports')
+      .set('Authorization', `Bearer ${userToken}`)
       .set('x-client-token', 'user-p1-test')
       .send({
         coordinate: { lat: 10.7605, lng: 106.6806 },
@@ -265,6 +311,7 @@ describe('Role-Based Flood Reporting & Admin Moderation', () => {
 
     const r2 = await request(app)
       .post('/api/reports')
+      .set('Authorization', `Bearer ${userToken}`)
       .set('x-client-token', 'user-p2-test')
       .send({
         coordinate: { lat: 10.7592, lng: 106.6849 },
@@ -275,6 +322,7 @@ describe('Role-Based Flood Reporting & Admin Moderation', () => {
 
     const r3 = await request(app)
       .post('/api/reports')
+      .set('Authorization', `Bearer ${userToken}`)
       .set('x-client-token', 'user-p3-test')
       .send({
         coordinate: { lat: 10.7626, lng: 106.6823 },
@@ -283,7 +331,9 @@ describe('Role-Based Flood Reporting & Admin Moderation', () => {
       });
     expect(r3.status).toBe(201);
 
-    const adminRes = await request(app).get('/api/admin/reports');
+    const adminRes = await request(app)
+      .get('/api/admin/reports')
+      .set('Authorization', `Bearer ${adminToken}`);
     expect(adminRes.status).toBe(200);
 
     // Find the cluster containing r1
@@ -302,6 +352,7 @@ describe('Role-Based Flood Reporting & Admin Moderation', () => {
     // Submit 1 report at isolated location
     const isolatedReport = await request(app)
       .post('/api/reports')
+      .set('Authorization', `Bearer ${userToken}`)
       .set('x-client-token', 'user-gamma-999')
       .send({
         coordinate: { lat: 10.8200, lng: 106.6200 },
@@ -312,12 +363,48 @@ describe('Role-Based Flood Reporting & Admin Moderation', () => {
     const clusterId = isolatedReport.body.report.clusterId;
 
     // Reject this cluster
-    const rejectRes = await request(app).post(`/api/admin/clusters/${clusterId}/reject`);
+    const rejectRes = await request(app)
+      .post(`/api/admin/clusters/${clusterId}/reject`)
+      .set('Authorization', `Bearer ${adminToken}`);
     expect(rejectRes.status).toBe(200);
 
     // Verify it is completely purged from admin pending view
-    const adminRes = await request(app).get('/api/admin/reports');
+    const adminRes = await request(app)
+      .get('/api/admin/reports')
+      .set('Authorization', `Bearer ${adminToken}`);
     const foundCluster = adminRes.body.clusters.find((c: any) => c.clusterId === clusterId);
     expect(foundCluster).toBeUndefined();
+  });
+
+  it('Admin Instant Dispatch: Admin reporting should be immediately approved, marked as official, and published to public map', async () => {
+    // 1. Admin submits an emergency official report
+    const adminReportRes = await request(app)
+      .post('/api/reports')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        coordinate: { lat: 10.7950, lng: 106.7219 },
+        depth_level: 'deep',
+        description: 'Cảnh báo khẩn cấp: Ngập sâu > 60cm khu vực chân cầu Sài Gòn, xe máy không thể lưu thông',
+      });
+
+    expect(adminReportRes.status).toBe(201);
+    expect(adminReportRes.body.success).toBe(true);
+    expect(adminReportRes.body.message).toContain('Đã phát cảnh báo ngập chính thức');
+    expect(adminReportRes.body.report.status).toBe('approved');
+    expect(adminReportRes.body.report.isOfficial).toBe(true);
+    expect(adminReportRes.body.report.authorRole).toBe('admin');
+    expect(adminReportRes.body.report.reviewedBy).toBe('admin');
+    expect(adminReportRes.body.report.aiConfidence).toBe(1.0);
+
+    const officialReportId = adminReportRes.body.report.id;
+
+    // 2. Report MUST appear IMMEDIATELY on the public active reports map (without manual admin approval)
+    const publicMapRes = await request(app).get('/api/reports');
+    expect(publicMapRes.status).toBe(200);
+    const foundOnPublic = publicMapRes.body.reports.find((r: any) => r.id === officialReportId);
+    expect(foundOnPublic).toBeDefined();
+    expect(foundOnPublic.status).toBe('approved');
+    expect(foundOnPublic.isOfficial).toBe(true);
+    expect(foundOnPublic.authorRole).toBe('admin');
   });
 });

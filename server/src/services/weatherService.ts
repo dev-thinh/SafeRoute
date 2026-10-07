@@ -25,6 +25,12 @@ interface CacheEntry {
 const weatherCache = new Map<HcmcQuadrant, CacheEntry>();
 const CACHE_TTL_MS = 15 * 60 * 1000;
 
+export function getBangkokHourKey(date: Date): string {
+  const dStr = date.toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' });
+  const hStr = date.toLocaleTimeString('en-GB', { timeZone: 'Asia/Bangkok', hour: '2-digit', hour12: false });
+  return `${dStr}T${hStr}:00`;
+}
+
 export interface RollingPrecipitation {
   currentMm: number;
   prev1hMm: number;
@@ -81,13 +87,21 @@ export async function getQuadrantRollingPrecipitation(
     }
   }
 
-  const currentHourKey = targetDate.toISOString().slice(0, 13) + ':00';
-  const prev1hDate = new Date(targetDate.getTime() - 60 * 60 * 1000);
-  const prev1hKey = prev1hDate.toISOString().slice(0, 13) + ':00';
-  const prev2hDate = new Date(targetDate.getTime() - 120 * 60 * 1000);
-  const prev2hKey = prev2hDate.toISOString().slice(0, 13) + ':00';
-
+  const bangkokCurrentKey = getBangkokHourKey(targetDate);
+  const utcCurrentKey = targetDate.toISOString().slice(0, 13) + ':00';
   const hourly = cached.hourlyMap || {};
+  const currentHourKey = hourly[bangkokCurrentKey] !== undefined ? bangkokCurrentKey : (hourly[utcCurrentKey] !== undefined ? utcCurrentKey : bangkokCurrentKey);
+
+  const prev1hDate = new Date(targetDate.getTime() - 60 * 60 * 1000);
+  const bangkokPrev1Key = getBangkokHourKey(prev1hDate);
+  const utcPrev1Key = prev1hDate.toISOString().slice(0, 13) + ':00';
+  const prev1hKey = hourly[bangkokPrev1Key] !== undefined ? bangkokPrev1Key : (hourly[utcPrev1Key] !== undefined ? utcPrev1Key : bangkokPrev1Key);
+
+  const prev2hDate = new Date(targetDate.getTime() - 120 * 60 * 1000);
+  const bangkokPrev2Key = getBangkokHourKey(prev2hDate);
+  const utcPrev2Key = prev2hDate.toISOString().slice(0, 13) + ':00';
+  const prev2hKey = hourly[bangkokPrev2Key] !== undefined ? bangkokPrev2Key : (hourly[utcPrev2Key] !== undefined ? utcPrev2Key : bangkokPrev2Key);
+
   const currentMm = hourly[currentHourKey] !== undefined ? hourly[currentHourKey] : cached.precipitationMm;
   const prev1hMm = hourly[prev1hKey] !== undefined ? hourly[prev1hKey] : currentMm * 0.7;
   const prev2hMm = hourly[prev2hKey] !== undefined ? hourly[prev2hKey] : prev1hMm * 0.5;
@@ -231,19 +245,19 @@ export async function getWeatherDashboardData(targetDate: Date = new Date()): Pr
     };
   });
 
-  // Extract next 12 hours from center quadrant cache
+  // Extract next 12 hours from center quadrant cache starting strictly from RIGHT NOW (new Date())
   const cachedCenter = weatherCache.get('center');
   const hourlyTimeline: HourlyForecastItem[] = [];
-  if (cachedCenter?.hourlyMap) {
-    const sortedKeys = Object.keys(cachedCenter.hourlyMap).sort();
-    const nowKey = targetDate.toISOString().slice(0, 13) + ':00';
-    const futureKeys = sortedKeys.filter((k) => k >= nowKey).slice(0, 12);
-    for (const k of futureKeys) {
-      hourlyTimeline.push({
-        time: k,
-        precipitationMm: cachedCenter.hourlyMap[k] || 0,
-      });
-    }
+  const realNow = new Date(); // Always start strictly from current moment, not target_time
+  for (let i = 0; i < 12; i++) {
+    const slotDate = new Date(realNow.getTime() + i * 60 * 60 * 1000);
+    const bKey = getBangkokHourKey(slotDate);
+    const uKey = slotDate.toISOString().slice(0, 13) + ':00';
+    const mm = cachedCenter?.hourlyMap?.[bKey] ?? cachedCenter?.hourlyMap?.[uKey] ?? 0;
+    hourlyTimeline.push({
+      time: bKey,
+      precipitationMm: mm,
+    });
   }
 
   // Cross-reference with all calibrated vulnerable corridors using compound flood model

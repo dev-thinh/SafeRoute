@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { randomUUID } from 'crypto';
 import { UserReport } from '../types';
 import { saveReport, getActiveReports, voteReport, inMemoryReports, checkClientSpamLimits } from '../db/reportsRepo';
+import { requireAuth, AuthenticatedRequest } from '../services/authMiddleware';
 
 export const reportsRouter = Router();
 export { inMemoryReports };
@@ -23,26 +24,33 @@ reportsRouter.get('/', async (req, res) => {
   }
 });
 
-reportsRouter.post('/', async (req, res) => {
+reportsRouter.post('/', requireAuth, async (req, res) => {
+  const authReq = req as AuthenticatedRequest;
   const { coordinate, depth_level, description, image_url } = req.body;
   if (!coordinate || !depth_level) {
     return res.status(400).json({ error: 'Coordinate and depth_level are required' });
   }
 
-  // Rate limiting & spam detection per client identifier
-  const clientIdentifier =
-    (req.headers['x-client-token'] as string) ||
-    req.body.clientToken ||
-    req.ip ||
-    'anonymous';
+  const isAdmin = authReq.user?.role === 'admin';
 
-  const limitCheck = checkClientSpamLimits(clientIdentifier, coordinate);
-  if (!limitCheck.allowed) {
-    return res.status(429).json({
-      error: limitCheck.message || 'Bạn đã gửi báo cáo ngập tại khu vực này rồi.',
-    });
+  // Rate limiting & spam detection per client identifier (exempt admins for emergency broadcasts)
+  if (!isAdmin) {
+    const clientIdentifier =
+      (req.headers['x-client-token'] as string) ||
+      req.body.clientToken ||
+      authReq.user?.id ||
+      req.ip ||
+      'anonymous';
+
+    const limitCheck = checkClientSpamLimits(clientIdentifier, coordinate);
+    if (!limitCheck.allowed) {
+      return res.status(429).json({
+        error: limitCheck.message || 'Bạn đã gửi báo cáo ngập tại khu vực này rồi.',
+      });
+    }
   }
 
+  const now = new Date();
   const report: UserReport = {
     id: randomUUID(),
     coordinate,
@@ -50,16 +58,29 @@ reportsRouter.post('/', async (req, res) => {
     depthCm: depthLevelToCm[depth_level] || 25,
     description,
     imageUrl: image_url,
-    reportedAt: new Date(),
+    reportedAt: now,
     upvotes: 1,
     downvotes: 0,
-    status: 'pending',
+    status: isAdmin ? 'approved' : 'pending',
+    isAutoApproved: isAdmin,
+    isOfficial: isAdmin,
+    authorRole: isAdmin ? 'admin' : 'user',
+    reviewedBy: isAdmin ? 'admin' : undefined,
+    reviewedAt: isAdmin ? now : undefined,
+    aiConfidence: isAdmin ? 1.0 : undefined,
+    aiReasoning: isAdmin
+      ? 'Báo cáo xác thực bởi Quản trị viên (Official Admin Dispatch)'
+      : undefined,
+    userId: authReq.user?.id,
+    authorName: authReq.user?.fullName || authReq.user?.username,
   };
 
   const saved = await saveReport(report);
   return res.status(201).json({
     success: true,
-    message: 'Đã tiếp nhận báo cáo của bạn. Thông tin đã được chuyển đến ban điều phối để kiểm duyệt.',
+    message: isAdmin
+      ? 'Đã phát cảnh báo ngập chính thức lên bản đồ thành công!'
+      : 'Đã tiếp nhận báo cáo của bạn. Thông tin đã được chuyển đến ban điều phối để kiểm duyệt.',
     report: saved,
   });
 });

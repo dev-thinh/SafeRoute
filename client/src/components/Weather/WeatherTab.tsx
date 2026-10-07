@@ -123,11 +123,11 @@ export const WeatherTab: React.FC<WeatherTabProps> = ({ onSelectLocation }) => {
       <div className="bg-gradient-to-br from-pastel-sky-50 via-white to-pastel-lavender-50 border border-sky-100/90 rounded-2xl p-3 shadow-xs">
         <div className="flex items-start justify-between gap-2">
           <div>
-            <div className="flex items-center gap-1.5 text-xs font-extrabold text-slate-900">
+            <div className="flex items-center gap-1.5 text-sm font-bold text-slate-900">
               <CloudRain className="w-4 h-4 text-blue-600" />
               <span>Khí tượng & Thủy triều TP.HCM</span>
             </div>
-            <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+            <p className="text-xs text-slate-500 mt-0.5 leading-snug">
               Dữ liệu radar Open-Meteo và trạm đo Phú An / Nhà Bè
             </p>
           </div>
@@ -145,9 +145,9 @@ export const WeatherTab: React.FC<WeatherTabProps> = ({ onSelectLocation }) => {
         </div>
 
         {data?.fetchedAt && (
-          <div className="mt-2 text-[10px] text-slate-400 flex items-center gap-1 font-mono">
-            <Clock className="w-3 h-3 text-slate-400" />
-            <span>Cập nhật: {new Date(data.fetchedAt).toLocaleTimeString('vi-VN')}</span>
+          <div className="mt-2 text-xs text-slate-400 flex items-center gap-1">
+            <Clock className="w-3.5 h-3.5 text-slate-400" />
+            <span>Cập nhật: {new Date(data.fetchedAt).toLocaleTimeString('vi-VN', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
           </div>
         )}
       </div>
@@ -159,7 +159,6 @@ export const WeatherTab: React.FC<WeatherTabProps> = ({ onSelectLocation }) => {
         </div>
       )}
 
-      {/* 2. Astronomical Tide Status Card */}
       {data?.tideStatus && (
         <div className="bg-gradient-to-r from-pastel-sky-50/90 to-pastel-lavender-50/80 border border-sky-200/70 rounded-2xl p-3 shadow-xs space-y-2">
           <div className="flex items-center justify-between">
@@ -170,7 +169,7 @@ export const WeatherTab: React.FC<WeatherTabProps> = ({ onSelectLocation }) => {
               </span>
             </div>
             <span
-              className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+              className={`text-xs font-bold px-2 py-0.5 rounded-full border ${
                 data.tideStatus.isSpringTide
                   ? 'bg-pastel-coral-100 text-pastel-coral-800 border-pastel-coral-200'
                   : 'bg-pastel-sky-100 text-blue-800 border-sky-200'
@@ -182,23 +181,23 @@ export const WeatherTab: React.FC<WeatherTabProps> = ({ onSelectLocation }) => {
 
           <div className="grid grid-cols-2 gap-2 text-xs">
             <div className="bg-white/90 p-2.5 rounded-xl border border-sky-100/90 shadow-xs">
-              <span className="text-[10px] text-slate-500 font-semibold block">Đỉnh triều dự báo</span>
-              <span className="text-base font-black text-blue-900 font-mono">
+              <span className="text-xs text-slate-500 font-semibold block">Đỉnh triều dự báo</span>
+              <span className="text-base font-black text-blue-900">
                 {data.tideStatus.peakTideHeightM.toFixed(2)}{' '}
-                <span className="text-[10px] font-medium text-slate-500">mét</span>
+                <span className="text-xs font-medium text-slate-500">mét</span>
               </span>
-              <span className="text-[10px] text-slate-400 block mt-0.5 font-medium">
-                (Ngày {data.tideStatus.lunarDay} Âm lịch)
+              <span className="text-xs text-slate-400 block mt-0.5 font-medium">
+                Ngày {data.tideStatus.lunarDay} Âm lịch
               </span>
             </div>
 
             <div className="bg-white/90 p-2.5 rounded-xl border border-sky-100/90 shadow-xs flex flex-col justify-center">
-              <span className="text-[10px] text-slate-500 font-semibold block">Khung giờ đỉnh triều</span>
-              <div className="text-[11px] font-bold text-slate-800 mt-0.5 font-mono">
-                Sáng: {new Date(data.tideStatus.morningPeak).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+              <span className="text-xs text-slate-500 font-semibold block">Khung giờ đỉnh triều</span>
+              <div className="text-xs font-bold text-slate-800 mt-0.5">
+                Sáng: {new Date(data.tideStatus.morningPeak).toLocaleTimeString('vi-VN', { hour12: false, hour: '2-digit', minute: '2-digit' })}
               </div>
-              <div className="text-[11px] font-bold text-slate-800 font-mono">
-                Chiều: {new Date(data.tideStatus.eveningPeak).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+              <div className="text-xs font-bold text-slate-800">
+                Chiều: {new Date(data.tideStatus.eveningPeak).toLocaleTimeString('vi-VN', { hour12: false, hour: '2-digit', minute: '2-digit' })}
               </div>
             </div>
           </div>
@@ -207,12 +206,12 @@ export const WeatherTab: React.FC<WeatherTabProps> = ({ onSelectLocation }) => {
 
       {/* 3. 4-Quadrants Weather Cards */}
       <div className="space-y-1.5">
-        <div className="flex items-center justify-between text-[10px] font-bold text-slate-600 uppercase tracking-wider px-0.5">
+        <div className="flex items-center justify-between text-xs font-bold text-slate-600 uppercase tracking-wider px-0.5">
           <span className="flex items-center gap-1.5">
             <Droplets className="w-3.5 h-3.5 text-blue-600" />
             <span>Lượng mưa 4 phân vùng TP.HCM</span>
           </span>
-          <span className="text-[10px] text-slate-400 font-mono lowercase">mm/h</span>
+          <span className="text-xs text-slate-400 lowercase">mm/h</span>
         </div>
 
         <div className="grid grid-cols-2 gap-2">
@@ -228,18 +227,18 @@ export const WeatherTab: React.FC<WeatherTabProps> = ({ onSelectLocation }) => {
                   <span className="text-xs font-bold text-slate-900 truncate" title={quad.name}>
                     {quad.name}
                   </span>
-                  <span className="flex items-center gap-1 text-[10px] font-semibold">
-                    <Icon className="w-3 h-3" />
+                  <span className="flex items-center gap-1 text-xs font-semibold">
+                    <Icon className="w-3.5 h-3.5" />
                     {badge.label}
                   </span>
                 </div>
                 <div className="flex items-baseline gap-1 mt-1">
-                  <span className="text-lg font-black tracking-tight text-slate-900 font-mono">
+                  <span className="text-lg font-black tracking-tight text-slate-900">
                     {quad.precipitationMm}
                   </span>
-                  <span className="text-[10px] font-medium opacity-80 font-mono">mm/h</span>
+                  <span className="text-xs font-medium opacity-80">mm/h</span>
                 </div>
-                <p className="text-[10px] mt-1 leading-tight opacity-90 line-clamp-1 font-medium" title={quad.alertText}>
+                <p className="text-xs mt-1 leading-tight opacity-90 line-clamp-1 font-medium" title={quad.alertText}>
                   {quad.alertText}
                 </p>
               </div>
@@ -251,12 +250,12 @@ export const WeatherTab: React.FC<WeatherTabProps> = ({ onSelectLocation }) => {
       {/* 4. Hourly Precipitation Timeline */}
       {data?.hourlyTimeline && data.hourlyTimeline.length > 0 && (
         <div className="bg-white/90 border border-sky-100/90 rounded-2xl p-3 shadow-xs space-y-2">
-          <div className="flex items-center justify-between text-[11px] font-bold text-slate-700">
+          <div className="flex items-center justify-between text-xs font-bold text-slate-700">
             <span className="flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5 text-blue-600" />
               <span>Diễn biến mưa 12 giờ tới</span>
             </span>
-            <span className="text-[10px] text-slate-400 font-normal">Trạm Trung tâm</span>
+            <span className="text-xs text-slate-400 font-normal">Trạm Trung tâm</span>
           </div>
 
           <div className="flex items-end gap-2 overflow-x-auto pb-1 pt-2 scrollbar-none">
@@ -269,9 +268,9 @@ export const WeatherTab: React.FC<WeatherTabProps> = ({ onSelectLocation }) => {
               return (
                 <div
                   key={idx}
-                  className="flex flex-col items-center flex-shrink-0 w-10 text-center gap-1"
+                  className="flex flex-col items-center flex-shrink-0 w-11 text-center gap-1"
                 >
-                  <span className="text-[9px] font-mono font-bold text-slate-700">
+                  <span className={`text-xs font-bold ${idx === 0 ? 'text-blue-700' : 'text-slate-700'}`}>
                     {item.precipitationMm > 0 ? `${item.precipitationMm}` : '0'}
                   </span>
                   <div
@@ -284,8 +283,8 @@ export const WeatherTab: React.FC<WeatherTabProps> = ({ onSelectLocation }) => {
                         : 'bg-slate-200'
                     }`}
                   />
-                  <span className="text-[9px] text-slate-500 font-medium">
-                    {hourLabel}
+                  <span className={`text-xs ${idx === 0 ? 'text-blue-700 font-bold' : 'text-slate-500 font-medium'}`}>
+                    {idx === 0 ? 'Hiện tại' : hourLabel}
                   </span>
                 </div>
               );
@@ -297,12 +296,12 @@ export const WeatherTab: React.FC<WeatherTabProps> = ({ onSelectLocation }) => {
       {/* 5. Vulnerable Corridors List */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-800">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
             <ShieldAlert className="w-3.5 h-3.5 text-rose-600" />
-            <span>Tuyến đường trọng điểm ({displayedCorridors.length})</span>
+            <span>Tuyến đường trọng điểm • {displayedCorridors.length}</span>
           </div>
 
-          <div className="flex items-center gap-1 text-[10px]">
+          <div className="flex items-center gap-1 text-xs">
             <button
               type="button"
               onClick={() => setFilterMode('all')}
@@ -336,7 +335,7 @@ export const WeatherTab: React.FC<WeatherTabProps> = ({ onSelectLocation }) => {
             value={searchStreet}
             onChange={(e) => setSearchStreet(e.target.value)}
             placeholder="Lọc theo tên đường hoặc quận..."
-            className="text-xs bg-transparent w-full outline-none font-medium text-slate-800 placeholder-slate-400"
+            className="text-sm bg-transparent w-full outline-none font-medium text-slate-800 placeholder-slate-400"
           />
           {searchStreet && (
             <button
@@ -379,20 +378,20 @@ export const WeatherTab: React.FC<WeatherTabProps> = ({ onSelectLocation }) => {
                 <div className="flex items-start justify-between gap-1.5">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <span className="font-bold text-xs text-slate-900 truncate" title={`${c.streetName} (${c.district})`}>
+                      <span className="font-bold text-xs text-slate-900 truncate" title={`${c.streetName} • ${c.district}`}>
                         {c.streetName}
                       </span>
-                      <span className="text-[10px] px-1.5 py-0.5 bg-slate-100 text-slate-700 rounded-lg font-medium flex-shrink-0">
+                      <span className="text-xs px-2 py-0.5 bg-slate-100 text-slate-700 rounded-lg font-medium flex-shrink-0">
                         {c.district}
                       </span>
                     </div>
-                    <p className="text-[10px] text-slate-500 mt-0.5 line-clamp-1" title={c.description}>
+                    <p className="text-xs text-slate-500 mt-0.5 line-clamp-1" title={c.description}>
                       {c.description}
                     </p>
                   </div>
 
                   <span
-                    className={`flex-shrink-0 text-[10px] px-2 py-0.5 rounded-lg border flex items-center gap-1.5 ${badge.bg}`}
+                    className={`flex-shrink-0 text-xs px-2 py-0.5 rounded-lg border flex items-center gap-1.5 ${badge.bg}`}
                     title={badge.text}
                   >
                     <span className={`w-1.5 h-1.5 rounded-full ${badge.dotBg} flex-shrink-0`} />
@@ -400,17 +399,17 @@ export const WeatherTab: React.FC<WeatherTabProps> = ({ onSelectLocation }) => {
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100 text-[10px]">
+                <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100 text-xs">
                   <div
                     className="flex items-center gap-2 text-slate-600"
                     title={`Mưa hiện tại: ${c.currentRainMm} mm/h, Ngưỡng chịu tải: ${c.rainThresholdMm} mm/h`}
                   >
                     <span>
-                      Mưa: <strong className={c.currentRainMm >= c.rainThresholdMm ? 'text-rose-600 font-mono' : 'text-slate-800 font-mono'}>{c.currentRainMm} mm/h</strong>
+                      Mưa: <strong className={c.currentRainMm >= c.rainThresholdMm ? 'text-rose-600' : 'text-slate-800'}>{c.currentRainMm} mm/h</strong>
                     </span>
                     <span>•</span>
                     <span>
-                      Ngưỡng: <strong className="font-mono">{c.rainThresholdMm} mm/h</strong>
+                      Ngưỡng: <strong>{c.rainThresholdMm} mm/h</strong>
                     </span>
                   </div>
 
@@ -420,7 +419,7 @@ export const WeatherTab: React.FC<WeatherTabProps> = ({ onSelectLocation }) => {
                       onClick={() => onSelectLocation(c.coordinate[1], c.coordinate[0])}
                       className="flex items-center gap-1 text-blue-600 hover:text-blue-800 font-bold hover:underline cursor-pointer"
                     >
-                      <MapPin className="w-3 h-3" />
+                      <MapPin className="w-3.5 h-3.5" />
                       <span>Xem vị trí</span>
                     </button>
                   )}
