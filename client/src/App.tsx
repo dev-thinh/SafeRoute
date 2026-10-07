@@ -10,7 +10,6 @@ import { ReportLocationPinOverlay } from './components/Reporting/ReportLocationP
 import { AdminDashboardModal } from './components/Admin/AdminDashboardModal';
 import { TopUtilityBar } from './components/Navigation/TopUtilityBar';
 import { AuthModal } from './components/Auth/AuthModal';
-import { WeatherModal } from './components/Weather/WeatherModal';
 import { getActiveFloods, reverseGeocode, getAdminReports, getMe, getAuthToken, setAuthToken } from './services/api';
 import { MapPin, MapPinPlus, Target, AlertTriangle, X } from 'lucide-react';
 import { NavigateResponse, FloodEvent, UserReport, AuthUser } from './types';
@@ -31,9 +30,8 @@ export const App: React.FC = () => {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [authReason, setAuthReason] = useState<string | null>(null);
 
-  // Panel & Weather Modal State
+  // Panel Collapsed State
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
-  const [isWeatherOpen, setIsWeatherOpen] = useState(false);
 
   // Zoom & Fit handlers ref from MapView
   const zoomHandlersRef = useRef<{ zoomIn: () => void; zoomOut: () => void } | null>(null);
@@ -383,7 +381,6 @@ export const App: React.FC = () => {
       {!isPinningReport && (
         <TopUtilityBar
           onOpenAdmin={handleOpenAdmin}
-          onOpenWeather={() => setIsWeatherOpen(true)}
           onOpenAuth={() => handleOpenAuth()}
           onLogout={handleLogout}
           currentUser={currentUser}
@@ -492,6 +489,10 @@ export const App: React.FC = () => {
         isOpen={isAdminOpen}
         onClose={() => setIsAdminOpen(false)}
         onDataChanged={loadFloods}
+        onSelectLocation={(lat, lng) => {
+          setMapCenter([lat, lng]);
+          setIsAdminOpen(false);
+        }}
       />
 
       {/* 8. RBAC Authentication Modal */}
@@ -500,13 +501,6 @@ export const App: React.FC = () => {
         onClose={() => setIsAuthOpen(false)}
         onSuccess={handleAuthSuccess}
         reasonMessage={authReason}
-      />
-
-      {/* 9. Weather & Tide Dedicated Modal */}
-      <WeatherModal
-        isOpen={isWeatherOpen}
-        onClose={() => setIsWeatherOpen(false)}
-        onSelectLocation={(lat, lng) => setMapCenter([lat, lng])}
       />
     </div>
   );
