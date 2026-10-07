@@ -109,7 +109,7 @@ export const TopUtilityBar: React.FC<TopUtilityBarProps> = ({
                     : 'bg-emerald-500/15 text-emerald-800'
                 }`}
               >
-                {isAdmin ? 'Admin' : 'Dân'}
+                {isAdmin ? 'Admin' : 'Thành viên'}
               </span>
             </div>
 

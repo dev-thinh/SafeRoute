@@ -55,6 +55,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
   const [selectedCluster, setSelectedCluster] = useState<ReportCluster | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [isTogglingAutoPilot, setIsTogglingAutoPilot] = useState(false);
 
   // Hook into background crawler status for tab badge
   const { isCrawling, progress } = useNewsCrawl();
@@ -98,6 +99,8 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
   if (!isOpen) return null;
 
   const handleToggleAutoPilot = async () => {
+    if (isTogglingAutoPilot) return;
+    setIsTogglingAutoPilot(true);
     const nextVal = !settings.isAutoPilotEnabled;
     try {
       const res = await updateAdminSettings({ isAutoPilotEnabled: nextVal });
@@ -106,6 +109,8 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
       }
     } catch (err) {
       console.warn('Failed to toggle autopilot:', err);
+    } finally {
+      setIsTogglingAutoPilot(false);
     }
   };
 
@@ -320,26 +325,30 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                     <Bot className="w-4 h-4" />
                   </div>
                   <div>
-                    <span className="text-xs font-bold text-gray-800 uppercase tracking-wide block">
+                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wide block">
                       Auto-Pilot AI
                     </span>
-                    <span className="text-xs text-gray-500">
-                      {settings.isAutoPilotEnabled ? 'Tự duyệt tin cậy > 85%' : 'Duyệt thủ công'}
+                    <span className="text-sm font-bold text-purple-950">
+                      {settings.isAutoPilotEnabled ? 'Bật tự duyệt' : 'Duyệt thủ công'}
                     </span>
                   </div>
                 </div>
 
                 <button
                   type="button"
+                  disabled={isTogglingAutoPilot}
                   onClick={handleToggleAutoPilot}
-                  className={`w-12 h-6.5 rounded-full transition-colors relative cursor-pointer flex items-center p-0.5 ${
-                    settings.isAutoPilotEnabled ? 'bg-pastel-sky-600' : 'bg-gray-300'
+                  className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer flex items-center p-0.5 shrink-0 ${
+                    isTogglingAutoPilot ? 'opacity-60 cursor-wait' : ''
+                  } ${
+                    settings.isAutoPilotEnabled ? 'bg-blue-600' : 'bg-slate-300'
                   }`}
-                  title="Bật/Tắt chế độ tự động duyệt khi tin cậy cao"
+                  title="Bật hoặc tắt chế độ tự động duyệt khi tin cậy cao"
+                  aria-label="Bật hoặc tắt chế độ tự động duyệt"
                 >
                   <div
-                    className={`w-5.5 h-5.5 rounded-full bg-white shadow-md transform transition-transform ${
-                      settings.isAutoPilotEnabled ? 'translate-x-5.5' : 'translate-x-0'
+                    className={`w-5 h-5 rounded-full bg-white shadow-md transform transition-transform duration-200 ${
+                      settings.isAutoPilotEnabled ? 'translate-x-6' : 'translate-x-0'
                     }`}
                   />
                 </button>
@@ -445,7 +454,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                               }`}
                             >
                               <Layers className="w-3.5 h-3.5 flex-shrink-0" />
-                              <span>{cluster.totalReports} báo cáo từ dân</span>
+                              <span>{cluster.totalReports} báo cáo cộng đồng</span>
                             </span>
                             <span
                               className={`px-2 py-0.5 rounded-md text-xs font-semibold ${
@@ -534,8 +543,12 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                                 title="Bác bỏ cụm báo cáo này"
                                 className="py-2 px-3.5 bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-900 border border-rose-300 font-semibold text-sm rounded-xl transition active:scale-95 cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shadow-sm whitespace-nowrap min-h-[38px]"
                               >
-                                <Trash2 className="w-4 h-4" />
-                                <span>Bác bỏ</span>
+                                {isBusy ? (
+                                  <Loader2 className="w-4 h-4 animate-spin text-rose-600" />
+                                ) : (
+                                  <Trash2 className="w-4 h-4" />
+                                )}
+                                <span>{isBusy ? 'Đang xử lý...' : 'Bác bỏ'}</span>
                               </button>
                               <button
                                 type="button"
@@ -549,7 +562,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                                 ) : (
                                   <CheckCheck className="w-4 h-4" />
                                 )}
-                                <span>Duyệt & Lên map</span>
+                                <span>{isBusy ? 'Đang duyệt...' : 'Duyệt & Lên map'}</span>
                               </button>
                             </>
                           ) : (
@@ -560,8 +573,12 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                               className="py-2 px-3.5 bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-900 border border-rose-300 font-semibold text-sm rounded-xl transition active:scale-95 cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shadow-sm whitespace-nowrap min-h-[38px]"
                               title="Gỡ bỏ điểm ngập này khỏi bản đồ"
                             >
-                              <AlertTriangle className="w-4 h-4" />
-                              <span>Gỡ bỏ khỏi bản đồ</span>
+                              {isBusy ? (
+                                <Loader2 className="w-4 h-4 animate-spin text-rose-600" />
+                              ) : (
+                                <AlertTriangle className="w-4 h-4" />
+                              )}
+                              <span>{isBusy ? 'Đang gỡ...' : 'Gỡ bỏ khỏi bản đồ'}</span>
                             </button>
                           )}
                         </div>

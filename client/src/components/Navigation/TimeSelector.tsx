@@ -423,14 +423,9 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
             <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
               <Calendar className="w-4 h-4" />
             </div>
-            <div className="flex flex-col text-left min-w-0 flex-1">
-              <span className="text-[11px] text-blue-700 font-bold uppercase tracking-wider leading-none">
-                Ngày khởi hành
-              </span>
-              <span className="text-sm font-extrabold text-slate-900 mt-1 whitespace-nowrap overflow-hidden">
-                {selectedDateFullLabel}
-              </span>
-            </div>
+            <span className="text-sm font-bold text-slate-900 truncate">
+              {selectedDateFullLabel}
+            </span>
           </div>
           <ChevronDown
             className={`w-4 h-4 text-blue-600 shrink-0 ml-2 transition-transform duration-200 ${
@@ -460,14 +455,9 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
               <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
                 <Clock className="w-4 h-4" />
               </div>
-              <div className="flex flex-col text-left min-w-0 flex-1">
-                <span className="text-[11px] text-blue-700 font-bold uppercase tracking-wider leading-none">
-                  Mốc giờ (24h)
-                </span>
-                <span className="text-sm font-extrabold text-slate-900 mt-1 truncate">
-                  {selectedTimeLabel}
-                </span>
-              </div>
+              <span className="text-sm font-bold text-slate-900 truncate">
+                {selectedTimeLabel}
+              </span>
             </div>
             <ChevronDown
               className={`w-4 h-4 text-blue-600 shrink-0 ml-1.5 transition-transform duration-200 ${
@@ -479,43 +469,39 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
 
         {/* Ô chỉnh giờ phút chính xác thang 24h */}
         <div
-          className="flex items-center gap-1 bg-white px-2.5 py-1.5 rounded-xl border-2 border-slate-200/90 shadow-xs min-h-[50px] focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-100 shrink-0"
+          className="flex items-center gap-1.5 bg-white px-3 py-2 rounded-xl border-2 border-slate-200/90 shadow-xs min-h-[50px] focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-100 shrink-0"
           title="Chỉnh giờ chính xác từng phút theo thang 24h"
         >
-          <div className="flex flex-col">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none">
-              Chỉnh 24h
-            </span>
-            <div className="flex items-center gap-1 mt-1">
-              <input
-                type="text"
-                inputMode="numeric"
-                disabled={disabled}
-                maxLength={2}
-                value={inputHours}
-                onChange={handleHoursChange}
-                onBlur={handleHoursBlur}
-                onKeyDown={handleHoursKeyDown}
-                className="w-7 text-center text-sm font-black text-slate-900 bg-slate-100 hover:bg-slate-200/80 focus:bg-white focus:ring-1 focus:ring-blue-500 rounded py-0.5 outline-none transition cursor-text disabled:opacity-50"
-                aria-label="Giờ 00 đến 23"
-                title="Giờ (00-23)"
-              />
-              <span className="text-sm font-black text-slate-400 select-none">:</span>
-              <input
-                type="text"
-                inputMode="numeric"
-                disabled={disabled}
-                maxLength={2}
-                value={inputMinutes}
-                onChange={handleMinutesChange}
-                onBlur={handleMinutesBlur}
-                onKeyDown={handleMinutesKeyDown}
-                className="w-7 text-center text-sm font-black text-slate-900 bg-slate-100 hover:bg-slate-200/80 focus:bg-white focus:ring-1 focus:ring-blue-500 rounded py-0.5 outline-none transition cursor-text disabled:opacity-50"
-                aria-label="Phút 00 đến 59"
-                title="Phút (00-59)"
-              />
-            </div>
-          </div>
+          <input
+            type="text"
+            inputMode="numeric"
+            disabled={disabled}
+            maxLength={2}
+            value={inputHours}
+            onChange={handleHoursChange}
+            onBlur={handleHoursBlur}
+            onKeyDown={handleHoursKeyDown}
+            className="w-7 text-center text-sm font-black text-slate-900 bg-slate-100 hover:bg-slate-200/80 focus:bg-white focus:ring-1 focus:ring-blue-500 rounded py-1 outline-none transition cursor-text disabled:opacity-50"
+            aria-label="Giờ 00 đến 23"
+            title="Giờ (00-23)"
+          />
+          <span className="text-sm font-black text-slate-400 select-none">:</span>
+          <input
+            type="text"
+            inputMode="numeric"
+            disabled={disabled}
+            maxLength={2}
+            value={inputMinutes}
+            onChange={handleMinutesChange}
+            onBlur={handleMinutesBlur}
+            onKeyDown={handleMinutesKeyDown}
+            className="w-7 text-center text-sm font-black text-slate-900 bg-slate-100 hover:bg-slate-200/80 focus:bg-white focus:ring-1 focus:ring-blue-500 rounded py-1 outline-none transition cursor-text disabled:opacity-50"
+            aria-label="Phút 00 đến 59"
+            title="Phút (00-59)"
+          />
+          <span className="text-xs font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 select-none">
+            24h
+          </span>
         </div>
       </div>
 

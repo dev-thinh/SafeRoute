@@ -286,8 +286,12 @@ export const ClusterDetailModal: React.FC<ClusterDetailModalProps> = ({
               onClick={handleReject}
               className="flex-1 sm:flex-initial py-2.5 px-3.5 bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-900 border border-rose-300 font-bold text-sm rounded-xl transition flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer disabled:opacity-50 min-h-[44px] shadow-sm whitespace-nowrap"
             >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span>Bác bỏ cả cụm</span>
+              {isProcessing ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-600" />
+              ) : (
+                <Trash2 className="w-3.5 h-3.5" />
+              )}
+              <span>{isProcessing ? 'Đang xử lý...' : 'Bác bỏ cả cụm'}</span>
             </button>
 
             <button

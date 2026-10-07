@@ -432,11 +432,11 @@ export const App: React.FC = () => {
           <button
             type="button"
             onClick={handleStartReportPinning}
-            className="flex items-center gap-2.5 px-5 py-3.5 min-h-[48px] bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-[0.98] text-white font-bold text-xs rounded-2xl shadow-pastel-blue hover:shadow-lg transition-all cursor-pointer whitespace-nowrap"
+            className="flex items-center gap-2.5 px-5 py-3.5 min-h-[48px] bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-[0.98] text-white font-bold text-sm rounded-2xl shadow-pastel-blue hover:shadow-lg transition-all cursor-pointer whitespace-nowrap"
             title="Báo ngập tại vị trí"
             aria-label="Báo ngập tại vị trí trên bản đồ"
           >
-            <div className="w-6 h-6 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+            <div className="w-7 h-7 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
               <MapPinPlus className="w-4 h-4 text-white" />
             </div>
             <span className="font-extrabold tracking-wide">Báo ngập tại đây</span>
