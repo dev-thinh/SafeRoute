@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
-import { AlertTriangle, ChevronDown, ChevronUp, Layers } from 'lucide-react';
+import {
+  Waves,
+  ChevronDown,
+  ChevronUp,
+  Footprints,
+  Bike,
+  AlertTriangle,
+  ShieldAlert,
+  Layers,
+} from 'lucide-react';
 
 export const FloodDepthLegend: React.FC = () => {
   const [collapsed, setCollapsed] = useState(true);
@@ -9,88 +18,157 @@ export const FloodDepthLegend: React.FC = () => {
       <button
         type="button"
         onClick={() => setCollapsed(false)}
-        className="flex items-center gap-2 p-2.5 px-3.5 bg-white/90 hover:bg-white text-slate-800 text-xs font-bold rounded-2xl border border-sky-100/90 shadow-glass backdrop-blur-xl transition-all duration-200 active:scale-95 cursor-pointer min-h-[44px]"
+        className="group flex items-center gap-2.5 p-2.5 px-3.5 bg-white/95 hover:bg-white text-gray-800 text-xs font-bold rounded-2xl border border-white/80 shadow-glass-md hover:shadow-glass-lg backdrop-blur-xl transition-all duration-200 active:scale-95 cursor-pointer min-h-[44px]"
         title="Mở bảng chú giải 4 mức cảnh báo ngập"
         aria-label="Mở bảng chú giải 4 mức cảnh báo ngập"
       >
-        <div className="w-5 h-5 rounded-lg bg-pastel-amber-100 text-pastel-amber-700 flex items-center justify-center flex-shrink-0">
-          <AlertTriangle className="w-3.5 h-3.5" />
+        <div className="w-6 h-6 rounded-xl bg-pastel-sky-100 text-pastel-sky-700 flex items-center justify-center flex-shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+          <Waves className="w-3.5 h-3.5" />
         </div>
-        <span className="font-semibold text-slate-700">Chú giải mức ngập</span>
-        <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
+
+        <div className="flex items-center gap-1.5">
+          <span className="font-bold text-gray-800">Mức ngập</span>
+          {/* 4 Mini colored beads preview */}
+          <div className="flex items-center gap-1 ml-0.5">
+            <span className="w-2 h-2 rounded-full bg-amber-400 ring-1 ring-white" title="Mắt cá chân (<20cm)" />
+            <span className="w-2 h-2 rounded-full bg-orange-400 ring-1 ring-white" title="Nửa bánh xe (20-40cm)" />
+            <span className="w-2 h-2 rounded-full bg-rose-500 ring-1 ring-white" title="Đầu gối (40-60cm)" />
+            <span className="w-2 h-2 rounded-full bg-red-600 ring-1 ring-white" title="Ngập sâu (>60cm)" />
+          </div>
+        </div>
+
+        <ChevronUp className="w-3.5 h-3.5 text-gray-400 group-hover:text-gray-700 transition" />
       </button>
     );
   }
 
   return (
-    <div className="w-64 sm:w-72 bg-white/95 backdrop-blur-xl border border-sky-100/90 rounded-2xl shadow-2xl transition-all duration-200 select-none animate-in fade-in zoom-in-95">
+    <div className="w-72 sm:w-80 bg-white/95 backdrop-blur-xl border border-white/80 rounded-3xl shadow-glass-xl transition-all duration-200 select-none animate-in fade-in zoom-in-95 overflow-hidden">
+      {/* Header */}
       <button
         type="button"
         onClick={() => setCollapsed(true)}
-        className="w-full flex items-center justify-between p-3 text-left hover:bg-slate-50/70 rounded-2xl transition cursor-pointer select-none"
+        className="w-full flex items-center justify-between p-3.5 text-left hover:bg-gray-50/70 transition cursor-pointer select-none border-b border-gray-100"
         aria-label="Thu gọn bảng chú giải mức ngập"
       >
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-xl bg-pastel-amber-100 text-pastel-amber-700 flex items-center justify-center flex-shrink-0">
-            <AlertTriangle className="w-3.5 h-3.5" />
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-xl bg-pastel-sky-100 text-pastel-sky-700 flex items-center justify-center flex-shrink-0 shadow-xs">
+            <Waves className="w-4 h-4" />
           </div>
-          <span className="text-xs font-bold text-slate-900">Mức độ cảnh báo ngập</span>
+          <div>
+            <span className="text-xs font-bold text-gray-900 block leading-tight">
+              Mức độ cảnh báo ngập
+            </span>
+            <span className="text-[10px] text-gray-500 font-medium">
+              Chuẩn 4 cấp an toàn giao thông
+            </span>
+          </div>
         </div>
-        <div className="text-slate-400 hover:text-slate-700 transition">
+        <div className="w-7 h-7 rounded-xl bg-gray-100/70 text-gray-400 hover:text-gray-700 flex items-center justify-center transition">
           <ChevronDown className="w-4 h-4" />
         </div>
       </button>
 
-      <div className="px-3.5 pb-3.5 pt-1 border-t border-slate-100 space-y-2.5">
-        {/* Pastel Spectrum Bar */}
+      {/* Content */}
+      <div className="p-3.5 space-y-3">
+        {/* Spectrum Gradient Bar */}
         <div>
-          <div className="h-2 w-full rounded-full bg-gradient-to-r from-yellow-300 via-orange-400 via-rose-400 to-red-600 shadow-inner" />
-          <div className="flex justify-between items-center text-[10px] font-semibold text-slate-500 mt-1">
+          <div className="h-2 w-full rounded-full bg-gradient-to-r from-amber-300 via-orange-400 via-rose-400 to-red-600 shadow-inner" />
+          <div className="flex justify-between items-center text-[10px] font-semibold text-gray-500 mt-1 font-mono">
             <span>&lt; 20cm</span>
             <span>20 - 40cm</span>
             <span>40 - 60cm</span>
-            <span className="text-red-600 font-bold">&gt; 60cm</span>
+            <span className="text-rose-600 font-bold">&gt; 60cm</span>
           </div>
         </div>
 
-        {/* Standardized 4-tier Levels in Pastel */}
-        <div className="space-y-1.5 pt-0.5">
-          <div className="flex items-center justify-between p-1.5 px-2 rounded-xl bg-pastel-amber-50/90 border border-pastel-amber-200/70">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-xs" />
-              <span className="text-[11px] font-bold text-amber-900">Mắt cá chân</span>
+        {/* 4 Standardized Levels with Purpose-fit Icons */}
+        <div className="space-y-1.5">
+          {/* Level 1: Ankle */}
+          <div className="flex items-center justify-between p-2 rounded-2xl bg-pastel-amber-50/80 border border-pastel-amber-200/80 shadow-xs">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-6 h-6 rounded-lg bg-amber-400/20 text-amber-800 flex items-center justify-center flex-shrink-0">
+                <Footprints className="w-3.5 h-3.5" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-xs font-bold text-amber-950 block leading-tight">
+                  Mắt cá chân
+                </span>
+                <span className="text-[10px] text-amber-800 leading-tight block">
+                  Xe qua tốt, chú ý quan sát
+                </span>
+              </div>
             </div>
-            <span className="text-[10px] font-mono font-bold text-amber-800">&lt; 20 cm</span>
+            <span className="text-[10px] font-mono font-bold text-amber-900 px-2 py-0.5 rounded-full bg-white/70 border border-amber-200 flex-shrink-0">
+              &lt; 20 cm
+            </span>
           </div>
 
-          <div className="flex items-center justify-between p-1.5 px-2 rounded-xl bg-pastel-coral-50/60 border border-orange-200/70">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-orange-400 shadow-xs" />
-              <span className="text-[11px] font-bold text-orange-950">Nửa bánh xe</span>
+          {/* Level 2: Wheel */}
+          <div className="flex items-center justify-between p-2 rounded-2xl bg-orange-50/80 border border-orange-200/80 shadow-xs">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-6 h-6 rounded-lg bg-orange-400/20 text-orange-800 flex items-center justify-center flex-shrink-0">
+                <Bike className="w-3.5 h-3.5" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-xs font-bold text-orange-950 block leading-tight">
+                  Nửa bánh xe
+                </span>
+                <span className="text-[10px] text-orange-800 leading-tight block">
+                  Cần cẩn thận, giảm tốc
+                </span>
+              </div>
             </div>
-            <span className="text-[10px] font-mono font-bold text-orange-800">20 - 40 cm</span>
+            <span className="text-[10px] font-mono font-bold text-orange-900 px-2 py-0.5 rounded-full bg-white/70 border border-orange-200 flex-shrink-0">
+              20 - 40 cm
+            </span>
           </div>
 
-          <div className="flex items-center justify-between p-1.5 px-2 rounded-xl bg-pastel-coral-50/90 border border-pastel-coral-200/80">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-xs" />
-              <span className="text-[11px] font-bold text-rose-950">Đầu gối / Ngập pô</span>
+          {/* Level 3: Knee / Exhaust */}
+          <div className="flex items-center justify-between p-2 rounded-2xl bg-pastel-coral-50/80 border border-pastel-coral-200/80 shadow-xs">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-6 h-6 rounded-lg bg-rose-400/20 text-rose-800 flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="w-3.5 h-3.5" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-xs font-bold text-rose-950 block leading-tight">
+                  Đầu gối / Ngập pô
+                </span>
+                <span className="text-[10px] text-rose-800 leading-tight block">
+                  Nguy hiểm cho xe máy
+                </span>
+              </div>
             </div>
-            <span className="text-[10px] font-mono font-bold text-rose-800">40 - 60 cm</span>
+            <span className="text-[10px] font-mono font-bold text-rose-900 px-2 py-0.5 rounded-full bg-white/70 border border-rose-200 flex-shrink-0">
+              40 - 60 cm
+            </span>
           </div>
 
-          <div className="flex items-center justify-between p-1.5 px-2 rounded-xl bg-red-50 border border-red-200">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-red-600 shadow-xs" />
-              <span className="text-[11px] font-extrabold text-red-950">Ngập sâu (Nguy hiểm)</span>
+          {/* Level 4: Deep Flood */}
+          <div className="flex items-center justify-between p-2 rounded-2xl bg-red-50 border border-red-200 shadow-xs">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-6 h-6 rounded-lg bg-red-600/15 text-red-700 flex items-center justify-center flex-shrink-0">
+                <ShieldAlert className="w-3.5 h-3.5" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-xs font-extrabold text-red-950 block leading-tight">
+                  Ngập sâu nguy hiểm
+                </span>
+                <span className="text-[10px] text-red-700 leading-tight block font-semibold">
+                  Tuyệt đối không đi vào
+                </span>
+              </div>
             </div>
-            <span className="text-[10px] font-mono font-black text-red-700">&gt; 60 cm</span>
+            <span className="text-[10px] font-mono font-black text-red-700 px-2 py-0.5 rounded-full bg-white/90 border border-red-300 flex-shrink-0">
+              &gt; 60 cm
+            </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 text-[10px] text-slate-500 pt-0.5">
-          <Layers className="w-3 h-3 text-blue-500 flex-shrink-0" />
-          <span>Đoạn đường trên bản đồ đổi màu tương ứng</span>
+        {/* Legend Hint */}
+        <div className="flex items-center gap-1.5 text-[10px] text-gray-500 pt-1 border-t border-gray-100">
+          <Layers className="w-3 h-3 text-pastel-sky-600 flex-shrink-0" />
+          <span>Màu tuyến đường và điểm ngập tương ứng với mức trên</span>
         </div>
       </div>
     </div>

@@ -10,7 +10,7 @@ import { ReportLocationPinOverlay } from './components/Reporting/ReportLocationP
 import { AdminDashboardModal } from './components/Admin/AdminDashboardModal';
 import { TopUtilityBar } from './components/Navigation/TopUtilityBar';
 import { getActiveFloods, reverseGeocode, getAdminReports } from './services/api';
-import { Droplet, PanelLeftOpen, MapPin, Target, AlertTriangle, X, Waves } from 'lucide-react';
+import { PanelLeftOpen, MapPin, MapPinPlus, Target, AlertTriangle, X, Waves } from 'lucide-react';
 import { NavigateResponse, FloodEvent, UserReport } from './types';
 
 export const App: React.FC = () => {
@@ -373,14 +373,22 @@ export const App: React.FC = () => {
           <button
             type="button"
             onClick={handleStartReportPinning}
-            className="flex items-center gap-2.5 px-5 py-3.5 min-h-[48px] bg-gradient-to-r from-pastel-sky-600 via-blue-600 to-indigo-600 hover:from-pastel-sky-700 hover:to-indigo-700 active:scale-95 text-white text-xs font-bold rounded-full shadow-glass-md hover:shadow-glass-lg transition-all cursor-pointer"
+            className="group flex items-center gap-3 px-5 py-3.5 sm:px-6 sm:py-3.5 min-h-[52px] bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-800 active:scale-95 text-white rounded-full ring-4 ring-white shadow-2xl shadow-blue-600/50 hover:shadow-blue-600/70 hover:scale-105 transition-all duration-300 cursor-pointer"
             title="Báo ngập tại vị trí"
             aria-label="Báo ngập tại vị trí trên bản đồ"
           >
-            <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
-              <Droplet className="w-3.5 h-3.5 fill-current text-white" />
+            <div className="relative flex items-center justify-center w-8 h-8 rounded-full bg-white text-blue-600 shadow-md flex-shrink-0 group-hover:scale-110 transition-transform">
+              <span className="absolute -inset-1 rounded-full bg-blue-400 animate-ping opacity-35" />
+              <MapPinPlus className="w-4.5 h-4.5 text-blue-600 relative z-10" />
             </div>
-            <span className="tracking-wide">Báo ngập tại đây</span>
+            <div className="text-left flex flex-col pr-1">
+              <span className="text-xs sm:text-sm font-black tracking-wide text-white leading-tight">
+                Báo ngập tại đây
+              </span>
+              <span className="text-[10px] text-blue-100 font-medium leading-tight hidden sm:block">
+                Chấm điểm tức thì
+              </span>
+            </div>
           </button>
         </div>
       )}

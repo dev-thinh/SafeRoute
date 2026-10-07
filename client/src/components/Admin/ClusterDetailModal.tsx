@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, MapPin, Sparkles, Check, Trash2, Loader2, Calendar, FileText, AlertTriangle } from 'lucide-react';
+import { X, MapPin, Check, CheckCheck, Trash2, Loader2, Calendar, FileText, AlertTriangle, Bot } from 'lucide-react';
 import { ReportCluster } from '../../types';
 
 interface ClusterDetailModalProps {
@@ -117,7 +117,7 @@ export const ClusterDetailModal: React.FC<ClusterDetailModalProps> = ({
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-4 h-4 text-pastel-sky-700" />
+                    <Bot className="w-4 h-4 text-pastel-sky-700" />
                     <span className="text-gray-900">AI Thẩm Định Thật/Giả (Ma trận 4 trụ cột)</span>
                   </>
                 )}
@@ -291,7 +291,7 @@ export const ClusterDetailModal: React.FC<ClusterDetailModalProps> = ({
               {isProcessing ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
               ) : (
-                <Check className="w-3.5 h-3.5" />
+                <CheckCheck className="w-3.5 h-3.5" />
               )}
               <span>Duyệt & Đưa lên bản đồ</span>
             </button>

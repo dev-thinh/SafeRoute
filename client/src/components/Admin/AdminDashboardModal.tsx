@@ -3,14 +3,16 @@ import {
   X,
   ShieldCheck,
   CheckCircle2,
-  Clock,
   Sparkles,
   Loader2,
   Eye,
-  Check,
+  CheckCheck,
   Trash2,
   AlertTriangle,
   RotateCcw,
+  Bot,
+  Hourglass,
+  Layers,
 } from 'lucide-react';
 import { ReportCluster, AdminSettings } from '../../types';
 import {
@@ -141,9 +143,9 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
   const displayedClusters = activeTab === 'pending' ? pendingClusters : approvedClusters;
 
   return (
-    <div className="fixed inset-0 z-[2050] flex items-center justify-center bg-gray-900/45 backdrop-blur-md p-3 sm:p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[2050] flex items-center justify-center bg-gray-900/50 backdrop-blur-md p-3 sm:p-4 animate-in fade-in duration-200">
       <div className="bg-white/95 backdrop-blur-xl rounded-3xl w-full max-w-3xl max-h-[92vh] shadow-glass-xl border border-white/70 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-        {/* 1. Header (Standard 3-part layout) */}
+        {/* 1. Header */}
         <div className="p-4 sm:p-5 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-pastel-sky-50/50 via-white to-pastel-lavender-50/40">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-pastel-sky-600 text-white flex items-center justify-center shadow-glass-xs flex-shrink-0">
@@ -186,7 +188,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
           {/* Stat 1: Pending Clusters */}
           <div className="p-3 rounded-2xl bg-pastel-amber-50/80 border border-pastel-amber-200/80 flex items-center gap-3 shadow-glass-xs">
             <div className="w-9 h-9 rounded-xl bg-pastel-amber-500 text-white flex items-center justify-center flex-shrink-0 shadow-xs">
-              <Clock className="w-4 h-4" />
+              <Hourglass className="w-4 h-4" />
             </div>
             <div>
               <span className="text-[10px] font-bold text-amber-900 uppercase tracking-wide block">
@@ -215,13 +217,18 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
 
           {/* Stat 3: Auto-Pilot Switch Card */}
           <div className="p-3 rounded-2xl bg-pastel-lavender-50/70 border border-pastel-lavender-200/80 flex items-center justify-between gap-3 shadow-glass-xs">
-            <div>
-              <span className="text-xs font-bold text-gray-800 uppercase tracking-wide block">
-                Auto-Pilot AI
-              </span>
-              <span className="text-[10px] text-gray-500">
-                {settings.isAutoPilotEnabled ? 'Tự duyệt tin cậy > 85%' : 'Kiểm duyệt thủ công'}
-              </span>
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-purple-600 text-white flex items-center justify-center flex-shrink-0 shadow-xs">
+                <Bot className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="text-xs font-bold text-gray-800 uppercase tracking-wide block">
+                  Auto-Pilot AI
+                </span>
+                <span className="text-[10px] text-gray-500">
+                  {settings.isAutoPilotEnabled ? 'Tự duyệt tin cậy > 85%' : 'Duyệt thủ công'}
+                </span>
+              </div>
             </div>
 
             <button
@@ -241,37 +248,41 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
           </div>
         </div>
 
-        {/* 3. Navigation Tabs */}
-        <div className="px-4 sm:px-5 pt-3 border-b border-gray-100 flex items-center gap-2 bg-gray-50/50">
-          <button
-            type="button"
-            onClick={() => setActiveTab('pending')}
-            className={`pb-2.5 px-3 text-xs font-bold transition-all border-b-2 cursor-pointer flex items-center gap-2 ${
-              activeTab === 'pending'
-                ? 'border-pastel-sky-600 text-pastel-sky-800'
-                : 'border-transparent text-gray-500 hover:text-gray-800'
-            }`}
-          >
-            <span>Cụm tin chờ duyệt</span>
-            <span className="px-2 py-0.5 rounded-full text-[10px] bg-pastel-amber-100 text-amber-900 font-mono font-bold">
-              {pendingClusters.length}
-            </span>
-          </button>
+        {/* 3. Navigation Tabs: Segmented Pill design consistent with RoutePlannerPanel */}
+        <div className="px-4 sm:px-5 py-3 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between flex-wrap gap-2">
+          <div className="flex p-1 bg-gray-200/70 rounded-2xl gap-1.5 w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={() => setActiveTab('pending')}
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                activeTab === 'pending'
+                  ? 'bg-white text-gray-900 shadow-glass-xs'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Hourglass className="w-3.5 h-3.5 text-amber-600" />
+              <span>Cụm tin chờ duyệt</span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] bg-pastel-amber-100 text-amber-900 font-mono font-bold">
+                {pendingClusters.length}
+              </span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab('approved')}
-            className={`pb-2.5 px-3 text-xs font-bold transition-all border-b-2 cursor-pointer flex items-center gap-2 ${
-              activeTab === 'approved'
-                ? 'border-pastel-sky-600 text-pastel-sky-800'
-                : 'border-transparent text-gray-500 hover:text-gray-800'
-            }`}
-          >
-            <span>Điểm đang hiển thị trên bản đồ</span>
-            <span className="px-2 py-0.5 rounded-full text-[10px] bg-pastel-mint-100 text-emerald-900 font-mono font-bold">
-              {approvedClusters.length}
-            </span>
-          </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('approved')}
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                activeTab === 'approved'
+                  ? 'bg-white text-gray-900 shadow-glass-xs'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Đang trên bản đồ</span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] bg-pastel-mint-100 text-emerald-900 font-mono font-bold">
+                {approvedClusters.length}
+              </span>
+            </button>
+          </div>
         </div>
 
         {/* 4. List Content */}
@@ -316,13 +327,14 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                           Tọa độ: {cluster.coordinate.lat.toFixed(4)}, {cluster.coordinate.lng.toFixed(4)}
                         </span>
                         <span
-                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border flex items-center gap-1 ${
                             isSpamCluster
                               ? 'bg-pastel-coral-50 text-pastel-coral-900 border-pastel-coral-200'
                               : 'bg-pastel-sky-50 text-pastel-sky-900 border-pastel-sky-200'
                           }`}
                         >
-                          {cluster.totalReports} báo cáo từ dân
+                          <Layers className="w-3 h-3 flex-shrink-0" />
+                          <span>{cluster.totalReports} báo cáo từ dân</span>
                         </span>
                       </div>
                       <p className="text-[11px] text-gray-500 mt-1 font-mono">
@@ -343,7 +355,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                         </span>
                       ) : (
                         <span
-                          className={`text-xs font-bold px-2.5 py-1 rounded-full border shadow-xs ${
+                          className={`text-xs font-bold px-2.5 py-1 rounded-full border shadow-xs flex items-center gap-1 ${
                             confidencePercent >= 85
                               ? 'bg-pastel-mint-100 text-emerald-950 border-pastel-mint-300'
                               : confidencePercent >= 60
@@ -351,7 +363,8 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                               : 'bg-gray-100 text-gray-800 border-gray-300'
                           }`}
                         >
-                          AI chấm: {confidencePercent}%
+                          <Sparkles className="w-3 h-3 text-current" />
+                          <span>AI chấm: {confidencePercent}%</span>
                         </span>
                       )}
                     </div>
@@ -368,7 +381,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                     {isSpamCluster ? (
                       <AlertTriangle className="w-3.5 h-3.5 text-rose-600 flex-shrink-0" />
                     ) : (
-                      <Sparkles className="w-3.5 h-3.5 text-pastel-sky-600 flex-shrink-0" />
+                      <Bot className="w-3.5 h-3.5 text-pastel-sky-600 flex-shrink-0" />
                     )}
                     <p className="text-[11px] font-medium line-clamp-1">{cluster.aiReasoning}</p>
                   </div>
@@ -408,7 +421,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                             {isBusy ? (
                               <Loader2 className="w-3 h-3 animate-spin text-white" />
                             ) : (
-                              <Check className="w-3 h-3" />
+                              <CheckCheck className="w-3.5 h-3.5" />
                             )}
                             <span>Duyệt & Lên map</span>
                           </button>
