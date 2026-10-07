@@ -345,11 +345,7 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
               <button
                 type="button"
                 onClick={onCancelPickOnMap}
-                className={`text-xs font-bold px-2 py-1 rounded-lg transition active:scale-95 cursor-pointer ${
-                  pickingField === 'origin'
-                    ? 'bg-pastel-mint-100 hover:bg-pastel-mint-200 text-pastel-mint-800'
-                    : 'bg-pastel-coral-100 hover:bg-pastel-coral-200 text-pastel-coral-800'
-                }`}
+                className="shrink-0 text-xs font-bold px-3 py-1.5 rounded-xl transition active:scale-95 cursor-pointer bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 shadow-sm whitespace-nowrap"
               >
                 Hủy
               </button>
@@ -685,7 +681,7 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
 
           {/* Route Results Comparison Section */}
           {routeData && (
-            <div className="space-y-2.5 pt-2 border-t border-slate-150">
+            <div className="space-y-2.5 pt-2 border-t border-slate-200">
               {/* Visual Flood Detection Alert Banner */}
               {routeData.safe_route.isFlooded ? (
                 <div

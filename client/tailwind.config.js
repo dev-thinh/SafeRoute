@@ -25,6 +25,7 @@ export default {
             600: '#16A34A',
             700: '#15803D',
             800: '#166534',
+            dark: '#15803D',
           },
           coral: {
             50: '#FFF1F2',
@@ -33,6 +34,7 @@ export default {
             600: '#E11D48',
             700: '#BE123C',
             800: '#9F1239',
+            dark: '#BE123C',
           },
           sky: {
             50: '#F0F9FF',
@@ -41,13 +43,16 @@ export default {
             500: '#0EA5E9',
             600: '#0284C7',
             700: '#0369A1',
+            dark: '#0369A1',
           },
           amber: {
             50: '#FEFCE8',
             100: '#FEF9C3',
             200: '#FEF08A',
+            600: '#D97706',
             700: '#A16207',
             800: '#854D0E',
+            dark: '#A16207',
           },
           lavender: {
             50: '#F5F3FF',
@@ -58,6 +63,11 @@ export default {
         },
       },
       boxShadow: {
+        'xs': '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+        'glass-xs': '0 1px 3px 0 rgba(15, 23, 42, 0.05)',
+        'glass-sm': '0 2px 6px 0 rgba(15, 23, 42, 0.06)',
+        'glass-md': '0 4px 12px 0 rgba(15, 23, 42, 0.08)',
+        'glass-xl': '0 20px 48px -12px rgba(15, 23, 42, 0.18)',
         'glass': '0 8px 32px 0 rgba(15, 23, 42, 0.08), 0 2px 8px 0 rgba(15, 23, 42, 0.04)',
         'glass-hover': '0 16px 40px 0 rgba(15, 23, 42, 0.12), 0 4px 12px 0 rgba(15, 23, 42, 0.06)',
         'pastel-blue': '0 8px 24px -4px rgba(37, 99, 235, 0.25)',

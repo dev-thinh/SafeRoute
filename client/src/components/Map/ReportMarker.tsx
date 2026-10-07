@@ -91,7 +91,7 @@ const SingleReportMarker: React.FC<{
           {report.description && (
             <p
               title={report.description}
-              className="text-slate-700 text-[11px] mt-1.5 italic bg-slate-50 p-2 rounded-xl border border-slate-150 leading-relaxed"
+              className="text-slate-700 text-[11px] mt-1.5 italic bg-slate-50 p-2 rounded-xl border border-slate-200 leading-relaxed"
             >
               "{report.description}"
             </p>
@@ -121,7 +121,7 @@ const SingleReportMarker: React.FC<{
           </div>
 
           {/* Community Vote CTA buttons */}
-          <div className="mt-2.5 pt-2 border-t border-slate-150 flex items-center gap-1.5">
+          <div className="mt-2.5 pt-2 border-t border-slate-200 flex items-center gap-1.5">
             {hasVoted ? (
               <div className="w-full text-center py-2 px-2 bg-pastel-mint-50 text-pastel-mint-800 font-bold text-[10px] rounded-xl border border-pastel-mint-200 flex items-center justify-center gap-1">
                 <Check className="w-3.5 h-3.5 text-pastel-mint-600" />

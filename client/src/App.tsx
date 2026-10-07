@@ -337,8 +337,8 @@ export const App: React.FC = () => {
       {pickingField && (
         <div className="absolute top-5 left-1/2 -translate-x-1/2 z-[1100] bg-white/92 backdrop-blur-xl px-4 py-2.5 rounded-2xl shadow-xl border border-sky-100/90 flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
           <div
-            className={`w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-xs ${
-              pickingField === 'origin' ? 'bg-pastel-mint-600' : 'bg-pastel-coral-dark'
+            className={`w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-xs shrink-0 ${
+              pickingField === 'origin' ? 'bg-emerald-600' : 'bg-rose-600'
             }`}
           >
             {pickingField === 'origin' ? (
@@ -347,18 +347,18 @@ export const App: React.FC = () => {
               <Target className="w-4 h-4" />
             )}
           </div>
-          <div>
-            <div className="text-xs font-bold text-slate-900">
+          <div className="min-w-0">
+            <div className="text-xs font-bold text-slate-900 whitespace-nowrap">
               {pickingField === 'origin' ? 'Ghim điểm xuất phát' : 'Ghim điểm đến'}
             </div>
-            <div className="text-[11px] text-slate-500">
+            <div className="text-[11px] text-slate-500 whitespace-nowrap hidden sm:block">
               Chạm hoặc click vị trí trên bản đồ để ghim
             </div>
           </div>
           <button
             type="button"
             onClick={() => setPickingField(null)}
-            className="ml-2 px-3 py-1.5 text-xs font-bold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition active:scale-95 cursor-pointer min-h-[36px]"
+            className="ml-2 px-3.5 py-1.5 text-xs font-bold text-slate-800 hover:text-slate-950 bg-white hover:bg-slate-100 border border-slate-300 rounded-xl transition active:scale-95 cursor-pointer shadow-sm min-h-[36px] whitespace-nowrap shrink-0"
           >
             Hủy
           </button>
@@ -375,7 +375,7 @@ export const App: React.FC = () => {
           <button
             type="button"
             onClick={handleStartReportPinning}
-            className="flex items-center gap-2.5 px-5 py-3.5 min-h-[48px] bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-[0.98] text-white font-bold text-xs rounded-2xl shadow-pastel-blue hover:shadow-lg transition-all cursor-pointer"
+            className="flex items-center gap-2.5 px-5 py-3.5 min-h-[48px] bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-[0.98] text-white font-bold text-xs rounded-2xl shadow-pastel-blue hover:shadow-lg transition-all cursor-pointer whitespace-nowrap"
             title="Báo ngập tại vị trí"
             aria-label="Báo ngập tại vị trí trên bản đồ"
           >
@@ -404,13 +404,13 @@ export const App: React.FC = () => {
 
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="absolute top-5 left-1/2 -translate-x-1/2 z-[1200] bg-white/95 backdrop-blur-xl px-4 py-2.5 rounded-2xl shadow-glass-xl border border-white/70 flex items-center gap-2.5 animate-in fade-in slide-in-from-top-2">
-          <AlertTriangle className="w-4 h-4 text-pastel-amber-600 flex-shrink-0" />
+        <div className="absolute top-5 left-1/2 -translate-x-1/2 z-[1200] bg-white/95 backdrop-blur-xl px-4 py-2.5 rounded-2xl shadow-xl border border-slate-200/90 flex items-center gap-2.5 animate-in fade-in slide-in-from-top-2">
+          <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
           <span className="text-xs font-semibold text-gray-800">{toastMessage}</span>
           <button
             type="button"
             onClick={() => setToastMessage(null)}
-            className="p-1 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-600 transition cursor-pointer"
+            className="p-1 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-600 transition cursor-pointer shrink-0"
             title="Đóng thông báo"
           >
             <X className="w-3.5 h-3.5" />

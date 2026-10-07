@@ -269,21 +269,21 @@ export const ClusterDetailModal: React.FC<ClusterDetailModalProps> = ({
         </div>
 
         {/* 3. Footer Actions (Rule #39: Hủy/Đóng on left, Confirm on right) */}
-        <div className="p-4 sm:p-5 border-t border-gray-100 bg-gray-50/70 flex items-center justify-between gap-2.5">
+        <div className="p-4 sm:p-5 border-t border-slate-200 bg-slate-50/90 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-2.5">
           <button
             type="button"
             onClick={onClose}
-            className="py-2.5 px-4 bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 font-bold text-xs rounded-xl transition active:scale-95 cursor-pointer shadow-glass-xs min-h-[44px]"
+            className="w-full sm:w-auto py-2.5 px-5 bg-white hover:bg-slate-100 text-slate-800 font-bold text-xs rounded-xl border border-slate-300 transition active:scale-95 cursor-pointer shadow-sm min-h-[44px] whitespace-nowrap shrink-0 text-center"
           >
             Đóng
           </button>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             <button
               type="button"
               disabled={isProcessing}
               onClick={handleReject}
-              className="py-2.5 px-3.5 bg-pastel-coral-50 hover:bg-pastel-coral-100 text-rose-800 border border-pastel-coral-200 font-bold text-xs rounded-xl transition flex items-center gap-1.5 active:scale-95 cursor-pointer disabled:opacity-50 min-h-[44px] shadow-xs"
+              className="flex-1 sm:flex-initial py-2.5 px-3.5 bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-900 border border-rose-300 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer disabled:opacity-50 min-h-[44px] shadow-sm whitespace-nowrap"
             >
               <Trash2 className="w-3.5 h-3.5" />
               <span>Bác bỏ cả cụm</span>
@@ -293,7 +293,7 @@ export const ClusterDetailModal: React.FC<ClusterDetailModalProps> = ({
               type="button"
               disabled={isProcessing}
               onClick={handleApprove}
-              className="py-2.5 px-4 bg-pastel-mint-600 hover:bg-pastel-mint-700 text-white font-bold text-xs rounded-xl shadow-glass-sm hover:shadow-glass-md transition flex items-center gap-1.5 active:scale-95 cursor-pointer disabled:opacity-50 min-h-[44px]"
+              className="flex-1 sm:flex-initial py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer disabled:opacity-50 min-h-[44px] whitespace-nowrap"
             >
               {isProcessing ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />

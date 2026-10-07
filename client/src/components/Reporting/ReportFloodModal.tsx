@@ -123,7 +123,7 @@ export const ReportFloodModal: React.FC<{
     return (
       <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-gray-900/40 backdrop-blur-md p-4 animate-in fade-in duration-200">
         <div className="bg-white/95 backdrop-blur-xl rounded-3xl p-6 sm:p-7 w-full max-w-sm shadow-glass-xl border border-white/70 flex flex-col items-center text-center gap-3.5 animate-in zoom-in-95 duration-200">
-          <div className="w-14 h-14 rounded-2xl bg-pastel-mint-50 border border-pastel-mint-200 flex items-center justify-center text-pastel-mint-dark shadow-glass-xs">
+          <div className="w-14 h-14 rounded-2xl bg-pastel-mint-50 border border-pastel-mint-200 flex items-center justify-center text-emerald-600 shadow-sm">
             <CheckCircle2 className="w-7 h-7" />
           </div>
           <div>
@@ -137,7 +137,7 @@ export const ReportFloodModal: React.FC<{
           <button
             type="button"
             onClick={handleFinish}
-            className="w-full mt-2 py-3 min-h-[44px] bg-pastel-sky-600 hover:bg-pastel-sky-700 active:bg-pastel-sky-800 text-white font-bold text-xs rounded-xl shadow-glass-sm hover:shadow-glass-md transition-all active:scale-95 cursor-pointer"
+            className="w-full mt-2 py-3.5 min-h-[48px] bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold text-sm rounded-xl shadow-lg transition-all cursor-pointer whitespace-nowrap"
           >
             Đã hiểu
           </button>
@@ -217,7 +217,7 @@ export const ReportFloodModal: React.FC<{
 
         {alreadyReported && (
           <div className="p-3 bg-pastel-mint-50 border border-pastel-mint-200 text-emerald-950 text-xs rounded-2xl flex items-start gap-2.5">
-            <CheckCircle2 className="w-4 h-4 text-pastel-mint-dark flex-shrink-0 mt-0.5" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
             <div>
               <p className="font-bold text-xs">Bạn đã gửi báo cáo tại khu vực này</p>
               <p className="text-[11px] text-emerald-800 mt-0.5 leading-relaxed">
@@ -240,7 +240,7 @@ export const ReportFloodModal: React.FC<{
                 onClick={() => setDepthLevel('ankle')}
                 className={`p-3 rounded-2xl border text-left transition-all active:scale-[0.98] cursor-pointer min-h-[72px] flex flex-col justify-between ${
                   depthLevel === 'ankle'
-                    ? 'border-pastel-amber-400 bg-pastel-amber-50/90 font-bold ring-2 ring-pastel-amber-400/40 shadow-glass-xs'
+                    ? 'border-pastel-amber-400 bg-pastel-amber-50/90 font-bold ring-2 ring-pastel-amber-400/40 shadow-xs'
                     : 'border-gray-200/90 hover:border-pastel-amber-200 bg-white/80 hover:bg-pastel-amber-50/30'
                 }`}
               >
@@ -262,7 +262,7 @@ export const ReportFloodModal: React.FC<{
                 onClick={() => setDepthLevel('wheel')}
                 className={`p-3 rounded-2xl border text-left transition-all active:scale-[0.98] cursor-pointer min-h-[72px] flex flex-col justify-between ${
                   depthLevel === 'wheel'
-                    ? 'border-pastel-amber-500 bg-pastel-amber-100/70 font-bold ring-2 ring-pastel-amber-500/40 shadow-glass-xs'
+                    ? 'border-pastel-amber-500 bg-pastel-amber-100/70 font-bold ring-2 ring-pastel-amber-500/40 shadow-xs'
                     : 'border-gray-200/90 hover:border-pastel-amber-300 bg-white/80 hover:bg-pastel-amber-50/30'
                 }`}
               >
@@ -284,16 +284,16 @@ export const ReportFloodModal: React.FC<{
                 onClick={() => setDepthLevel('knee')}
                 className={`p-3 rounded-2xl border text-left transition-all active:scale-[0.98] cursor-pointer min-h-[72px] flex flex-col justify-between ${
                   depthLevel === 'knee'
-                    ? 'border-pastel-coral-400 bg-pastel-coral-50/90 font-bold ring-2 ring-pastel-coral-400/40 shadow-glass-xs'
+                    ? 'border-pastel-coral-400 bg-pastel-coral-50/90 font-bold ring-2 ring-pastel-coral-400/40 shadow-xs'
                     : 'border-gray-200/90 hover:border-pastel-coral-200 bg-white/80 hover:bg-pastel-coral-50/30'
                 }`}
               >
                 <div className="font-bold text-pastel-coral-900 flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-pastel-coral-dark shadow-xs" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-rose-600 shadow-xs" />
                     <span>Đầu gối / Ngập pô</span>
                   </div>
-                  {depthLevel === 'knee' && <Check className="w-3.5 h-3.5 text-pastel-coral-dark" />}
+                  {depthLevel === 'knee' && <Check className="w-3.5 h-3.5 text-rose-700" />}
                 </div>
                 <div className="text-[10px] text-pastel-coral-800 font-medium mt-1">
                   40 - 60 cm • Nguy cơ chết máy
@@ -306,7 +306,7 @@ export const ReportFloodModal: React.FC<{
                 onClick={() => setDepthLevel('deep')}
                 className={`p-3 rounded-2xl border text-left transition-all active:scale-[0.98] cursor-pointer min-h-[72px] flex flex-col justify-between ${
                   depthLevel === 'deep'
-                    ? 'border-rose-400 bg-rose-50/90 font-bold ring-2 ring-rose-400/40 shadow-glass-xs'
+                    ? 'border-rose-400 bg-rose-50/90 font-bold ring-2 ring-rose-400/40 shadow-xs'
                     : 'border-gray-200/90 hover:border-rose-200 bg-white/80 hover:bg-rose-50/30'
                 }`}
               >
@@ -338,21 +338,21 @@ export const ReportFloodModal: React.FC<{
           </div>
 
           {/* 4. Action Footer (Rule #39: Hủy on left, Xác nhận on right) */}
-          <div className="flex items-center gap-3 pt-3 border-t border-gray-100">
+          <div className="flex items-center gap-3 pt-3 border-t border-slate-200">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-3 min-h-[44px] bg-white border border-gray-200/90 hover:bg-gray-50 text-gray-700 font-bold text-xs rounded-xl transition active:scale-95 cursor-pointer shadow-glass-xs"
+              className="py-3 px-6 min-h-[46px] bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 font-bold text-xs rounded-xl transition active:scale-95 cursor-pointer shadow-sm whitespace-nowrap shrink-0"
             >
               Hủy
             </button>
             <button
               type="submit"
               disabled={loading || alreadyReported}
-              className={`flex-[2] py-3 min-h-[44px] font-bold text-xs rounded-xl shadow-glass-sm hover:shadow-glass-md transition-all flex items-center justify-center gap-2 active:scale-95 cursor-pointer ${
+              className={`flex-1 py-3 px-4 min-h-[46px] font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2 active:scale-95 cursor-pointer whitespace-nowrap ${
                 alreadyReported
-                  ? 'bg-pastel-mint-dark/80 text-white cursor-not-allowed opacity-80'
-                  : 'bg-pastel-sky-600 hover:bg-pastel-sky-700 active:bg-pastel-sky-800 text-white disabled:opacity-50 disabled:cursor-not-allowed'
+                  ? 'bg-emerald-600 text-white shadow-md opacity-90 cursor-not-allowed'
+                  : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed'
               }`}
             >
               {loading ? (

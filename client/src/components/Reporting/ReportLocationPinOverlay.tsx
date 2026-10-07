@@ -241,14 +241,14 @@ export const ReportLocationPinOverlay: React.FC<ReportLocationPinOverlayProps> =
       </div>
 
       {/* 3. Bottom Action Bar */}
-      <div className="pointer-events-auto absolute bottom-7 left-1/2 -translate-x-1/2 z-[1200] flex items-center gap-2.5 w-[92%] max-w-md select-none">
+      <div className="pointer-events-auto absolute bottom-7 left-1/2 -translate-x-1/2 z-[1200] flex items-center gap-2 w-[92%] max-w-md select-none">
         {/* Cancel Button */}
         <button
           type="button"
           onClick={onCancel}
-          className="flex items-center justify-center gap-1.5 px-4.5 py-3.5 min-h-[48px] bg-white/95 hover:bg-white text-slate-700 text-xs font-bold rounded-2xl border border-slate-200 shadow-xl transition-all backdrop-blur-md hover:text-slate-900 active:scale-95 cursor-pointer"
+          className="shrink-0 flex items-center justify-center gap-1.5 px-4 py-3 min-h-[48px] bg-white hover:bg-slate-100 text-slate-800 text-xs font-bold rounded-2xl border border-slate-300 shadow-lg hover:text-slate-950 active:scale-95 cursor-pointer whitespace-nowrap"
         >
-          <X className="w-4 h-4" />
+          <X className="w-4 h-4 text-slate-600" />
           <span>Hủy</span>
         </button>
 
@@ -257,10 +257,11 @@ export const ReportLocationPinOverlay: React.FC<ReportLocationPinOverlayProps> =
           type="button"
           onClick={onLocateMe}
           title="Di chuyển đến vị trí hiện tại của tôi"
-          className="flex items-center justify-center gap-1.5 px-4 py-3.5 min-h-[48px] bg-pastel-sky-50 hover:bg-pastel-sky-100 text-blue-700 text-xs font-bold rounded-2xl border border-sky-200 shadow-xl transition-all backdrop-blur-md active:scale-95 cursor-pointer"
+          className="shrink-0 flex items-center justify-center gap-1.5 px-3.5 py-3 min-h-[48px] bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-2xl border border-blue-200 shadow-lg active:scale-95 cursor-pointer whitespace-nowrap"
         >
-          <Navigation className="w-4 h-4" />
+          <Navigation className="w-4 h-4 text-blue-600" />
           <span className="hidden sm:inline">Vị trí của tôi</span>
+          <span className="sm:hidden">GPS</span>
         </button>
 
         {/* Confirm Location Button */}
@@ -268,7 +269,7 @@ export const ReportLocationPinOverlay: React.FC<ReportLocationPinOverlayProps> =
           type="button"
           onClick={onConfirm}
           disabled={isMoving}
-          className="flex-1 flex items-center justify-center gap-2 py-3.5 px-4 min-h-[48px] bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-95 text-white text-xs font-bold rounded-2xl shadow-pastel-blue transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          className="flex-1 min-w-0 flex items-center justify-center gap-2 py-3 px-4 min-h-[48px] bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-bold rounded-2xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap"
         >
           <Check className="w-4 h-4" />
           <span>Xác nhận vị trí</span>

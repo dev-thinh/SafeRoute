@@ -89,13 +89,13 @@ export const NewsFeedTab: React.FC<NewsFeedTabProps> = ({ onSelectLocation, onRe
             type="button"
             onClick={handleManualCrawl}
             disabled={crawling}
-            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 bg-pastel-sky-600 hover:bg-pastel-sky-700 active:bg-pastel-sky-800 text-white text-xs font-bold rounded-xl shadow-glass-sm hover:shadow-glass-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-95"
+            className="flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-bold rounded-xl shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-95 whitespace-nowrap"
             title="Quét tin tức mới nhất từ các đầu báo"
           >
             {crawling ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
             ) : (
-              <RefreshCw className="w-3.5 h-3.5" />
+              <RefreshCw className="w-3.5 h-3.5 text-white" />
             )}
             <span>{crawling ? 'Đang cào...' : 'Cập nhật tin'}</span>
           </button>
@@ -209,7 +209,7 @@ export const NewsFeedTab: React.FC<NewsFeedTabProps> = ({ onSelectLocation, onRe
             {item.extractedLocations && item.extractedLocations.length > 0 && (
               <div className="pt-2.5 border-t border-gray-100 space-y-1.5">
                 <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
-                  <AlertCircle className="w-3 h-3 text-pastel-amber-600" />
+                  <AlertCircle className="w-3 h-3 text-amber-600" />
                   <span>Điểm ngập được trích xuất:</span>
                 </div>
                 <div className="flex flex-wrap gap-1.5">

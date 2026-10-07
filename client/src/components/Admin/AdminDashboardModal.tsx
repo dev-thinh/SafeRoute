@@ -288,7 +288,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
         <div className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-3 bg-gray-50/30">
           {displayedClusters.length === 0 ? (
             <div className="py-14 text-center flex flex-col items-center justify-center text-gray-400 gap-3">
-              <div className="w-14 h-14 rounded-2xl bg-pastel-mint-50 border border-pastel-mint-200 flex items-center justify-center text-pastel-mint-dark">
+              <div className="w-14 h-14 rounded-2xl bg-pastel-mint-50 border border-pastel-mint-200 flex items-center justify-center text-emerald-600 shadow-sm">
                 <CheckCircle2 className="w-7 h-7" />
               </div>
               <p className="text-xs font-bold text-gray-700">
@@ -390,20 +390,20 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                   </div>
 
                   {/* Action buttons */}
-                  <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 pt-2.5 border-t border-slate-200">
                     <button
                       type="button"
                       onClick={() => {
                         setSelectedCluster(cluster);
                         setIsDetailOpen(true);
                       }}
-                      className="text-xs font-bold text-pastel-sky-700 hover:text-pastel-sky-900 transition flex items-center gap-1.5 cursor-pointer"
+                      className="text-xs font-bold text-blue-700 hover:text-blue-900 transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap self-start sm:self-auto"
                     >
-                      <Eye className="w-3.5 h-3.5" />
+                      <Eye className="w-3.5 h-3.5 text-blue-600" />
                       <span>Xem chi tiết từng báo cáo ({cluster.reports.length})</span>
                     </button>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
                       {activeTab === 'pending' ? (
                         <>
                           <button
@@ -411,9 +411,9 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                             disabled={isBusy}
                             onClick={() => handleRejectCluster(cluster.clusterId)}
                             title="Bác bỏ cụm báo cáo này"
-                            className="py-1.5 px-3 bg-pastel-coral-50 hover:bg-pastel-coral-100 text-rose-800 border border-pastel-coral-200 font-bold text-[11px] rounded-xl transition active:scale-95 cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shadow-xs"
+                            className="py-2 px-3.5 bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-900 border border-rose-300 font-bold text-xs rounded-xl transition active:scale-95 cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shadow-sm whitespace-nowrap"
                           >
-                            <Trash2 className="w-3 h-3" />
+                            <Trash2 className="w-3.5 h-3.5" />
                             <span>Bác bỏ</span>
                           </button>
                           <button
@@ -421,10 +421,10 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                             disabled={isBusy}
                             onClick={() => handleApproveCluster(cluster.clusterId)}
                             title="Duyệt cụm báo cáo và đưa lên bản đồ SafeRoute trực tiếp"
-                            className="py-1.5 px-3.5 bg-pastel-mint-600 hover:bg-pastel-mint-700 text-white font-bold text-[11px] rounded-xl shadow-glass-xs transition active:scale-95 cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                            className="py-2 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-md hover:shadow-lg transition active:scale-95 cursor-pointer disabled:opacity-50 flex items-center gap-1.5 whitespace-nowrap"
                           >
                             {isBusy ? (
-                              <Loader2 className="w-3 h-3 animate-spin text-white" />
+                              <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
                             ) : (
                               <CheckCheck className="w-3.5 h-3.5" />
                             )}
@@ -436,10 +436,10 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                           type="button"
                           disabled={isBusy}
                           onClick={() => handleTakedownCluster(cluster)}
-                          className="py-1.5 px-3 bg-pastel-coral-50 hover:bg-pastel-coral-100 text-rose-800 border border-pastel-coral-200 font-bold text-[11px] rounded-xl transition active:scale-95 cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shadow-xs"
+                          className="py-2 px-3.5 bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-900 border border-rose-300 font-bold text-xs rounded-xl transition active:scale-95 cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shadow-sm whitespace-nowrap"
                           title="Gỡ bỏ điểm ngập này khỏi bản đồ"
                         >
-                          <AlertTriangle className="w-3 h-3" />
+                          <AlertTriangle className="w-3.5 h-3.5" />
                           <span>Gỡ bỏ khỏi bản đồ</span>
                         </button>
                       )}
@@ -452,12 +452,12 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
         </div>
 
         {/* 5. Footer */}
-        <div className="p-3.5 sm:p-4 border-t border-gray-100 bg-gray-50/70 flex items-center justify-between text-xs text-gray-500">
-          <span>Hệ thống tự động đồng bộ theo thời gian thực với PostgreSQL / Memory</span>
+        <div className="p-3.5 sm:p-4 border-t border-slate-200 bg-slate-50/90 flex flex-col sm:flex-row items-center justify-between gap-2.5 text-xs text-slate-500">
+          <span className="text-center sm:text-left">Hệ thống tự động đồng bộ theo thời gian thực với PostgreSQL / Memory</span>
           <button
             type="button"
             onClick={onClose}
-            className="py-2 px-4 bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 font-bold text-xs rounded-xl transition active:scale-95 cursor-pointer shadow-glass-xs"
+            className="w-full sm:w-auto py-2.5 px-5 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 font-bold text-xs rounded-xl transition active:scale-95 cursor-pointer shadow-sm text-center shrink-0 whitespace-nowrap"
           >
             Đóng
           </button>
