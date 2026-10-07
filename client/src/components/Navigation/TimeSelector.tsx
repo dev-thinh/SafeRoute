@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
-import { Clock, Calendar, ChevronDown, Check } from 'lucide-react';
+import { Clock, Calendar, ChevronDown, Check, RotateCcw } from 'lucide-react';
 
 interface TimeSelectorProps {
   selectedTime: string;
@@ -160,38 +160,9 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
     setOpenDropdown(null);
   };
 
-  // Quick preset shortcuts (No parentheses)
+  // Quick reset to current time
   const handleSetNow = () => {
     onChange(new Date().toISOString());
-  };
-
-  const handleAddHour = () => {
-    const next = new Date(currentDate.getTime() + 60 * 60 * 1000);
-    onChange(next.toISOString());
-  };
-
-  const handleSetRushHour = () => {
-    const next = new Date(
-      currentDate.getFullYear(),
-      currentDate.getMonth(),
-      currentDate.getDate(),
-      17,
-      30,
-      0
-    );
-    onChange(next.toISOString());
-  };
-
-  const handleSetHighTide = () => {
-    const next = new Date(
-      currentDate.getFullYear(),
-      currentDate.getMonth(),
-      currentDate.getDate(),
-      19,
-      30,
-      0
-    );
-    onChange(next.toISOString());
   };
 
   // Minute-precise manual time input
@@ -221,7 +192,7 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
           <Clock className="w-4 h-4 text-blue-600" />
           <span>Thời gian khởi hành</span>
         </label>
-        <span className="text-xs text-blue-700 font-bold bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200">
+        <span className="text-xs text-blue-700 font-bold bg-blue-100/70 px-2.5 py-0.5 rounded-full border border-blue-200">
           Mô phỏng ngập
         </span>
       </div>
@@ -234,29 +205,31 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
             type="button"
             disabled={disabled}
             onClick={() => setOpenDropdown(openDropdown === 'date' ? null : 'date')}
-            className={`w-full flex items-center justify-between px-3.5 py-2.5 bg-white rounded-xl border transition-all cursor-pointer min-h-[42px] shadow-xs text-left ${
+            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border-2 transition-all cursor-pointer min-h-[46px] text-left shadow-xs ${
               openDropdown === 'date'
-                ? 'border-blue-600 ring-2 ring-blue-100'
-                : 'border-slate-300 hover:border-blue-500'
+                ? 'bg-white border-blue-600 ring-4 ring-blue-500/15 shadow-md'
+                : 'bg-blue-50/80 hover:bg-blue-100/80 border-blue-200/90 hover:border-blue-400'
             } disabled:opacity-50 disabled:cursor-not-allowed`}
             title="Chọn ngày khởi hành"
           >
             <div className="flex items-center gap-2.5 min-w-0">
-              <Calendar className="w-4 h-4 text-blue-600 shrink-0" />
-              <span className="text-sm font-semibold text-slate-900 truncate">
+              <div className="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                <Calendar className="w-4 h-4" />
+              </div>
+              <span className="text-sm font-bold text-slate-900 truncate">
                 {selectedDateLabel}
               </span>
             </div>
             <ChevronDown
-              className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 ${
-                openDropdown === 'date' ? 'rotate-180 text-blue-600' : ''
+              className={`w-4 h-4 text-blue-600 shrink-0 transition-transform duration-200 ${
+                openDropdown === 'date' ? 'rotate-180 text-blue-700' : ''
               }`}
             />
           </button>
 
-          {/* Custom Date Options Menu */}
+          {/* Custom Date Options Menu - Solid White elevated surface, no sunken glass */}
           {openDropdown === 'date' && (
-            <div className="absolute top-full left-0 right-0 z-[1200] mt-1.5 bg-white/98 backdrop-blur-xl rounded-2xl border border-slate-200 shadow-2xl py-1.5 max-h-56 overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
+            <div className="absolute top-full left-0 right-0 z-[1200] mt-1.5 bg-white rounded-2xl border-2 border-slate-200 shadow-2xl py-1 max-h-56 overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
               {dateOptions.map((opt) => {
                 const isSelected = opt.key === currentDateKey;
                 return (
@@ -266,12 +239,12 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
                     onClick={() => handleSelectDate(opt.key)}
                     className={`w-full flex items-center justify-between px-3.5 py-2.5 text-sm transition text-left cursor-pointer ${
                       isSelected
-                        ? 'bg-blue-50 text-blue-700 font-bold'
-                        : 'text-slate-800 hover:bg-slate-50 hover:text-blue-600 font-medium'
+                        ? 'bg-blue-600 text-white font-bold'
+                        : 'text-slate-800 hover:bg-blue-50 hover:text-blue-700 font-medium'
                     }`}
                   >
                     <span>{opt.label}</span>
-                    {isSelected && <Check className="w-4 h-4 text-blue-600 shrink-0" />}
+                    {isSelected && <Check className="w-4 h-4 text-white shrink-0" />}
                   </button>
                 );
               })}
@@ -285,29 +258,31 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
             type="button"
             disabled={disabled}
             onClick={() => setOpenDropdown(openDropdown === 'time' ? null : 'time')}
-            className={`w-full flex items-center justify-between px-3.5 py-2.5 bg-white rounded-xl border transition-all cursor-pointer min-h-[42px] shadow-xs text-left ${
+            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border-2 transition-all cursor-pointer min-h-[46px] text-left shadow-xs ${
               openDropdown === 'time'
-                ? 'border-blue-600 ring-2 ring-blue-100'
-                : 'border-slate-300 hover:border-blue-500'
+                ? 'bg-white border-blue-600 ring-4 ring-blue-500/15 shadow-md'
+                : 'bg-blue-50/80 hover:bg-blue-100/80 border-blue-200/90 hover:border-blue-400'
             } disabled:opacity-50 disabled:cursor-not-allowed`}
             title="Chọn giờ khởi hành"
           >
             <div className="flex items-center gap-2.5 min-w-0">
-              <Clock className="w-4 h-4 text-blue-600 shrink-0" />
-              <span className="text-sm font-semibold text-slate-900 truncate">
+              <div className="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                <Clock className="w-4 h-4" />
+              </div>
+              <span className="text-sm font-bold text-slate-900 truncate">
                 {selectedTimeLabel}
               </span>
             </div>
             <ChevronDown
-              className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 ${
-                openDropdown === 'time' ? 'rotate-180 text-blue-600' : ''
+              className={`w-4 h-4 text-blue-600 shrink-0 transition-transform duration-200 ${
+                openDropdown === 'time' ? 'rotate-180 text-blue-700' : ''
               }`}
             />
           </button>
 
-          {/* Custom Time Options Menu */}
+          {/* Custom Time Options Menu - Solid White elevated surface, no sunken glass */}
           {openDropdown === 'time' && (
-            <div className="absolute top-full left-0 right-0 z-[1200] mt-1.5 bg-white/98 backdrop-blur-xl rounded-2xl border border-slate-200 shadow-2xl py-1.5 max-h-56 overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
+            <div className="absolute top-full left-0 right-0 z-[1200] mt-1.5 bg-white rounded-2xl border-2 border-slate-200 shadow-2xl py-1 max-h-56 overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
               {TIME_PRESETS.map((p) => {
                 const isSelected = p.value === currentTimeKey;
                 return (
@@ -317,12 +292,12 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
                     onClick={() => handleSelectTime(p.value)}
                     className={`w-full flex items-center justify-between px-3.5 py-2.5 text-sm transition text-left cursor-pointer ${
                       isSelected
-                        ? 'bg-blue-50 text-blue-700 font-bold'
-                        : 'text-slate-800 hover:bg-slate-50 hover:text-blue-600 font-medium'
+                        ? 'bg-blue-600 text-white font-bold'
+                        : 'text-slate-800 hover:bg-blue-50 hover:text-blue-700 font-medium'
                     }`}
                   >
                     <span>{p.label}</span>
-                    {isSelected && <Check className="w-4 h-4 text-blue-600 shrink-0" />}
+                    {isSelected && <Check className="w-4 h-4 text-white shrink-0" />}
                   </button>
                 );
               })}
@@ -331,58 +306,31 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
         </div>
       </div>
 
-      {/* 3. Quick Action Pills & Exact Minute Input (No parentheses) */}
-      <div className="flex items-center justify-between gap-1.5 flex-wrap">
-        <div className="grid grid-cols-4 gap-1.5 flex-1">
-          <button
-            type="button"
-            disabled={disabled}
-            onClick={handleSetNow}
-            className="py-2 px-2 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 hover:border-slate-300 active:scale-95 font-semibold text-slate-700 shadow-xs transition-all text-center min-h-[36px] cursor-pointer disabled:opacity-50 text-xs"
-            title="Đặt lại về thời gian hiện tại"
-          >
-            Hiện tại
-          </button>
-          <button
-            type="button"
-            disabled={disabled}
-            onClick={handleAddHour}
-            className="py-2 px-2 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 hover:border-slate-300 active:scale-95 font-semibold text-slate-700 shadow-xs transition-all text-center min-h-[36px] cursor-pointer disabled:opacity-50 text-xs"
-            title="Tăng thêm 1 tiếng"
-          >
-            +1 tiếng
-          </button>
-          <button
-            type="button"
-            disabled={disabled}
-            onClick={handleSetRushHour}
-            className="py-2 px-2 bg-pastel-sky-50 border border-sky-200 text-blue-900 rounded-xl hover:bg-pastel-sky-100 active:scale-95 font-bold shadow-xs transition-all text-center min-h-[36px] cursor-pointer disabled:opacity-50 text-xs"
-            title="Giờ tan tầm 17:30"
-          >
-            17:30 Tan tầm
-          </button>
-          <button
-            type="button"
-            disabled={disabled}
-            onClick={handleSetHighTide}
-            className="py-2 px-2 bg-pastel-lavender-50 border border-purple-200 text-purple-900 rounded-xl hover:bg-pastel-lavender-100 active:scale-95 font-bold shadow-xs transition-all text-center min-h-[36px] cursor-pointer disabled:opacity-50 text-xs"
-            title="Đỉnh triều cường 19:30"
-          >
-            19:30 Triều đỉnh
-          </button>
-        </div>
+      {/* 3. Sub actions: Đặt lại thời gian hiện tại & Nhập phút chính xác */}
+      <div className="flex items-center justify-between gap-2 pt-0.5">
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={handleSetNow}
+          className="flex items-center gap-1.5 py-2 px-3 bg-white hover:bg-blue-50 border border-slate-300 hover:border-blue-400 rounded-xl font-semibold text-slate-700 hover:text-blue-700 shadow-xs transition-all text-xs cursor-pointer disabled:opacity-50 active:scale-95 min-h-[36px]"
+          title="Đặt lại về thời gian hiện tại"
+        >
+          <RotateCcw className="w-3.5 h-3.5 text-blue-600" />
+          <span>Thời gian hiện tại</span>
+        </button>
 
         {/* Precise Minute Picker */}
         <div
-          className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-slate-300 shadow-xs min-h-[36px]"
+          className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-300 shadow-xs min-h-[36px]"
           title="Chỉnh giờ chính xác từng phút"
         >
+          <span className="text-xs font-medium text-slate-500">Giờ chính xác:</span>
           <input
             type="time"
             disabled={disabled}
             value={currentTimeKey}
             onChange={handleExactTimeChange}
-            className="text-xs font-bold text-slate-800 bg-transparent outline-none cursor-pointer"
+            className="text-xs font-bold text-slate-900 bg-transparent outline-none cursor-pointer"
             aria-label="Chọn giờ phút chính xác"
           />
         </div>
