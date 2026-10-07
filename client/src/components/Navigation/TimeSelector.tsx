@@ -53,13 +53,13 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({ selectedTime, onChan
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       <div className="flex items-center justify-between">
-        <label className="text-[11px] font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
+        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
           <Clock className="w-3.5 h-3.5 text-blue-600" />
           <span>Thời gian khởi hành</span>
         </label>
-        <span className="text-[10px] text-blue-700 font-semibold bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
+        <span className="text-[10px] text-blue-700 font-semibold bg-pastel-sky-50 px-2 py-0.5 rounded-full border border-sky-100">
           Giờ địa phương
         </span>
       </div>
@@ -69,7 +69,7 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({ selectedTime, onChan
           type="button"
           disabled={disabled}
           onClick={setNow}
-          className="py-2 px-2 bg-white border border-gray-200/90 rounded-xl hover:bg-gray-50 active:scale-95 font-semibold text-gray-700 shadow-xs transition text-center min-h-[38px] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          className="py-2.5 px-2 bg-white/90 border border-slate-200/80 rounded-xl hover:bg-slate-50 hover:border-slate-300 active:scale-95 font-semibold text-slate-700 shadow-xs transition-all text-center min-h-[44px] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Hiện tại
         </button>
@@ -77,7 +77,7 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({ selectedTime, onChan
           type="button"
           disabled={disabled}
           onClick={addOneHour}
-          className="py-2 px-2 bg-white border border-gray-200/90 rounded-xl hover:bg-gray-50 active:scale-95 font-semibold text-gray-700 shadow-xs transition text-center min-h-[38px] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          className="py-2.5 px-2 bg-white/90 border border-slate-200/80 rounded-xl hover:bg-slate-50 hover:border-slate-300 active:scale-95 font-semibold text-slate-700 shadow-xs transition-all text-center min-h-[44px] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           title="Tăng thêm 1 tiếng"
         >
           +1 tiếng
@@ -86,20 +86,22 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({ selectedTime, onChan
           type="button"
           disabled={disabled}
           onClick={setRushHourSelectedDate}
-          className="py-2 px-2 bg-blue-50/70 border border-blue-200/80 text-blue-800 rounded-xl hover:bg-blue-100/70 active:scale-95 font-bold shadow-xs transition text-center min-h-[38px] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          className="py-2.5 px-2 bg-pastel-sky-50 border border-sky-200 text-blue-800 rounded-xl hover:bg-pastel-sky-100 active:scale-95 font-bold shadow-xs transition-all text-center min-h-[44px] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           title="17:30 Tan tầm"
         >
           17:30 (Tan tầm)
         </button>
       </div>
 
-      <input
-        type="datetime-local"
-        disabled={disabled}
-        value={toLocalInputString(dateObj)}
-        onChange={handleInputChange}
-        className="w-full text-xs p-2.5 min-h-[42px] border border-gray-200/90 rounded-xl bg-white outline-none focus:border-blue-500 font-medium text-gray-800 shadow-xs transition disabled:opacity-50 disabled:cursor-not-allowed"
-      />
+      <div className="relative">
+        <input
+          type="datetime-local"
+          disabled={disabled}
+          value={toLocalInputString(dateObj)}
+          onChange={handleInputChange}
+          className="w-full text-xs p-2.5 min-h-[44px] border border-slate-200/80 rounded-xl bg-white/95 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 font-medium text-slate-800 shadow-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+        />
+      </div>
     </div>
   );
 };
