@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { NavigateResponse, WeatherDashboardData } from '../types';
+import { NavigateResponse, WeatherDashboardData, AuthUser, AuthResponse } from '../types';
 
 function getBaseUrl(): string {
   let url = (import.meta.env.VITE_API_URL || '/api').trim();
@@ -12,6 +12,19 @@ function getBaseUrl(): string {
 
 const api = axios.create({
   baseURL: getBaseUrl(),
+});
+
+// Attach Authorization Bearer header if token exists in localStorage
+api.interceptors.request.use((config) => {
+  try {
+    const token = localStorage.getItem('saferoute_auth_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  } catch (err) {
+    console.warn('Failed to retrieve token from localStorage', err);
+  }
+  return config;
 });
 
 export const HCMC_PRESETS = [
@@ -129,5 +142,36 @@ export const getAdminSettings = () =>
 
 export const updateAdminSettings = (settings: Partial<{ isAutoPilotEnabled: boolean; autoApproveThreshold: number }>) =>
   api.post('/admin/settings', settings).then((r) => r.data);
+
+// ==================== AUTHENTICATION & RBAC ====================
+
+export const login = (data: { username: string; password: string }): Promise<AuthResponse> =>
+  api.post('/auth/login', data).then((r) => r.data);
+
+export const register = (data: { username: string; password: string; fullName: string }): Promise<AuthResponse> =>
+  api.post('/auth/register', data).then((r) => r.data);
+
+export const getMe = (): Promise<{ user: AuthUser }> =>
+  api.get('/auth/me').then((r) => r.data);
+
+export const setAuthToken = (token: string | null) => {
+  try {
+    if (token) {
+      localStorage.setItem('saferoute_auth_token', token);
+    } else {
+      localStorage.removeItem('saferoute_auth_token');
+    }
+  } catch (err) {
+    console.warn('Error saving auth token', err);
+  }
+};
+
+export const getAuthToken = (): string | null => {
+  try {
+    return localStorage.getItem('saferoute_auth_token');
+  } catch {
+    return null;
+  }
+};
 
 

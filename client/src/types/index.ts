@@ -1,3 +1,19 @@
+export type UserRole = 'guest' | 'user' | 'admin';
+
+export interface AuthUser {
+  id: string;
+  username: string;
+  fullName: string;
+  role: UserRole;
+  createdAt: string;
+}
+
+export interface AuthResponse {
+  success: boolean;
+  token: string;
+  user: AuthUser;
+}
+
 export type VehicleType = 'motorbike' | 'car';
 
 export interface Coordinate {
@@ -60,6 +76,8 @@ export interface UserReport {
   isAutoApproved?: boolean;
   reviewedBy?: 'ai' | 'admin';
   reviewedAt?: string;
+  userId?: string;
+  authorName?: string;
 }
 
 export interface ReportCluster {
