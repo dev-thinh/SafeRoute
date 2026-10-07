@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Droplet, MapPin, X, Check, Navigation, Loader2, Plus, Minus, Search } from 'lucide-react';
+import { MapPin, X, Check, Navigation, Loader2, Plus, Minus, Search } from 'lucide-react';
 import { searchLocation } from '../../services/api';
 
 interface ReportLocationPinOverlayProps {
@@ -131,8 +131,8 @@ export const ReportLocationPinOverlay: React.FC<ReportLocationPinOverlayProps> =
       <div className="pointer-events-auto absolute top-5 left-1/2 -translate-x-1/2 z-[1200] w-[92%] max-w-lg bg-white/92 backdrop-blur-xl p-3.5 px-4 rounded-3xl shadow-2xl border border-sky-100/90 transition-all duration-200">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-pastel-sky-100 text-blue-600 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-xs">
-              <Droplet className="w-4 h-4 fill-current" />
+            <div className="w-8 h-8 rounded-xl bg-white border border-slate-200/80 flex items-center justify-center overflow-hidden p-0.5 flex-shrink-0 shadow-xs">
+              <img src="/logo.png" alt="SafeRoute" className="w-full h-full object-contain" />
             </div>
             <div>
               <h4 className="text-xs font-extrabold text-slate-900 leading-tight">

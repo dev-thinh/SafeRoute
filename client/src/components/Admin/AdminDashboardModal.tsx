@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   X,
-  ShieldCheck,
   CheckCircle2,
   Sparkles,
   Loader2,
@@ -144,15 +143,15 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-[2050] flex items-center justify-center bg-gray-900/50 backdrop-blur-md p-3 sm:p-4 animate-in fade-in duration-200">
-      <div className="bg-white/95 backdrop-blur-xl rounded-3xl w-full max-w-3xl max-h-[92vh] shadow-glass-xl border border-white/70 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className="bg-white/95 backdrop-blur-xl rounded-3xl w-full max-w-3xl max-h-[92vh] shadow-2xl border border-sky-100/90 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
         {/* 1. Header */}
         <div className="p-4 sm:p-5 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-pastel-sky-50/50 via-white to-pastel-lavender-50/40">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-pastel-sky-600 text-white flex items-center justify-center shadow-glass-xs flex-shrink-0">
-              <ShieldCheck className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-2xl bg-white border border-slate-200/80 flex items-center justify-center overflow-hidden p-1 flex-shrink-0 shadow-xs">
+              <img src="/logo.png" alt="SafeRoute" className="w-full h-full object-contain" />
             </div>
             <div>
-              <h2 className="font-bold text-base sm:text-lg text-gray-900 leading-tight">
+              <h2 className="font-bold text-base sm:text-lg text-slate-900 leading-tight">
                 Trung Tâm Điều Phối & Kiểm Duyệt Ngập Lụt
               </h2>
               <p className="text-[11px] text-gray-500 font-medium mt-0.5">

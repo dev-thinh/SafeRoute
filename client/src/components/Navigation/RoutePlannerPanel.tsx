@@ -13,7 +13,6 @@ import {
   Loader2,
   PanelLeftClose,
   AlertTriangle,
-  Waves,
   AlertOctagon,
   ShieldCheck,
 } from 'lucide-react';
@@ -234,8 +233,8 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
       {/* Brand Header */}
       <div className="flex items-center justify-between pb-0.5">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-2xl bg-pastel-sky-50 border border-sky-200/80 flex items-center justify-center shadow-xs">
-            <Waves className="w-5 h-5 text-blue-600" />
+          <div className="w-10 h-10 rounded-2xl bg-white border border-slate-200/80 flex items-center justify-center shadow-xs overflow-hidden p-1 flex-shrink-0">
+            <img src="/logo.png" alt="SafeRoute Logo" className="w-full h-full object-contain" />
           </div>
           <div>
             <div className="flex items-center gap-1.5">

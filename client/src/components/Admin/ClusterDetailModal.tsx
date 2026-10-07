@@ -64,7 +64,7 @@ export const ClusterDetailModal: React.FC<ClusterDetailModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-[2100] flex items-center justify-center bg-gray-900/50 backdrop-blur-md p-3 sm:p-4 animate-in fade-in duration-200">
-      <div className="bg-white/95 backdrop-blur-xl rounded-3xl w-full max-w-xl max-h-[90vh] shadow-glass-xl border border-white/70 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className="bg-white/95 backdrop-blur-xl rounded-3xl w-full max-w-xl max-h-[90vh] shadow-2xl border border-sky-100/90 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
         {/* 1. Header (Standard 3-part layout) */}
         <div className="p-4 sm:p-5 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-pastel-sky-50/50 via-white to-pastel-lavender-50/40">
           <div className="flex items-center gap-3">

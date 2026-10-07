@@ -18,7 +18,7 @@ export const FloodDepthLegend: React.FC = () => {
       <button
         type="button"
         onClick={() => setCollapsed(false)}
-        className="group flex items-center gap-2.5 p-2.5 px-3.5 bg-white/95 hover:bg-white text-gray-800 text-xs font-bold rounded-2xl border border-white/80 shadow-glass-md hover:shadow-glass-lg backdrop-blur-xl transition-all duration-200 active:scale-95 cursor-pointer min-h-[44px]"
+        className="group flex items-center gap-2.5 p-2.5 px-3.5 bg-white/92 hover:bg-white text-slate-800 text-xs font-bold rounded-2xl border border-sky-100/90 shadow-xl backdrop-blur-xl transition-all duration-200 active:scale-95 cursor-pointer min-h-[44px]"
         title="Mở bảng chú giải 4 mức cảnh báo ngập"
         aria-label="Mở bảng chú giải 4 mức cảnh báo ngập"
       >
@@ -27,7 +27,7 @@ export const FloodDepthLegend: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-1.5">
-          <span className="font-bold text-gray-800">Mức ngập</span>
+          <span className="font-bold text-slate-800">Mức ngập</span>
           {/* 4 Mini colored beads preview */}
           <div className="flex items-center gap-1 ml-0.5">
             <span className="w-2 h-2 rounded-full bg-amber-400 ring-1 ring-white" title="Mắt cá chân (<20cm)" />
@@ -37,13 +37,13 @@ export const FloodDepthLegend: React.FC = () => {
           </div>
         </div>
 
-        <ChevronUp className="w-3.5 h-3.5 text-gray-400 group-hover:text-gray-700 transition" />
+        <ChevronUp className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-700 transition" />
       </button>
     );
   }
 
   return (
-    <div className="w-72 sm:w-80 bg-white/95 backdrop-blur-xl border border-white/80 rounded-3xl shadow-glass-xl transition-all duration-200 select-none animate-in fade-in zoom-in-95 overflow-hidden">
+    <div className="w-72 sm:w-80 bg-white/92 backdrop-blur-xl border border-sky-100/90 rounded-3xl shadow-2xl transition-all duration-200 select-none animate-in fade-in zoom-in-95 overflow-hidden">
       {/* Header */}
       <button
         type="button"

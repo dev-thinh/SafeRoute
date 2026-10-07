@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { X, Droplet, MapPin, Edit3, Loader2, Check, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { X, MapPin, Edit3, Loader2, Check, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { submitReport } from '../../services/api';
 
 export interface SelectedReportLocation {
@@ -148,15 +148,15 @@ export const ReportFloodModal: React.FC<{
 
   return (
     <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-gray-900/40 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <div className="bg-white/95 backdrop-blur-xl rounded-3xl p-5 sm:p-6 w-full max-w-md shadow-glass-xl border border-white/70 flex flex-col gap-4 max-h-[92vh] overflow-y-auto animate-in zoom-in-95 duration-200">
+      <div className="bg-white/95 backdrop-blur-xl rounded-3xl p-5 sm:p-6 w-full max-w-md shadow-2xl border border-sky-100/90 flex flex-col gap-4 max-h-[92vh] overflow-y-auto animate-in zoom-in-95 duration-200">
         {/* 1. Header (Standard 3-part layout: Header -> Body -> Footer) */}
         <div className="flex items-center justify-between pb-3.5 border-b border-gray-100">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-pastel-sky-50 border border-pastel-sky-200/80 flex items-center justify-center text-pastel-sky-700 flex-shrink-0 shadow-glass-xs">
-              <Droplet className="w-5 h-5 fill-current" />
+            <div className="w-10 h-10 rounded-2xl bg-white border border-slate-200/80 flex items-center justify-center overflow-hidden p-1 flex-shrink-0 shadow-xs">
+              <img src="/logo.png" alt="SafeRoute" className="w-full h-full object-contain" />
             </div>
             <div>
-              <h3 className="font-bold text-base text-gray-900 leading-tight">
+              <h3 className="font-bold text-base text-slate-900 leading-tight">
                 Báo cáo điểm ngập tức thì
               </h3>
               <p className="text-[11px] text-gray-500 font-medium mt-0.5">

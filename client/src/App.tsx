@@ -10,7 +10,7 @@ import { ReportLocationPinOverlay } from './components/Reporting/ReportLocationP
 import { AdminDashboardModal } from './components/Admin/AdminDashboardModal';
 import { TopUtilityBar } from './components/Navigation/TopUtilityBar';
 import { getActiveFloods, reverseGeocode, getAdminReports } from './services/api';
-import { PanelLeftOpen, MapPin, MapPinPlus, Target, AlertTriangle, X, Waves } from 'lucide-react';
+import { MapPin, MapPinPlus, Target, AlertTriangle, X } from 'lucide-react';
 import { NavigateResponse, FloodEvent, UserReport } from './types';
 
 export const App: React.FC = () => {
@@ -271,14 +271,15 @@ export const App: React.FC = () => {
         <button
           type="button"
           onClick={() => setIsPanelCollapsed(false)}
-          className="absolute top-4 left-4 z-[1000] flex items-center gap-2 px-4 py-2.5 bg-white/95 backdrop-blur-xl border border-white/70 rounded-2xl shadow-glass-md hover:shadow-glass-lg hover:bg-white text-gray-800 font-bold text-xs active:scale-95 transition-all cursor-pointer min-h-[44px]"
+          className="absolute top-4 left-4 z-[1000] flex items-center gap-2.5 px-3.5 py-2.5 bg-white/92 backdrop-blur-xl border border-sky-100/90 rounded-2xl shadow-xl hover:bg-white text-slate-800 font-bold text-xs active:scale-95 transition-all cursor-pointer min-h-[44px]"
           aria-label="Mở bảng điều khiển SafeRoute"
         >
-          <PanelLeftOpen className="w-4 h-4 text-pastel-sky-600" />
-          <Waves className="w-4 h-4 text-pastel-sky-600" />
-          <span>Bảng điều khiển</span>
-          <span className="text-[10px] bg-pastel-sky-50 text-pastel-sky-800 px-2.5 py-0.5 rounded-full font-bold border border-pastel-sky-200">
-            Mở
+          <div className="w-6 h-6 rounded-lg bg-white border border-slate-200/80 flex items-center justify-center overflow-hidden p-0.5 shadow-xs">
+            <img src="/logo.png" alt="SafeRoute" className="w-full h-full object-contain" />
+          </div>
+          <span className="font-extrabold text-slate-900 tracking-tight">SafeRoute</span>
+          <span className="text-[10px] bg-pastel-mint-100 text-pastel-mint-800 px-2 py-0.5 rounded-full font-bold border border-pastel-mint-200">
+            Mở bảng
           </span>
         </button>
       )}
@@ -333,9 +334,9 @@ export const App: React.FC = () => {
 
       {/* Floating Picking Notification Banner */}
       {pickingField && (
-        <div className="absolute top-5 left-1/2 -translate-x-1/2 z-[1100] bg-white/95 backdrop-blur-xl px-4 py-2.5 rounded-2xl shadow-glass-xl border border-white/70 flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+        <div className="absolute top-5 left-1/2 -translate-x-1/2 z-[1100] bg-white/92 backdrop-blur-xl px-4 py-2.5 rounded-2xl shadow-xl border border-sky-100/90 flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
           <div
-            className={`w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-glass-xs ${
+            className={`w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-xs ${
               pickingField === 'origin' ? 'bg-pastel-mint-600' : 'bg-pastel-coral-dark'
             }`}
           >
@@ -346,17 +347,17 @@ export const App: React.FC = () => {
             )}
           </div>
           <div>
-            <div className="text-xs font-bold text-gray-900">
+            <div className="text-xs font-bold text-slate-900">
               {pickingField === 'origin' ? 'Ghim điểm xuất phát' : 'Ghim điểm đến'}
             </div>
-            <div className="text-[11px] text-gray-500">
+            <div className="text-[11px] text-slate-500">
               Chạm hoặc click vị trí trên bản đồ để ghim
             </div>
           </div>
           <button
             type="button"
             onClick={() => setPickingField(null)}
-            className="ml-2 px-3 py-1.5 text-xs font-bold text-gray-700 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-xl transition active:scale-95 cursor-pointer min-h-[36px]"
+            className="ml-2 px-3 py-1.5 text-xs font-bold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition active:scale-95 cursor-pointer min-h-[36px]"
           >
             Hủy
           </button>
@@ -365,30 +366,22 @@ export const App: React.FC = () => {
 
       {/* 3. Floating Bottom-Right Action Dock (Legend + FAB) */}
       {!isPinningReport && (
-        <div className="absolute bottom-6 right-6 z-[1000] flex flex-col items-end gap-3 select-none pointer-events-auto">
+        <div className="absolute bottom-6 right-6 z-[1000] flex flex-col items-end gap-2.5 select-none pointer-events-auto">
           {/* Flood Depth Legend */}
           <FloodDepthLegend />
 
-          {/* Floating Action Button "Báo ngập tại đây" */}
+          {/* Floating Action Button "Báo ngập tại đây" - Unified with RoutePlannerPanel CTA */}
           <button
             type="button"
             onClick={handleStartReportPinning}
-            className="group flex items-center gap-3 px-5 py-3.5 sm:px-6 sm:py-3.5 min-h-[52px] bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-800 active:scale-95 text-white rounded-full ring-4 ring-white shadow-2xl shadow-blue-600/50 hover:shadow-blue-600/70 hover:scale-105 transition-all duration-300 cursor-pointer"
+            className="flex items-center gap-2.5 px-5 py-3.5 min-h-[48px] bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-[0.98] text-white font-bold text-xs rounded-2xl shadow-pastel-blue hover:shadow-lg transition-all cursor-pointer"
             title="Báo ngập tại vị trí"
             aria-label="Báo ngập tại vị trí trên bản đồ"
           >
-            <div className="relative flex items-center justify-center w-8 h-8 rounded-full bg-white text-blue-600 shadow-md flex-shrink-0 group-hover:scale-110 transition-transform">
-              <span className="absolute -inset-1 rounded-full bg-blue-400 animate-ping opacity-35" />
-              <MapPinPlus className="w-4.5 h-4.5 text-blue-600 relative z-10" />
+            <div className="w-6 h-6 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+              <MapPinPlus className="w-4 h-4 text-white" />
             </div>
-            <div className="text-left flex flex-col pr-1">
-              <span className="text-xs sm:text-sm font-black tracking-wide text-white leading-tight">
-                Báo ngập tại đây
-              </span>
-              <span className="text-[10px] text-blue-100 font-medium leading-tight hidden sm:block">
-                Chấm điểm tức thì
-              </span>
-            </div>
+            <span className="font-extrabold tracking-wide">Báo ngập tại đây</span>
           </button>
         </div>
       )}
