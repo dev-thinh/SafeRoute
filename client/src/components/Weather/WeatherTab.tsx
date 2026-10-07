@@ -147,7 +147,7 @@ export const WeatherTab: React.FC<WeatherTabProps> = ({ onSelectLocation }) => {
         {data?.fetchedAt && (
           <div className="mt-2 text-xs text-slate-400 flex items-center gap-1">
             <Clock className="w-3.5 h-3.5 text-slate-400" />
-            <span>Cập nhật: {new Date(data.fetchedAt).toLocaleTimeString('vi-VN')}</span>
+            <span>Cập nhật: {new Date(data.fetchedAt).toLocaleTimeString('vi-VN', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
           </div>
         )}
       </div>
@@ -194,10 +194,10 @@ export const WeatherTab: React.FC<WeatherTabProps> = ({ onSelectLocation }) => {
             <div className="bg-white/90 p-2.5 rounded-xl border border-sky-100/90 shadow-xs flex flex-col justify-center">
               <span className="text-xs text-slate-500 font-semibold block">Khung giờ đỉnh triều</span>
               <div className="text-xs font-bold text-slate-800 mt-0.5">
-                Sáng: {new Date(data.tideStatus.morningPeak).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                Sáng: {new Date(data.tideStatus.morningPeak).toLocaleTimeString('vi-VN', { hour12: false, hour: '2-digit', minute: '2-digit' })}
               </div>
               <div className="text-xs font-bold text-slate-800">
-                Chiều: {new Date(data.tideStatus.eveningPeak).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                Chiều: {new Date(data.tideStatus.eveningPeak).toLocaleTimeString('vi-VN', { hour12: false, hour: '2-digit', minute: '2-digit' })}
               </div>
             </div>
           </div>

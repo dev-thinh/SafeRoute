@@ -165,23 +165,140 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
     onChange(new Date().toISOString());
   };
 
-  // Minute-precise manual time input
-  const handleExactTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    if (!val) return;
-    const [hStr, mStr] = val.split(':');
-    const hours = parseInt(hStr, 10);
-    const minutes = parseInt(mStr, 10);
+  // 24-hour precise time inputs state (hours: 00-23, minutes: 00-59)
+  const [inputHours, setInputHours] = useState(() => currentDate.getHours().toString().padStart(2, '0'));
+  const [inputMinutes, setInputMinutes] = useState(() => currentDate.getMinutes().toString().padStart(2, '0'));
 
+  // Sync inputs whenever selectedTime or currentDate changes externally
+  useEffect(() => {
+    setInputHours(currentDate.getHours().toString().padStart(2, '0'));
+    setInputMinutes(currentDate.getMinutes().toString().padStart(2, '0'));
+  }, [currentDate]);
+
+  // Handle 24-hour format manual input for hours (00-23)
+  const handleHoursChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/\D/g, '').slice(0, 2);
+    setInputHours(raw);
+    const num = parseInt(raw, 10);
+    if (!isNaN(num) && num >= 0 && num <= 23) {
+      const nextDate = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth(),
+        currentDate.getDate(),
+        num,
+        currentDate.getMinutes(),
+        0
+      );
+      onChange(nextDate.toISOString());
+    }
+  };
+
+  const handleHoursBlur = () => {
+    let num = parseInt(inputHours, 10);
+    if (isNaN(num) || num < 0) num = 0;
+    if (num > 23) num = 23;
+    const formatted = num.toString().padStart(2, '0');
+    setInputHours(formatted);
     const nextDate = new Date(
       currentDate.getFullYear(),
       currentDate.getMonth(),
       currentDate.getDate(),
-      hours,
-      minutes,
+      num,
+      currentDate.getMinutes(),
       0
     );
     onChange(nextDate.toISOString());
+  };
+
+  // Handle 24-hour format manual input for minutes (00-59)
+  const handleMinutesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/\D/g, '').slice(0, 2);
+    setInputMinutes(raw);
+    const num = parseInt(raw, 10);
+    if (!isNaN(num) && num >= 0 && num <= 59) {
+      const nextDate = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth(),
+        currentDate.getDate(),
+        currentDate.getHours(),
+        num,
+        0
+      );
+      onChange(nextDate.toISOString());
+    }
+  };
+
+  const handleMinutesBlur = () => {
+    let num = parseInt(inputMinutes, 10);
+    if (isNaN(num) || num < 0) num = 0;
+    if (num > 59) num = 59;
+    const formatted = num.toString().padStart(2, '0');
+    setInputMinutes(formatted);
+    const nextDate = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth(),
+      currentDate.getDate(),
+      currentDate.getHours(),
+      num,
+      0
+    );
+    onChange(nextDate.toISOString());
+  };
+
+  const handleHoursKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      const nextH = (currentDate.getHours() + 1) % 24;
+      const nextDate = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth(),
+        currentDate.getDate(),
+        nextH,
+        currentDate.getMinutes(),
+        0
+      );
+      onChange(nextDate.toISOString());
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      const prevH = (currentDate.getHours() - 1 + 24) % 24;
+      const nextDate = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth(),
+        currentDate.getDate(),
+        prevH,
+        currentDate.getMinutes(),
+        0
+      );
+      onChange(nextDate.toISOString());
+    }
+  };
+
+  const handleMinutesKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      const nextM = (currentDate.getMinutes() + 1) % 60;
+      const nextDate = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth(),
+        currentDate.getDate(),
+        currentDate.getHours(),
+        nextM,
+        0
+      );
+      onChange(nextDate.toISOString());
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      const prevM = (currentDate.getMinutes() - 1 + 60) % 60;
+      const nextDate = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth(),
+        currentDate.getDate(),
+        currentDate.getHours(),
+        prevM,
+        0
+      );
+      onChange(nextDate.toISOString());
+    }
   };
 
   return (
@@ -319,20 +436,42 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
           <span>Thời gian hiện tại</span>
         </button>
 
-        {/* Precise Minute Picker */}
+        {/* 24-hour Precise Time Picker - Guaranteed 24h format across all browsers */}
         <div
-          className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-300 shadow-xs min-h-[36px]"
-          title="Chỉnh giờ chính xác từng phút"
+          className="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-xl border border-slate-300 shadow-xs min-h-[36px] focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-100"
+          title="Chỉnh giờ chính xác theo thang 24h"
         >
-          <span className="text-xs font-medium text-slate-500">Giờ chính xác:</span>
+          <span className="text-xs font-medium text-slate-500">Giờ:</span>
           <input
-            type="time"
+            type="text"
+            inputMode="numeric"
             disabled={disabled}
-            value={currentTimeKey}
-            onChange={handleExactTimeChange}
-            className="text-xs font-bold text-slate-900 bg-transparent outline-none cursor-pointer"
-            aria-label="Chọn giờ phút chính xác"
+            maxLength={2}
+            value={inputHours}
+            onChange={handleHoursChange}
+            onBlur={handleHoursBlur}
+            onKeyDown={handleHoursKeyDown}
+            className="w-6 text-center text-xs font-bold text-slate-900 bg-slate-100 hover:bg-slate-200/80 focus:bg-white focus:ring-1 focus:ring-blue-500 rounded py-0.5 outline-none transition cursor-text disabled:opacity-50"
+            aria-label="Giờ 00 đến 23"
+            title="Giờ (00-23)"
           />
+          <span className="text-xs font-black text-slate-400 select-none">:</span>
+          <input
+            type="text"
+            inputMode="numeric"
+            disabled={disabled}
+            maxLength={2}
+            value={inputMinutes}
+            onChange={handleMinutesChange}
+            onBlur={handleMinutesBlur}
+            onKeyDown={handleMinutesKeyDown}
+            className="w-6 text-center text-xs font-bold text-slate-900 bg-slate-100 hover:bg-slate-200/80 focus:bg-white focus:ring-1 focus:ring-blue-500 rounded py-0.5 outline-none transition cursor-text disabled:opacity-50"
+            aria-label="Phút 00 đến 59"
+            title="Phút (00-59)"
+          />
+          <span className="text-xs font-bold text-blue-600 bg-blue-50 px-1 py-0.5 rounded border border-blue-200 select-none">
+            24h
+          </span>
         </div>
       </div>
     </div>

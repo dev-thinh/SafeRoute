@@ -76,7 +76,7 @@ const SingleReportMarker: React.FC<{
             </span>
             <span className="text-xs text-slate-500 flex items-center gap-0.5">
               <Clock className="w-3 h-3" />
-              <span>{report.reportedAt ? new Date(report.reportedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : 'Vừa xong'}</span>
+              <span>{report.reportedAt ? new Date(report.reportedAt).toLocaleTimeString('vi-VN', { hour12: false, hour: '2-digit', minute: '2-digit' }) : 'Vừa xong'}</span>
             </span>
           </div>
 

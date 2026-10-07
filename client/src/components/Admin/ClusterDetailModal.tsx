@@ -221,6 +221,7 @@ export const ClusterDetailModal: React.FC<ClusterDetailModalProps> = ({
                         <span>
                           {r.reportedAt
                             ? new Date(r.reportedAt).toLocaleTimeString('vi-VN', {
+                                hour12: false,
                                 hour: '2-digit',
                                 minute: '2-digit',
                                 day: '2-digit',

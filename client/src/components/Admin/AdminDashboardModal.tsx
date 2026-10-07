@@ -460,6 +460,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                           <p className="text-xs text-gray-500 mt-1">
                             Độ sâu trung bình: ~{cluster.avgDepthCm} cm • Báo lúc:{' '}
                             {new Date(cluster.latestReportedAt).toLocaleTimeString('vi-VN', {
+                              hour12: false,
                               hour: '2-digit',
                               minute: '2-digit',
                             })}
