@@ -49,6 +49,8 @@ interface RoutePlannerPanelProps {
   onRefreshFloods?: (targetTime?: string) => void;
   onSelectLocation?: (lat: number, lng: number) => void;
   onToggleCollapse?: () => void;
+  activeTab?: 'routes' | 'news' | 'weather';
+  onTabChange?: (t: 'routes' | 'news' | 'weather') => void;
 }
 
 export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
@@ -65,8 +67,15 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
   onRefreshFloods,
   onSelectLocation,
   onToggleCollapse,
+  activeTab,
+  onTabChange,
 }) => {
-  const [mainTab, setMainTab] = useState<'routes' | 'news' | 'weather'>('routes');
+  const [internalTab, setInternalTab] = useState<'routes' | 'news' | 'weather'>('routes');
+  const mainTab = activeTab !== undefined ? activeTab : internalTab;
+  const setMainTab = (tab: 'routes' | 'news' | 'weather') => {
+    if (onTabChange) onTabChange(tab);
+    setInternalTab(tab);
+  };
   const [vehicle, setVehicle] = useState<'motorbike' | 'car'>('motorbike');
   const [targetTime, setTargetTime] = useState<string>(() => new Date().toISOString());
   const [loading, setLoading] = useState(false);

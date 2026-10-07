@@ -8,8 +8,9 @@ import { RoutePlannerPanel, LocationItem } from './components/Navigation/RoutePl
 import { ReportFloodModal, SelectedReportLocation } from './components/Reporting/ReportFloodModal';
 import { ReportLocationPinOverlay } from './components/Reporting/ReportLocationPinOverlay';
 import { AdminDashboardModal } from './components/Admin/AdminDashboardModal';
+import { TopUtilityBar } from './components/Navigation/TopUtilityBar';
 import { getActiveFloods, reverseGeocode, getAdminReports } from './services/api';
-import { Droplet, PanelLeftOpen, MapPin, Target, AlertTriangle, X, Waves, ShieldCheck } from 'lucide-react';
+import { Droplet, PanelLeftOpen, MapPin, Target, AlertTriangle, X, Waves } from 'lucide-react';
 import { NavigateResponse, FloodEvent, UserReport } from './types';
 
 export const App: React.FC = () => {
@@ -23,11 +24,13 @@ export const App: React.FC = () => {
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [pendingAdminCount, setPendingAdminCount] = useState(0);
 
-  // Panel Collapsible State for responsive layout
+  // Panel State
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
+  const [activeTab, setActiveTab] = useState<'routes' | 'news' | 'weather'>('routes');
 
-  // Zoom handlers ref from MapView
+  // Zoom & Fit handlers ref from MapView
   const zoomHandlersRef = useRef<{ zoomIn: () => void; zoomOut: () => void } | null>(null);
+  const fitRouteRef = useRef<(() => void) | null>(null);
   const skipNextReverseGeocodeRef = useRef(false);
 
   // Modal & Pinning Mode State
@@ -258,6 +261,8 @@ export const App: React.FC = () => {
           onRefreshFloods={loadFloods}
           onSelectLocation={(lat, lng) => setMapCenter([lat, lng])}
           onToggleCollapse={() => setIsPanelCollapsed(true)}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
         />
       )}
 
@@ -295,6 +300,9 @@ export const App: React.FC = () => {
         onRegisterZoomHandlers={(handlers) => {
           zoomHandlersRef.current = handlers;
         }}
+        onRegisterFitRoute={(fn) => {
+          fitRouteRef.current = fn;
+        }}
       >
         <FloodLayer events={floodEvents} />
         <ReportMarker reports={reports} onVoteReport={() => loadFloods()} />
@@ -308,6 +316,20 @@ export const App: React.FC = () => {
           />
         )}
       </MapView>
+
+      {/* Top Right Consolidated Utility Bar */}
+      {!isPinningReport && (
+        <TopUtilityBar
+          onOpenAdmin={() => setIsAdminOpen(true)}
+          onOpenWeather={() => {
+            setActiveTab('weather');
+            setIsPanelCollapsed(false);
+          }}
+          pendingAdminCount={pendingAdminCount}
+          onFitRoute={() => fitRouteRef.current?.()}
+          hasRoute={!!(routes?.safe_route || routes?.fastest_route)}
+        />
+      )}
 
       {/* Floating Picking Notification Banner */}
       {pickingField && (
@@ -341,20 +363,24 @@ export const App: React.FC = () => {
         </div>
       )}
 
-      {/* 3. Floating Flood Depth Legend Bar (Hidden during report pin mode) */}
-      {!isPinningReport && <FloodDepthLegend />}
-
-      {/* 4. Floating Action Button "Báo ngập tại đây" (Hidden during report pin mode) */}
+      {/* 3. Floating Bottom-Right Action Dock (Legend + FAB) */}
       {!isPinningReport && (
-        <div className="absolute bottom-6 right-6 z-[1000]">
+        <div className="absolute bottom-6 right-6 z-[1000] flex flex-col items-end gap-3 select-none pointer-events-auto">
+          {/* Flood Depth Legend */}
+          <FloodDepthLegend />
+
+          {/* Floating Action Button "Báo ngập tại đây" */}
           <button
             type="button"
             onClick={handleStartReportPinning}
-            className="flex items-center gap-2 px-5 py-3 min-h-[44px] bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-bold rounded-full shadow-xl transition-all hover:shadow-2xl hover:scale-105 active:scale-95 cursor-pointer"
+            className="flex items-center gap-2.5 px-5 py-3.5 min-h-[48px] bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-95 text-white text-xs font-bold rounded-full shadow-xl shadow-blue-500/25 transition-all hover:shadow-2xl hover:shadow-blue-500/35 cursor-pointer"
             title="Báo ngập tại vị trí"
+            aria-label="Báo ngập tại vị trí trên bản đồ"
           >
-            <Droplet className="w-4 h-4 fill-current text-white" />
-            <span>Báo ngập tại đây</span>
+            <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
+              <Droplet className="w-3.5 h-3.5 fill-current text-white" />
+            </div>
+            <span className="tracking-wide">Báo ngập tại đây</span>
           </button>
         </div>
       )}
@@ -386,26 +412,6 @@ export const App: React.FC = () => {
             title="Đóng thông báo"
           >
             <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      )}
-
-      {/* Floating Admin Moderation Button */}
-      {!isPinningReport && (
-        <div className="absolute top-4 right-4 z-[1000]">
-          <button
-            type="button"
-            onClick={() => setIsAdminOpen(true)}
-            className="flex items-center gap-2 px-3.5 py-2.5 min-h-[44px] bg-white/95 backdrop-blur-md border border-gray-200/80 rounded-2xl shadow-xl hover:shadow-2xl hover:bg-white text-gray-800 font-bold text-xs active:scale-95 transition-all cursor-pointer"
-            title="Mở trung tâm quản trị & kiểm duyệt ngập lụt"
-          >
-            <ShieldCheck className="w-4 h-4 text-blue-600" />
-            <span>Quản trị</span>
-            {pendingAdminCount > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white font-mono animate-pulse">
-                {pendingAdminCount}
-              </span>
-            )}
           </button>
         </div>
       )}
