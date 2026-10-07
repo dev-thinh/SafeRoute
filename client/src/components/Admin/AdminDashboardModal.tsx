@@ -173,11 +173,11 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                 <h2 className="font-bold text-base sm:text-lg text-slate-900 leading-tight">
                   Trung Tâm Điều Phối & Quản Trị Dữ Liệu
                 </h2>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700 border border-blue-200 hidden sm:inline">
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 border border-blue-200 hidden sm:inline">
                   Admin Hub
                 </span>
               </div>
-              <p className="text-[11px] text-gray-500 font-medium mt-0.5">
+              <p className="text-xs text-gray-500 font-medium mt-0.5">
                 Kiểm duyệt báo cáo ngập cộng đồng • Khí tượng thủy triều • Báo chí & Gemini AI
               </p>
             </div>
@@ -200,7 +200,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
               onClick={onClose}
               className="w-9 h-9 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100/80 flex items-center justify-center transition-all active:scale-95 cursor-pointer"
               aria-label="Đóng bảng quản trị"
-              title="Đóng (Esc)"
+              title="Đóng"
             >
               <X className="w-5 h-5" />
             </button>
@@ -214,7 +214,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
             <button
               type="button"
               onClick={() => setActiveTab('reports')}
-              className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer min-h-[38px] ${
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl transition-all cursor-pointer min-h-[38px] ${
                 activeTab === 'reports'
                   ? 'bg-white text-gray-900 shadow-glass-xs'
                   : 'text-gray-600 hover:text-gray-900'
@@ -223,7 +223,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
               <ShieldCheck className="w-4 h-4 text-blue-600" />
               <span>Quản trị báo cáo ngập</span>
               {pendingClusters.length > 0 && (
-                <span className="px-2 py-0.5 rounded-full text-[10px] bg-pastel-amber-100 text-amber-900 font-mono font-bold animate-pulse">
+                <span className="px-2 py-0.5 rounded-full text-xs bg-pastel-amber-100 text-amber-900 font-bold animate-pulse">
                   {pendingClusters.length}
                 </span>
               )}
@@ -233,7 +233,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
             <button
               type="button"
               onClick={() => setActiveTab('weather')}
-              className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer min-h-[38px] ${
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl transition-all cursor-pointer min-h-[38px] ${
                 activeTab === 'weather'
                   ? 'bg-white text-gray-900 shadow-glass-xs'
                   : 'text-gray-600 hover:text-gray-900'
@@ -247,7 +247,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
             <button
               type="button"
               onClick={() => setActiveTab('news')}
-              className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer min-h-[38px] ${
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl transition-all cursor-pointer min-h-[38px] ${
                 activeTab === 'news'
                   ? 'bg-white text-gray-900 shadow-glass-xs'
                   : 'text-gray-600 hover:text-gray-900'
@@ -256,8 +256,8 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
               <Newspaper className="w-4 h-4 text-indigo-600" />
               <span>Tin tức báo chí & AI</span>
               {isCrawling && (
-                <span className="px-2 py-0.5 rounded-full text-[10px] bg-blue-600 text-white font-mono font-bold animate-pulse flex items-center gap-1 shadow-xs">
-                  <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                <span className="px-2 py-0.5 rounded-full text-xs bg-blue-600 text-white font-bold animate-pulse flex items-center gap-1 shadow-xs">
+                  <Loader2 className="w-3 h-3 animate-spin" />
                   <span>{progress}%</span>
                 </span>
               )}
@@ -282,10 +282,10 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                   <Hourglass className="w-4 h-4" />
                 </div>
                 <div>
-                  <span className="text-[10px] font-bold text-amber-900 uppercase tracking-wide block">
+                  <span className="text-xs font-bold text-amber-900 uppercase tracking-wide block">
                     Chờ duyệt
                   </span>
-                  <span className="text-base font-bold text-amber-950 font-mono">
+                  <span className="text-base font-bold text-amber-950">
                     {pendingClusters.length} cụm
                   </span>
                 </div>
@@ -304,10 +304,10 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                   <CheckCircle2 className="w-4 h-4" />
                 </div>
                 <div>
-                  <span className="text-[10px] font-bold text-emerald-900 uppercase tracking-wide block">
+                  <span className="text-xs font-bold text-emerald-900 uppercase tracking-wide block">
                     Đang trên bản đồ
                   </span>
-                  <span className="text-base font-bold text-emerald-950 font-mono">
+                  <span className="text-base font-bold text-emerald-950">
                     {approvedClusters.length} điểm
                   </span>
                 </div>
@@ -323,7 +323,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                     <span className="text-xs font-bold text-gray-800 uppercase tracking-wide block">
                       Auto-Pilot AI
                     </span>
-                    <span className="text-[10px] text-gray-500">
+                    <span className="text-xs text-gray-500">
                       {settings.isAutoPilotEnabled ? 'Tự duyệt tin cậy > 85%' : 'Duyệt thủ công'}
                     </span>
                   </div>
@@ -347,42 +347,42 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
             </div>
 
             {/* Filter Pills */}
-            <div className="flex items-center gap-2 text-xs">
-              <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider hidden sm:inline">
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider hidden sm:inline">
                 Bộ lọc:
               </span>
               <button
                 type="button"
                 onClick={() => setReportFilter('pending')}
-                className={`px-3 py-1.5 rounded-xl font-bold transition cursor-pointer ${
+                className={`px-3 py-1.5 rounded-xl font-bold transition cursor-pointer text-sm ${
                   reportFilter === 'pending'
                     ? 'bg-amber-500 text-white shadow-xs'
                     : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
                 }`}
               >
-                Chờ duyệt ({pendingClusters.length})
+                Chờ duyệt • {pendingClusters.length}
               </button>
               <button
                 type="button"
                 onClick={() => setReportFilter('approved')}
-                className={`px-3 py-1.5 rounded-xl font-bold transition cursor-pointer ${
+                className={`px-3 py-1.5 rounded-xl font-bold transition cursor-pointer text-sm ${
                   reportFilter === 'approved'
                     ? 'bg-emerald-600 text-white shadow-xs'
                     : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
                 }`}
               >
-                Đang trên bản đồ ({approvedClusters.length})
+                Đang trên bản đồ • {approvedClusters.length}
               </button>
               <button
                 type="button"
                 onClick={() => setReportFilter('all')}
-                className={`px-3 py-1.5 rounded-xl font-bold transition cursor-pointer ${
+                className={`px-3 py-1.5 rounded-xl font-bold transition cursor-pointer text-sm ${
                   reportFilter === 'all'
                     ? 'bg-gray-900 text-white shadow-xs'
                     : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
                 }`}
               >
-                Tất cả ({clusters.length})
+                Tất cả • {clusters.length}
               </button>
             </div>
           </div>
@@ -405,7 +405,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                       ? 'Chưa có điểm báo cáo cộng đồng nào được duyệt lên bản đồ!'
                       : 'Không có dữ liệu báo cáo ngập.'}
                   </p>
-                  <p className="text-[11px] text-gray-500 max-w-sm">
+                  <p className="text-xs text-gray-500 max-w-sm">
                     Bản đồ công cộng đang hoàn toàn an toàn và được bảo vệ khỏi tin ảo.
                   </p>
                 </div>
@@ -432,23 +432,23 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                         <div>
                           <div className="flex items-center gap-2 flex-wrap">
                             <span
-                              className="font-bold text-xs text-gray-900 font-mono"
+                              className="font-bold text-sm text-gray-900"
                               title={`Tọa độ tâm cụm báo cáo: ${cluster.coordinate.lat}, ${cluster.coordinate.lng}`}
                             >
                               Tọa độ: {cluster.coordinate.lat.toFixed(4)}, {cluster.coordinate.lng.toFixed(4)}
                             </span>
                             <span
-                              className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border flex items-center gap-1 ${
+                              className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border flex items-center gap-1 ${
                                 isSpamCluster
                                   ? 'bg-pastel-coral-50 text-pastel-coral-900 border-pastel-coral-200'
                                   : 'bg-pastel-sky-50 text-pastel-sky-900 border-pastel-sky-200'
                               }`}
                             >
-                              <Layers className="w-3 h-3 flex-shrink-0" />
+                              <Layers className="w-3.5 h-3.5 flex-shrink-0" />
                               <span>{cluster.totalReports} báo cáo từ dân</span>
                             </span>
                             <span
-                              className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                              className={`px-2 py-0.5 rounded-md text-xs font-semibold ${
                                 cluster.status === 'approved'
                                   ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                                   : 'bg-amber-100 text-amber-800 border border-amber-200'
@@ -457,7 +457,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                               {cluster.status === 'approved' ? 'Đang trên map' : 'Chờ duyệt'}
                             </span>
                           </div>
-                          <p className="text-[11px] text-gray-500 mt-1 font-mono">
+                          <p className="text-xs text-gray-500 mt-1">
                             Độ sâu trung bình: ~{cluster.avgDepthCm} cm • Báo lúc:{' '}
                             {new Date(cluster.latestReportedAt).toLocaleTimeString('vi-VN', {
                               hour: '2-digit',
@@ -483,7 +483,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                                   : 'bg-gray-100 text-gray-800 border-gray-300'
                               }`}
                             >
-                              <Sparkles className="w-3 h-3 text-current" />
+                              <Sparkles className="w-3.5 h-3.5 text-current" />
                               <span>AI chấm: {confidencePercent}%</span>
                             </span>
                           )}
@@ -504,7 +504,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                         ) : (
                           <Bot className="w-3.5 h-3.5 text-pastel-sky-600 flex-shrink-0" />
                         )}
-                        <p className="text-[11px] font-medium line-clamp-1" title={cluster.aiReasoning}>
+                        <p className="text-xs font-medium line-clamp-1" title={cluster.aiReasoning}>
                           {cluster.aiReasoning}
                         </p>
                       </div>
@@ -517,10 +517,10 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                             setSelectedCluster(cluster);
                             setIsDetailOpen(true);
                           }}
-                          className="text-xs font-bold text-blue-700 hover:text-blue-900 transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap self-start sm:self-auto"
+                          className="text-sm font-semibold text-blue-700 hover:text-blue-900 transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap self-start sm:self-auto"
                         >
-                          <Eye className="w-3.5 h-3.5 text-blue-600" />
-                          <span>Xem chi tiết từng báo cáo ({cluster.reports.length})</span>
+                          <Eye className="w-4 h-4 text-blue-600" />
+                          <span>Xem chi tiết từng báo cáo • {cluster.reports.length}</span>
                         </button>
 
                         <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
@@ -531,9 +531,9 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                                 disabled={isBusy}
                                 onClick={() => handleRejectCluster(cluster.clusterId)}
                                 title="Bác bỏ cụm báo cáo này"
-                                className="py-2 px-3.5 bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-900 border border-rose-300 font-bold text-xs rounded-xl transition active:scale-95 cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shadow-sm whitespace-nowrap min-h-[38px]"
+                                className="py-2 px-3.5 bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-900 border border-rose-300 font-semibold text-sm rounded-xl transition active:scale-95 cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shadow-sm whitespace-nowrap min-h-[38px]"
                               >
-                                <Trash2 className="w-3.5 h-3.5" />
+                                <Trash2 className="w-4 h-4" />
                                 <span>Bác bỏ</span>
                               </button>
                               <button
@@ -541,12 +541,12 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                                 disabled={isBusy}
                                 onClick={() => handleApproveCluster(cluster.clusterId)}
                                 title="Duyệt cụm báo cáo và đưa lên bản đồ SafeRoute trực tiếp"
-                                className="py-2 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-md hover:shadow-lg transition active:scale-95 cursor-pointer disabled:opacity-50 flex items-center gap-1.5 whitespace-nowrap min-h-[38px]"
+                                className="py-2 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-sm rounded-xl shadow-md hover:shadow-lg transition active:scale-95 cursor-pointer disabled:opacity-50 flex items-center gap-1.5 whitespace-nowrap min-h-[38px]"
                               >
                                 {isBusy ? (
-                                  <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+                                  <Loader2 className="w-4 h-4 animate-spin text-white" />
                                 ) : (
-                                  <CheckCheck className="w-3.5 h-3.5" />
+                                  <CheckCheck className="w-4 h-4" />
                                 )}
                                 <span>Duyệt & Lên map</span>
                               </button>
@@ -556,10 +556,10 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                               type="button"
                               disabled={isBusy}
                               onClick={() => handleTakedownCluster(cluster)}
-                              className="py-2 px-3.5 bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-900 border border-rose-300 font-bold text-xs rounded-xl transition active:scale-95 cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shadow-sm whitespace-nowrap min-h-[38px]"
+                              className="py-2 px-3.5 bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-900 border border-rose-300 font-semibold text-sm rounded-xl transition active:scale-95 cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shadow-sm whitespace-nowrap min-h-[38px]"
                               title="Gỡ bỏ điểm ngập này khỏi bản đồ"
                             >
-                              <AlertTriangle className="w-3.5 h-3.5" />
+                              <AlertTriangle className="w-4 h-4" />
                               <span>Gỡ bỏ khỏi bản đồ</span>
                             </button>
                           )}
@@ -595,7 +595,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="w-full sm:w-auto py-2.5 px-6 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 font-bold text-xs rounded-xl transition active:scale-95 cursor-pointer shadow-sm text-center shrink-0 whitespace-nowrap min-h-[38px]"
+            className="w-full sm:w-auto py-2.5 px-6 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 font-bold text-sm rounded-xl transition active:scale-95 cursor-pointer shadow-sm text-center shrink-0 whitespace-nowrap min-h-[38px]"
           >
             Đóng cửa sổ
           </button>

@@ -77,21 +77,21 @@ export const FloodLayer: React.FC<FloodLayerProps> = ({ events }) => {
                 >
                   {event.streetName}
                 </h4>
-                <p className="text-gray-500 text-[11px] mt-0.5">Quận: {event.district}</p>
+                <p className="text-gray-500 text-xs mt-0.5">Quận: {event.district}</p>
                 <div className="mt-2 flex items-center justify-between">
-                  <span className="text-gray-600 text-[11px]">Độ sâu dự báo:</span>
-                  <span className="font-mono font-bold text-xs" style={{ color: isActive ? color : '#4B5563' }}>
+                  <span className="text-gray-600 text-xs">Độ sâu dự báo:</span>
+                  <span className="font-bold text-xs" style={{ color: isActive ? color : '#4B5563' }}>
                     {isActive ? `~${depth} cm` : `Khô ráo`}
                   </span>
                 </div>
                 <div
-                  className={`mt-2 p-1.5 rounded-lg border text-[10px] font-semibold leading-tight ${badgeBg}`}
+                  className={`mt-2 p-1.5 rounded-lg border text-xs font-semibold leading-tight ${badgeBg}`}
                   title={severityText}
                 >
                   {severityText}
                 </div>
                 {event.estimatedDepthCm !== undefined && (
-                  <p className="text-gray-400 text-[10px] mt-1.5 border-t border-gray-100 pt-1 font-mono">
+                  <p className="text-gray-500 text-xs mt-1.5 border-t border-gray-100 pt-1">
                     Đỉnh triều dự kiến: ~{event.estimatedDepthCm} cm
                   </p>
                 )}

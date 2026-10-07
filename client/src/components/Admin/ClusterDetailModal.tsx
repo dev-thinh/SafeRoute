@@ -81,7 +81,7 @@ export const ClusterDetailModal: React.FC<ClusterDetailModalProps> = ({
               <h3 className="font-bold text-base text-gray-900 leading-tight">
                 Chi tiết cụm điểm ngập
               </h3>
-              <p className="text-[11px] text-gray-500 font-mono mt-0.5">
+              <p className="text-xs text-gray-500 mt-0.5">
                 Mã cụm: {cluster.clusterId} • {cluster.totalReports} báo cáo
               </p>
             </div>
@@ -92,7 +92,7 @@ export const ClusterDetailModal: React.FC<ClusterDetailModalProps> = ({
             onClick={onClose}
             className="w-9 h-9 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100/80 flex items-center justify-center transition-all active:scale-95 cursor-pointer"
             aria-label="Đóng chi tiết"
-            title="Đóng (Esc)"
+            title="Đóng"
           >
             <X className="w-5 h-5" />
           </button>
@@ -118,7 +118,7 @@ export const ClusterDetailModal: React.FC<ClusterDetailModalProps> = ({
                 ) : (
                   <>
                     <Bot className="w-4 h-4 text-pastel-sky-700" />
-                    <span className="text-gray-900">AI Thẩm Định Thật/Giả (Ma trận 4 trụ cột)</span>
+                    <span className="text-gray-900">AI Thẩm Định Thật/Giả - Ma trận 4 trụ cột</span>
                   </>
                 )}
               </div>
@@ -149,7 +149,7 @@ export const ClusterDetailModal: React.FC<ClusterDetailModalProps> = ({
               />
             </div>
 
-            <p className="text-[11px] text-gray-700 leading-relaxed font-medium" title={cluster.aiReasoning}>
+            <p className="text-xs text-gray-700 leading-relaxed font-medium" title={cluster.aiReasoning}>
               {cluster.aiReasoning}
             </p>
           </div>
@@ -157,19 +157,19 @@ export const ClusterDetailModal: React.FC<ClusterDetailModalProps> = ({
           {/* Location & Depth summary */}
           <div className="grid grid-cols-2 gap-2.5 text-xs">
             <div className="p-3 rounded-2xl bg-gray-50/80 border border-gray-200/80">
-              <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block">
+              <span className="text-xs text-gray-500 font-bold uppercase tracking-wider block">
                 Độ sâu bình quân
               </span>
-              <span className="text-sm font-bold text-gray-900 font-mono mt-0.5 block">
+              <span className="text-sm font-bold text-gray-900 mt-0.5 block">
                 ~{cluster.avgDepthCm} cm
               </span>
             </div>
             <div className="p-3 rounded-2xl bg-gray-50/80 border border-gray-200/80">
-              <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block">
+              <span className="text-xs text-gray-500 font-bold uppercase tracking-wider block">
                 Tọa độ tâm cụm
               </span>
               <span
-                className="text-[11px] font-bold text-gray-900 font-mono mt-0.5 block"
+                className="text-xs font-bold text-gray-900 mt-0.5 block"
                 title={`Tọa độ tâm: ${cluster.coordinate.lat}, ${cluster.coordinate.lng}`}
               >
                 {cluster.coordinate.lat.toFixed(4)}, {cluster.coordinate.lng.toFixed(4)}
@@ -181,7 +181,7 @@ export const ClusterDetailModal: React.FC<ClusterDetailModalProps> = ({
           <div>
             <h4 className="text-xs font-bold text-gray-800 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
               <FileText className="w-3.5 h-3.5 text-gray-500" />
-              <span>Các báo cáo thành phần ({cluster.reports.length})</span>
+              <span>Các báo cáo thành phần • {cluster.reports.length}</span>
             </h4>
 
             <div className="space-y-2.5">
@@ -205,18 +205,18 @@ export const ClusterDetailModal: React.FC<ClusterDetailModalProps> = ({
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-gray-900">Báo cáo #{idx + 1}</span>
                         {isReportSpam ? (
-                          <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-pastel-coral-100 text-rose-900 border border-pastel-coral-200 flex items-center gap-1">
+                          <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-pastel-coral-100 text-rose-900 border border-pastel-coral-200 flex items-center gap-1">
                             <AlertTriangle className="w-2.5 h-2.5 text-rose-600" />
                             <span>Nội dung rác / vô nghĩa</span>
                           </span>
                         ) : (
-                          <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-pastel-mint-100 text-emerald-900 border border-pastel-mint-200 flex items-center gap-1">
+                          <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-pastel-mint-100 text-emerald-900 border border-pastel-mint-200 flex items-center gap-1">
                             <Check className="w-2.5 h-2.5 text-emerald-600" />
                             <span>Hợp lệ</span>
                           </span>
                         )}
                       </div>
-                      <span className="text-[10px] text-gray-500 flex items-center gap-1 font-mono">
+                      <span className="text-xs text-gray-500 flex items-center gap-1">
                         <Calendar className="w-3 h-3 text-gray-400" />
                         <span>
                           {r.reportedAt
@@ -231,14 +231,14 @@ export const ClusterDetailModal: React.FC<ClusterDetailModalProps> = ({
                       </span>
                     </div>
 
-                    <div className="text-[11px] text-gray-600 font-medium">
+                    <div className="text-xs text-gray-600 font-medium">
                       Mức độ ghi nhận: <span className="font-bold text-gray-800">~{r.depthCm} cm</span>
                     </div>
 
                     {r.description ? (
                       <p
                         title={r.description}
-                        className={`text-[11px] italic p-2.5 rounded-xl border ${
+                        className={`text-xs italic p-2.5 rounded-xl border ${
                           isReportSpam
                             ? 'bg-pastel-coral-50/70 border-pastel-coral-200 text-rose-950 font-medium'
                             : 'bg-gray-50 border-gray-100 text-gray-700'
@@ -247,11 +247,11 @@ export const ClusterDetailModal: React.FC<ClusterDetailModalProps> = ({
                         "{r.description}"
                       </p>
                     ) : (
-                      <p className="text-[10px] text-gray-400 italic">(Không kèm mô tả chi tiết)</p>
+                      <p className="text-xs text-gray-400 italic">Không kèm mô tả chi tiết</p>
                     )}
 
                     {r.aiReasoning && (
-                      <div className="text-[10px] text-gray-500 font-mono mt-1 flex items-start gap-1">
+                      <div className="text-xs text-gray-500 mt-1 flex items-start gap-1">
                         <span className="text-gray-400">Đánh giá AI:</span>
                         <span
                           title={r.aiReasoning}
@@ -273,7 +273,7 @@ export const ClusterDetailModal: React.FC<ClusterDetailModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="w-full sm:w-auto py-2.5 px-5 bg-white hover:bg-slate-100 text-slate-800 font-bold text-xs rounded-xl border border-slate-300 transition active:scale-95 cursor-pointer shadow-sm min-h-[44px] whitespace-nowrap shrink-0 text-center"
+            className="w-full sm:w-auto py-2.5 px-5 bg-white hover:bg-slate-100 text-slate-800 font-bold text-sm rounded-xl border border-slate-300 transition active:scale-95 cursor-pointer shadow-sm min-h-[44px] whitespace-nowrap shrink-0 text-center"
           >
             Đóng
           </button>
@@ -283,7 +283,7 @@ export const ClusterDetailModal: React.FC<ClusterDetailModalProps> = ({
               type="button"
               disabled={isProcessing}
               onClick={handleReject}
-              className="flex-1 sm:flex-initial py-2.5 px-3.5 bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-900 border border-rose-300 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer disabled:opacity-50 min-h-[44px] shadow-sm whitespace-nowrap"
+              className="flex-1 sm:flex-initial py-2.5 px-3.5 bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-900 border border-rose-300 font-bold text-sm rounded-xl transition flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer disabled:opacity-50 min-h-[44px] shadow-sm whitespace-nowrap"
             >
               <Trash2 className="w-3.5 h-3.5" />
               <span>Bác bỏ cả cụm</span>
@@ -293,7 +293,7 @@ export const ClusterDetailModal: React.FC<ClusterDetailModalProps> = ({
               type="button"
               disabled={isProcessing}
               onClick={handleApprove}
-              className="flex-1 sm:flex-initial py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer disabled:opacity-50 min-h-[44px] whitespace-nowrap"
+              className="flex-1 sm:flex-initial py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-sm rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer disabled:opacity-50 min-h-[44px] whitespace-nowrap"
             >
               {isProcessing ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />

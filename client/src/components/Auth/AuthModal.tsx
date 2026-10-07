@@ -148,7 +148,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <h2 className="text-base font-bold text-gray-900">
                 {tab === 'login' ? 'Đăng nhập SafeRoute' : 'Đăng ký tài khoản'}
               </h2>
-              <p className="text-[11px] text-gray-500">
+              <p className="text-xs text-gray-500">
                 Hệ thống cảnh báo ngập & định vị an toàn TP.HCM
               </p>
             </div>
@@ -157,7 +157,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             type="button"
             onClick={onClose}
             className="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-700 transition-colors"
-            title="Đóng cửa sổ (Esc)"
+            title="Đóng cửa sổ"
           >
             <X className="w-4 h-4" />
           </button>
@@ -296,8 +296,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
               {/* Quick Preset Accounts */}
               <div className="pt-2 border-t border-gray-100">
-                <div className="flex items-center gap-1.5 text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
-                  <Sparkles className="w-3 h-3 text-amber-500" />
+                <div className="flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                   <span>Tài khoản thử nghiệm nhanh:</span>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
@@ -310,7 +310,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     <span className="text-xs font-bold text-sky-900 flex items-center gap-1">
                       🛡️ Admin SafeRoute
                     </span>
-                    <span className="text-[10px] text-sky-700 font-mono mt-0.5">
+                    <span className="text-xs text-sky-700 mt-0.5">
                       admin / admin123
                     </span>
                   </button>
@@ -323,7 +323,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     <span className="text-xs font-bold text-emerald-900 flex items-center gap-1">
                       👤 Người dân
                     </span>
-                    <span className="text-[10px] text-emerald-700 font-mono mt-0.5">
+                    <span className="text-xs text-emerald-700 mt-0.5">
                       user / user123
                     </span>
                   </button>
@@ -363,7 +363,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     type="text"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    placeholder="Ví dụ: nguyenvana (tối thiểu 3 ký tự)"
+                    placeholder="Ví dụ: nguyenvana - tối thiểu 3 ký tự"
                     className="w-full pl-9 pr-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                     required
                   />

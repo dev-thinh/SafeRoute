@@ -43,7 +43,7 @@ export const WeatherModal: React.FC<WeatherModalProps> = ({
               <h2 className="font-bold text-base sm:text-lg text-slate-900 leading-tight">
                 Khí Tượng & Triều Cường TP.HCM
               </h2>
-              <p className="text-[11px] text-gray-500 font-medium mt-0.5">
+              <p className="text-xs text-gray-500 font-medium mt-0.5">
                 Mạng lưới trạm đo thời gian thực & dự báo diễn biến ngập lụt
               </p>
             </div>
@@ -53,8 +53,8 @@ export const WeatherModal: React.FC<WeatherModalProps> = ({
             type="button"
             onClick={onClose}
             className="w-9 h-9 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100/80 flex items-center justify-center transition-all active:scale-95 cursor-pointer"
-            aria-label="Đóng cửa sổ (Esc)"
-            title="Đóng (Esc)"
+            aria-label="Đóng cửa sổ"
+            title="Đóng"
           >
             <X className="w-5 h-5" />
           </button>

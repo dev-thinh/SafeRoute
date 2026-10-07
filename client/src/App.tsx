@@ -331,13 +331,13 @@ export const App: React.FC = () => {
           onClick={() => setIsPanelCollapsed(false)}
           className="absolute top-4 left-4 z-[1000] flex items-center gap-2.5 px-3.5 py-2.5 bg-white/92 backdrop-blur-xl border border-sky-100/90 rounded-2xl shadow-xl hover:bg-white text-slate-800 font-bold text-xs active:scale-95 transition-all cursor-pointer min-h-[44px]"
           aria-label="Mở bảng điều khiển SafeRoute"
-          title="Mở bảng điều khiển SafeRoute (tìm lộ trình, tin tức, thời tiết)"
+          title="Mở bảng điều khiển SafeRoute"
         >
           <div className="w-6 h-6 rounded-lg bg-white border border-slate-200/80 flex items-center justify-center overflow-hidden p-0.5 shadow-xs">
             <img src="/logo.png" alt="SafeRoute" className="w-full h-full object-contain" />
           </div>
           <span className="font-extrabold text-slate-900 tracking-tight">SafeRoute</span>
-          <span className="text-[10px] bg-pastel-mint-100 text-pastel-mint-800 px-2 py-0.5 rounded-full font-bold border border-pastel-mint-200">
+          <span className="text-xs bg-pastel-mint-100 text-pastel-mint-800 px-2 py-0.5 rounded-full font-bold border border-pastel-mint-200">
             Mở bảng
           </span>
         </button>
@@ -408,7 +408,7 @@ export const App: React.FC = () => {
             <div className="text-xs font-bold text-slate-900 whitespace-nowrap">
               {pickingField === 'origin' ? 'Ghim điểm xuất phát' : 'Ghim điểm đến'}
             </div>
-            <div className="text-[11px] text-slate-500 whitespace-nowrap hidden sm:block">
+            <div className="text-xs text-slate-500 whitespace-nowrap hidden sm:block">
               Chạm hoặc click vị trí trên bản đồ để ghim
             </div>
           </div>

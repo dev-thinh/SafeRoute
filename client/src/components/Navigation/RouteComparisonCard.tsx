@@ -32,8 +32,8 @@ export const RouteComparisonCard: React.FC<RouteCardProps> = ({
   return (
     <div
       onClick={onSelect}
-      title={isSafe ? 'Chọn lộ trình né ngập an toàn (ưu tiên đường cao ráo, ít ngập)' : 'Chọn lộ trình nhanh nhất (tối ưu thời gian)'}
-      className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all duration-200 active:scale-[0.99] select-none ${
+      title={isSafe ? 'Chọn lộ trình né ngập an toàn' : 'Chọn lộ trình nhanh nhất'}
+      className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all duration-200 active:scale-[0.99] select-none font-sans ${
         isSelected
           ? isSafe
             ? 'border-pastel-mint-600 bg-pastel-mint-50/80 shadow-md shadow-pastel-mint-500/10 ring-2 ring-pastel-mint-200'
@@ -65,12 +65,12 @@ export const RouteComparisonCard: React.FC<RouteCardProps> = ({
                   isSafe ? 'bg-pastel-mint-600 shadow-xs' : 'bg-blue-600 shadow-xs'
                 }`}
               />
-              <h4 className="text-xs font-bold text-slate-900">
+              <h4 className="text-sm font-bold text-slate-900">
                 {isSafe ? 'Lộ trình né ngập an toàn' : 'Lộ trình nhanh nhất'}
               </h4>
             </div>
             <p
-              className="text-[11px] font-semibold text-slate-500 mt-0.5 font-mono"
+              className="text-xs font-medium text-slate-500 mt-0.5"
               title={`Tổng quãng đường: ${km} km, thời gian dự kiến: ~${minutes} phút`}
             >
               {km} km • ~{minutes} phút di chuyển
@@ -98,9 +98,9 @@ export const RouteComparisonCard: React.FC<RouteCardProps> = ({
           isFlooded ? (
             <div
               title={`Đoạn ngập dài ${floodedDistanceMeters} m, sâu tối đa ${maxFloodDepthCm || 0} cm`}
-              className="flex items-center gap-1.5 text-pastel-coral-900 font-semibold text-[11px] bg-pastel-coral-50 p-2 rounded-xl border border-pastel-coral-200"
+              className="flex items-center gap-1.5 text-pastel-coral-900 font-semibold text-xs bg-pastel-coral-50 p-2.5 rounded-xl border border-pastel-coral-200"
             >
-              <AlertTriangle className="w-3.5 h-3.5 text-pastel-coral-600 flex-shrink-0" />
+              <AlertTriangle className="w-4 h-4 text-pastel-coral-600 flex-shrink-0" />
               <span>
                 Vẫn có đoạn ngập: {maxFloodDepthCm ? `${maxFloodDepthCm} cm • ` : ''}
                 {floodedDistanceMeters} m
@@ -109,26 +109,26 @@ export const RouteComparisonCard: React.FC<RouteCardProps> = ({
           ) : hasAvoidedFlood ? (
             <div
               title="Thuật toán an toàn đã phân tích và tránh 100% các đoạn đường ngập nước"
-              className="flex items-center gap-1.5 text-pastel-mint-900 font-bold text-[11px] bg-pastel-mint-100/80 p-2 rounded-xl border border-pastel-mint-200"
+              className="flex items-center gap-1.5 text-pastel-mint-900 font-bold text-xs bg-pastel-mint-100/80 p-2.5 rounded-xl border border-pastel-mint-200"
             >
-              <CheckCircle2 className="w-3.5 h-3.5 text-pastel-mint-700 flex-shrink-0" />
+              <CheckCircle2 className="w-4 h-4 text-pastel-mint-700 flex-shrink-0" />
               <span>Đã né 100% điểm ngập nước</span>
             </div>
           ) : (
             <div
               title="Không có điểm ngập nào trên tuyến đường này"
-              className="flex items-center gap-1.5 text-pastel-mint-800 font-semibold text-[11px] bg-pastel-mint-50/70 p-2 rounded-xl border border-pastel-mint-100"
+              className="flex items-center gap-1.5 text-pastel-mint-800 font-semibold text-xs bg-pastel-mint-50/70 p-2.5 rounded-xl border border-pastel-mint-100"
             >
-              <CheckCircle2 className="w-3.5 h-3.5 text-pastel-mint-600 flex-shrink-0" />
-              <span>Tuyến đường khô ráo, hoàn toàn an toàn</span>
+              <CheckCircle2 className="w-4 h-4 text-pastel-mint-600 flex-shrink-0" />
+              <span>Tuyến đường khô ráo, an toàn</span>
             </div>
           )
         ) : isFlooded ? (
           <div
             title={`Đoạn ngập dài ${floodedDistanceMeters} m, sâu tối đa ${maxFloodDepthCm || 0} cm`}
-            className="flex items-center gap-1.5 text-pastel-coral-900 font-semibold text-[11px] bg-pastel-coral-50 p-2 rounded-xl border border-pastel-coral-200"
+            className="flex items-center gap-1.5 text-pastel-coral-900 font-semibold text-xs bg-pastel-coral-50 p-2.5 rounded-xl border border-pastel-coral-200"
           >
-            <AlertTriangle className="w-3.5 h-3.5 text-pastel-coral-600 flex-shrink-0" />
+            <AlertTriangle className="w-4 h-4 text-pastel-coral-600 flex-shrink-0" />
             <span>
               Cắt qua đoạn ngập: {maxFloodDepthCm ? `${maxFloodDepthCm} cm • ` : ''}
               {floodedDistanceMeters} m
@@ -137,9 +137,9 @@ export const RouteComparisonCard: React.FC<RouteCardProps> = ({
         ) : (
           <div
             title="Lộ trình nhanh nhất hiện tại không bị ngập"
-            className="flex items-center gap-1.5 text-slate-700 font-semibold text-[11px] bg-slate-50 p-2 rounded-xl border border-slate-100"
+            className="flex items-center gap-1.5 text-slate-700 font-semibold text-xs bg-slate-50 p-2.5 rounded-xl border border-slate-100"
           >
-            <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
+            <CheckCircle2 className="w-4 h-4 text-blue-600 flex-shrink-0" />
             <span>Tuyến đường thông thoáng, khô ráo</span>
           </div>
         )}

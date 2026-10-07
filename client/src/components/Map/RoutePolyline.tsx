@@ -140,11 +140,11 @@ export const RoutePolyline: React.FC<RoutePolylineProps> = ({
                       {seg.streetName}
                     </div>
                   )}
-                  <div className="mt-1.5 flex items-center justify-between text-[11px] text-gray-700">
+                  <div className="mt-1.5 flex items-center justify-between text-xs text-gray-700">
                     <span>Độ sâu dự báo:</span>
-                    <strong className="text-red-600 font-bold font-mono text-xs">{seg.depthCm} cm</strong>
+                    <strong className="text-red-600 font-bold text-xs">{seg.depthCm} cm</strong>
                   </div>
-                  <div className="mt-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-800 inline-block border border-gray-200">
+                  <div className="mt-1.5 text-xs font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-800 inline-block border border-gray-200">
                     {colors.label}
                   </div>
                 </div>

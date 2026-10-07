@@ -70,12 +70,12 @@ const SingleReportMarker: React.FC<{
       <Popup>
         <div className="text-xs p-1 min-w-[220px] max-w-[250px] font-sans">
           <div className="flex items-center justify-between pb-1">
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-pastel-mint-50 text-pastel-mint-800 border border-pastel-mint-200 rounded-full font-bold text-[10px]">
-              <Check className="w-2.5 h-2.5" />
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-pastel-mint-50 text-pastel-mint-800 border border-pastel-mint-200 rounded-full font-bold text-xs">
+              <Check className="w-3 h-3" />
               <span>Điểm ngập đã duyệt</span>
             </span>
-            <span className="text-[10px] text-slate-400 font-mono flex items-center gap-0.5">
-              <Clock className="w-2.5 h-2.5" />
+            <span className="text-xs text-slate-500 flex items-center gap-0.5">
+              <Clock className="w-3 h-3" />
               <span>{report.reportedAt ? new Date(report.reportedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : 'Vừa xong'}</span>
             </span>
           </div>
@@ -85,13 +85,13 @@ const SingleReportMarker: React.FC<{
               <span className={`w-2.5 h-2.5 rounded-full ${depthInfo.dotBg} shadow-xs inline-block`} />
               <span>{depthInfo.label}</span>
             </div>
-            <span className="font-mono font-bold text-xs">~{report.depthCm} cm</span>
+            <span className="font-bold text-xs">~{report.depthCm} cm</span>
           </div>
 
           {report.description && (
             <p
               title={report.description}
-              className="text-slate-700 text-[11px] mt-1.5 italic bg-slate-50 p-2 rounded-xl border border-slate-200 leading-relaxed"
+              className="text-slate-700 text-xs mt-1.5 italic bg-slate-50 p-2 rounded-xl border border-slate-200 leading-relaxed"
             >
               "{report.description}"
             </p>
@@ -109,21 +109,21 @@ const SingleReportMarker: React.FC<{
             />
           </div>
 
-          <div className="text-slate-500 text-[10px] flex items-center justify-between font-medium">
+          <div className="text-slate-500 text-xs flex items-center justify-between font-medium">
             <span className="flex items-center gap-1">
-              <ThumbsUp className="w-3 h-3 text-blue-600 flex-shrink-0" />
-              <span>{upvotesCount} đang ngập ({upPercent}%)</span>
+              <ThumbsUp className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
+              <span>{upvotesCount} đang ngập • {upPercent}%</span>
             </span>
             <span className="flex items-center gap-1">
-              <Sun className="w-3 h-3 text-amber-500 flex-shrink-0" />
-              <span>{downvotesCount} đã rút ({downPercent}%)</span>
+              <Sun className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
+              <span>{downvotesCount} đã rút • {downPercent}%</span>
             </span>
           </div>
 
           {/* Community Vote CTA buttons */}
           <div className="mt-2.5 pt-2 border-t border-slate-200 flex items-center gap-1.5">
             {hasVoted ? (
-              <div className="w-full text-center py-2 px-2 bg-pastel-mint-50 text-pastel-mint-800 font-bold text-[10px] rounded-xl border border-pastel-mint-200 flex items-center justify-center gap-1">
+              <div className="w-full text-center py-2 px-2 bg-pastel-mint-50 text-pastel-mint-800 font-bold text-xs rounded-xl border border-pastel-mint-200 flex items-center justify-center gap-1">
                 <Check className="w-3.5 h-3.5 text-pastel-mint-600" />
                 <span>Đã ghi nhận đóng góp cộng đồng!</span>
               </div>
@@ -133,13 +133,13 @@ const SingleReportMarker: React.FC<{
                   type="button"
                   disabled={isSubmitting}
                   onClick={() => handleVote('upvote')}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2 px-2 bg-pastel-sky-50 hover:bg-pastel-sky-100 text-blue-800 font-bold text-[10px] rounded-xl border border-sky-200 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
-                  title="Xác nhận điểm ngập này vẫn còn (tự động gia hạn thêm 3 giờ)"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 px-2 bg-pastel-sky-50 hover:bg-pastel-sky-100 text-blue-800 font-bold text-xs rounded-xl border border-sky-200 active:scale-95 transition-all cursor-pointer disabled:opacity-50 min-h-[36px]"
+                  title="Xác nhận điểm ngập này vẫn còn"
                 >
                   {isSubmitting ? (
-                    <Loader2 className="w-3 h-3 animate-spin text-blue-600" />
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />
                   ) : (
-                    <ThumbsUp className="w-3 h-3 text-blue-600" />
+                    <ThumbsUp className="w-3.5 h-3.5 text-blue-600" />
                   )}
                   <span>Đang ngập</span>
                 </button>
@@ -147,13 +147,13 @@ const SingleReportMarker: React.FC<{
                   type="button"
                   disabled={isSubmitting}
                   onClick={() => handleVote('resolved')}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2 px-2 bg-pastel-mint-50 hover:bg-pastel-mint-100 text-pastel-mint-800 font-bold text-[10px] rounded-xl border border-pastel-mint-200 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 px-2 bg-pastel-mint-50 hover:bg-pastel-mint-100 text-pastel-mint-800 font-bold text-xs rounded-xl border border-pastel-mint-200 active:scale-95 transition-all cursor-pointer disabled:opacity-50 min-h-[36px]"
                   title="Báo cáo nước đã rút tại đây"
                 >
                   {isSubmitting ? (
-                    <Loader2 className="w-3 h-3 animate-spin text-pastel-mint-600" />
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-pastel-mint-600" />
                   ) : (
-                    <Sun className="w-3 h-3 text-amber-500" />
+                    <Sun className="w-3.5 h-3.5 text-amber-500" />
                   )}
                   <span>Nước đã rút</span>
                 </button>
