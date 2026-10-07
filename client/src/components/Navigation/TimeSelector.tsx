@@ -86,21 +86,70 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
     setInputMinutes(currentDate.getMinutes().toString().padStart(2, '0'));
   }, [currentDate]);
 
-  // Close dropdown on window resize, scroll, or Escape key
+  // Ref for the popover element to prevent self-scroll from closing it
+  const popoverRef = useRef<HTMLDivElement>(null);
+
+  // Close or reposition dropdown on window resize, scroll, or Escape key
   useEffect(() => {
     if (!openDropdown) return;
-    const close = () => setOpenDropdown(null);
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') close();
+
+    const handleScroll = (e: Event) => {
+      // NEVER close or reposition if the user is scrolling INSIDE the popover list itself!
+      if (
+        popoverRef.current &&
+        (popoverRef.current === e.target || popoverRef.current.contains(e.target as Node))
+      ) {
+        return;
+      }
+
+      const btn = openDropdown === 'date' ? dateBtnRef.current : timeBtnRef.current;
+      if (!btn) return;
+      const rect = btn.getBoundingClientRect();
+
+      // If button scrolled completely offscreen, close dropdown
+      if (rect.bottom < 0 || rect.top > window.innerHeight) {
+        setOpenDropdown(null);
+        return;
+      }
+
+      // Smoothly track button position on outer container scroll
+      const expectedHeight = 260;
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const shouldOpenAbove = spaceBelow < expectedHeight && rect.top > expectedHeight;
+
+      const top = shouldOpenAbove ? Math.max(10, rect.top - expectedHeight - 6) : rect.bottom + 6;
+      const popoverWidth = Math.max(rect.width, openDropdown === 'date' ? 320 : 240);
+      const left = Math.min(Math.max(12, rect.left), window.innerWidth - popoverWidth - 12);
+
+      setPopoverCoords({ top, left, width: popoverWidth });
     };
 
-    window.addEventListener('resize', close);
-    window.addEventListener('scroll', close, true);
+    const handleResize = () => {
+      const btn = openDropdown === 'date' ? dateBtnRef.current : timeBtnRef.current;
+      if (!btn) return;
+      const rect = btn.getBoundingClientRect();
+      const expectedHeight = 260;
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const shouldOpenAbove = spaceBelow < expectedHeight && rect.top > expectedHeight;
+
+      const top = shouldOpenAbove ? Math.max(10, rect.top - expectedHeight - 6) : rect.bottom + 6;
+      const popoverWidth = Math.max(rect.width, openDropdown === 'date' ? 320 : 240);
+      const left = Math.min(Math.max(12, rect.left), window.innerWidth - popoverWidth - 12);
+
+      setPopoverCoords({ top, left, width: popoverWidth });
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpenDropdown(null);
+    };
+
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('scroll', handleScroll, true);
     window.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      window.removeEventListener('resize', close);
-      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('scroll', handleScroll, true);
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [openDropdown]);
@@ -478,6 +527,7 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
             onClick={() => setOpenDropdown(null)}
           >
             <div
+              ref={popoverRef}
               style={{
                 position: 'fixed',
                 top: popoverCoords.top,
@@ -486,6 +536,7 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
                 maxHeight: '260px',
               }}
               onClick={(e) => e.stopPropagation()}
+              onWheel={(e) => e.stopPropagation()}
               className="bg-white rounded-2xl border-2 border-slate-300 shadow-2xl overflow-y-auto animate-in fade-in zoom-in-95 duration-150 py-1"
             >
               {openDropdown === 'date' && (
