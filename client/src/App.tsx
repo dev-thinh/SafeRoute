@@ -271,13 +271,13 @@ export const App: React.FC = () => {
         <button
           type="button"
           onClick={() => setIsPanelCollapsed(false)}
-          className="absolute top-4 left-4 z-[1000] flex items-center gap-2 px-4 py-2.5 bg-white/95 backdrop-blur-md border border-gray-200/80 rounded-2xl shadow-xl hover:shadow-2xl hover:bg-white text-gray-800 font-bold text-xs active:scale-95 transition-all cursor-pointer min-h-[44px]"
+          className="absolute top-4 left-4 z-[1000] flex items-center gap-2 px-4 py-2.5 bg-white/95 backdrop-blur-xl border border-white/70 rounded-2xl shadow-glass-md hover:shadow-glass-lg hover:bg-white text-gray-800 font-bold text-xs active:scale-95 transition-all cursor-pointer min-h-[44px]"
           aria-label="Mở bảng điều khiển SafeRoute"
         >
-          <PanelLeftOpen className="w-4 h-4 text-blue-600" />
-          <Waves className="w-4 h-4 text-blue-600" />
+          <PanelLeftOpen className="w-4 h-4 text-pastel-sky-600" />
+          <Waves className="w-4 h-4 text-pastel-sky-600" />
           <span>Bảng điều khiển</span>
-          <span className="text-[10px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-bold border border-blue-100">
+          <span className="text-[10px] bg-pastel-sky-50 text-pastel-sky-800 px-2.5 py-0.5 rounded-full font-bold border border-pastel-sky-200">
             Mở
           </span>
         </button>
@@ -333,10 +333,10 @@ export const App: React.FC = () => {
 
       {/* Floating Picking Notification Banner */}
       {pickingField && (
-        <div className="absolute top-5 left-1/2 -translate-x-1/2 z-[1100] bg-white/95 backdrop-blur-md px-4 py-2.5 rounded-2xl shadow-2xl border border-gray-200/90 flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+        <div className="absolute top-5 left-1/2 -translate-x-1/2 z-[1100] bg-white/95 backdrop-blur-xl px-4 py-2.5 rounded-2xl shadow-glass-xl border border-white/70 flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
           <div
-            className={`w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-xs ${
-              pickingField === 'origin' ? 'bg-emerald-600' : 'bg-rose-600'
+            className={`w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-glass-xs ${
+              pickingField === 'origin' ? 'bg-pastel-mint-600' : 'bg-pastel-coral-dark'
             }`}
           >
             {pickingField === 'origin' ? (
@@ -356,7 +356,7 @@ export const App: React.FC = () => {
           <button
             type="button"
             onClick={() => setPickingField(null)}
-            className="ml-2 px-3 py-1.5 text-xs font-bold text-gray-700 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-xl transition active:scale-95 cursor-pointer"
+            className="ml-2 px-3 py-1.5 text-xs font-bold text-gray-700 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-xl transition active:scale-95 cursor-pointer min-h-[36px]"
           >
             Hủy
           </button>
@@ -373,7 +373,7 @@ export const App: React.FC = () => {
           <button
             type="button"
             onClick={handleStartReportPinning}
-            className="flex items-center gap-2.5 px-5 py-3.5 min-h-[48px] bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-95 text-white text-xs font-bold rounded-full shadow-xl shadow-blue-500/25 transition-all hover:shadow-2xl hover:shadow-blue-500/35 cursor-pointer"
+            className="flex items-center gap-2.5 px-5 py-3.5 min-h-[48px] bg-gradient-to-r from-pastel-sky-600 via-blue-600 to-indigo-600 hover:from-pastel-sky-700 hover:to-indigo-700 active:scale-95 text-white text-xs font-bold rounded-full shadow-glass-md hover:shadow-glass-lg transition-all cursor-pointer"
             title="Báo ngập tại vị trí"
             aria-label="Báo ngập tại vị trí trên bản đồ"
           >
@@ -402,8 +402,8 @@ export const App: React.FC = () => {
 
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="absolute top-5 left-1/2 -translate-x-1/2 z-[1200] bg-white/95 backdrop-blur-md px-4 py-2.5 rounded-2xl shadow-2xl border border-gray-200/90 flex items-center gap-2.5 animate-in fade-in slide-in-from-top-2">
-          <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+        <div className="absolute top-5 left-1/2 -translate-x-1/2 z-[1200] bg-white/95 backdrop-blur-xl px-4 py-2.5 rounded-2xl shadow-glass-xl border border-white/70 flex items-center gap-2.5 animate-in fade-in slide-in-from-top-2">
+          <AlertTriangle className="w-4 h-4 text-pastel-amber-600 flex-shrink-0" />
           <span className="text-xs font-semibold text-gray-800">{toastMessage}</span>
           <button
             type="button"
