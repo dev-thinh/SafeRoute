@@ -269,9 +269,9 @@ export const WeatherTab: React.FC<WeatherTabProps> = ({ onSelectLocation }) => {
               return (
                 <div
                   key={idx}
-                  className="flex flex-col items-center flex-shrink-0 w-10 text-center gap-1"
+                  className="flex flex-col items-center flex-shrink-0 w-11 text-center gap-1"
                 >
-                  <span className="text-[9px] font-mono font-bold text-slate-700">
+                  <span className={`text-[9px] font-mono font-bold ${idx === 0 ? 'text-blue-700' : 'text-slate-700'}`}>
                     {item.precipitationMm > 0 ? `${item.precipitationMm}` : '0'}
                   </span>
                   <div
@@ -284,8 +284,8 @@ export const WeatherTab: React.FC<WeatherTabProps> = ({ onSelectLocation }) => {
                         : 'bg-slate-200'
                     }`}
                   />
-                  <span className="text-[9px] text-slate-500 font-medium">
-                    {hourLabel}
+                  <span className={`text-[9px] ${idx === 0 ? 'text-blue-700 font-bold' : 'text-slate-500 font-medium'}`}>
+                    {idx === 0 ? 'Hiện tại' : hourLabel}
                   </span>
                 </div>
               );

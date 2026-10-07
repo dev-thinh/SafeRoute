@@ -5,6 +5,8 @@ import {
   getAllQuadrantsPrecipitation,
   getQuadrantRollingPrecipitation,
   getAllQuadrantsRollingPrecipitation,
+  getWeatherDashboardData,
+  getBangkokHourKey,
   clearWeatherCache,
   HCMC_QUADRANTS,
 } from '../src/services/weatherService';
@@ -91,6 +93,26 @@ describe('Weather Service', () => {
     expect(rolling.prev2hMm).toBe(20.0);
     expect(rolling.effectiveAccumulationMm).toBe(55.5);
     expect(rolling.rainProbability).toBeGreaterThan(0.9);
+  });
+
+  it('should generate 12h forecast timeline strictly starting from current moment, not arbitrary target_time', async () => {
+    mockedAxios.get.mockImplementation(async () => ({
+      data: {
+        current: { precipitation: 5.0 },
+        hourly: {
+          time: [],
+          precipitation: [],
+        },
+      },
+    }));
+
+    // Pass a future target date (e.g. 5 hours later)
+    const futureTarget = new Date(Date.now() + 5 * 3600 * 1000);
+    const dashboard = await getWeatherDashboardData(futureTarget);
+
+    expect(dashboard.hourlyTimeline).toHaveLength(12);
+    const expectedCurrentKey = getBangkokHourKey(new Date());
+    expect(dashboard.hourlyTimeline[0].time).toBe(expectedCurrentKey);
   });
 });
 

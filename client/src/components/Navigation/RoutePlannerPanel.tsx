@@ -8,8 +8,6 @@ import {
   Crosshair,
   Map,
   Target,
-  Newspaper,
-  CloudRain,
   Loader2,
   PanelLeftClose,
   AlertTriangle,
@@ -19,8 +17,6 @@ import {
 import { VehicleSelector } from './VehicleSelector';
 import { TimeSelector } from './TimeSelector';
 import { RouteComparisonCard } from './RouteComparisonCard';
-import { NewsFeedTab } from '../News/NewsFeedTab';
-import { WeatherTab } from '../Weather/WeatherTab';
 import {
   navigateRoute,
   searchLocation,
@@ -46,10 +42,7 @@ interface RoutePlannerPanelProps {
   onStartPickOnMap: (field: 'origin' | 'dest') => void;
   onCancelPickOnMap: () => void;
   onRefreshFloods?: (targetTime?: string) => void;
-  onSelectLocation?: (lat: number, lng: number) => void;
   onToggleCollapse?: () => void;
-  activeTab?: 'routes' | 'news' | 'weather';
-  onTabChange?: (t: 'routes' | 'news' | 'weather') => void;
 }
 
 export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
@@ -64,18 +57,8 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
   onStartPickOnMap,
   onCancelPickOnMap,
   onRefreshFloods,
-  onSelectLocation,
   onToggleCollapse,
-  activeTab,
-  onTabChange,
 }) => {
-  const [internalTab, setInternalTab] = useState<'routes' | 'news' | 'weather'>('routes');
-  const mainTab = activeTab !== undefined ? activeTab : internalTab;
-  const setMainTab = (tab: 'routes' | 'news' | 'weather') => {
-    if (onTabChange) onTabChange(tab);
-    setInternalTab(tab);
-  };
-
   const [vehicle, setVehicle] = useState<'motorbike' | 'car'>('motorbike');
   const [targetTime, setTargetTime] = useState<string>(() => new Date().toISOString());
   const [loading, setLoading] = useState(false);
@@ -254,65 +237,8 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
         )}
       </div>
 
-      {/* Segmented Pill Tab Bar: Lộ Trình vs Tin Tức vs Thời Tiết */}
-      <div className="flex items-center gap-1 p-1 bg-slate-100/80 rounded-2xl border border-slate-200/60">
-        <button
-          type="button"
-          onClick={() => setMainTab('routes')}
-          title="Tìm kiếm và so sánh lộ trình né ngập"
-          aria-label="Chuyển sang tab Tìm lộ trình"
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold transition-all duration-200 min-h-[38px] cursor-pointer ${
-            mainTab === 'routes'
-              ? 'bg-white text-blue-700 shadow-sm shadow-blue-500/10 ring-1 ring-black/5'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-white/40'
-          }`}
-        >
-          <Navigation className="w-3.5 h-3.5" />
-          <span>Lộ trình</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setMainTab('news')}
-          title="Xem tin tức ngập lụt được AI tổng hợp"
-          aria-label="Chuyển sang tab Tin tức ngập lụt"
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold transition-all duration-200 min-h-[38px] cursor-pointer ${
-            mainTab === 'news'
-              ? 'bg-white text-blue-700 shadow-sm shadow-blue-500/10 ring-1 ring-black/5'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-white/40'
-          }`}
-        >
-          <Newspaper className="w-3.5 h-3.5" />
-          <span>Tin tức</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setMainTab('weather')}
-          title="Xem tình hình mưa & triều cường TP.HCM"
-          aria-label="Chuyển sang tab Thời tiết và triều cường"
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold transition-all duration-200 min-h-[38px] cursor-pointer ${
-            mainTab === 'weather'
-              ? 'bg-white text-blue-700 shadow-sm shadow-blue-500/10 ring-1 ring-black/5'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-white/40'
-          }`}
-        >
-          <CloudRain className="w-3.5 h-3.5" />
-          <span>Thời tiết</span>
-        </button>
-      </div>
-
-      {mainTab === 'news' ? (
-        <NewsFeedTab
-          onSelectLocation={onSelectLocation}
-          onRefreshFloods={onRefreshFloods}
-        />
-      ) : mainTab === 'weather' ? (
-        <WeatherTab onSelectLocation={onSelectLocation} />
-      ) : (
-        <>
-          {/* Banner when pick-on-map is active */}
-          {pickingField && (
+      {/* Banner when pick-on-map is active */}
+      {pickingField && (
             <div
               className={`p-3 rounded-2xl flex items-center justify-between text-xs border transition-all animate-in fade-in ${
                 pickingField === 'origin'
@@ -730,8 +656,6 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
               />
             </div>
           )}
-        </>
-      )}
     </div>
   );
 };

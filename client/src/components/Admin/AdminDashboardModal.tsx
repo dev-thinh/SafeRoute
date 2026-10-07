@@ -12,6 +12,7 @@ import {
   Bot,
   Hourglass,
   Layers,
+  Newspaper,
 } from 'lucide-react';
 import { ReportCluster, AdminSettings } from '../../types';
 import {
@@ -23,6 +24,7 @@ import {
   updateAdminSettings,
 } from '../../services/api';
 import { ClusterDetailModal } from './ClusterDetailModal';
+import { NewsFeedTab } from '../News/NewsFeedTab';
 
 interface AdminDashboardModalProps {
   isOpen: boolean;
@@ -42,7 +44,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
     minClusterCountForAutoApprove: 5,
   });
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'pending' | 'approved'>('pending');
+  const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'news'>('pending');
   const [selectedCluster, setSelectedCluster] = useState<ReportCluster | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
@@ -281,12 +283,29 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                 {approvedClusters.length}
               </span>
             </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('news')}
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                activeTab === 'news'
+                  ? 'bg-white text-gray-900 shadow-glass-xs'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Newspaper className="w-3.5 h-3.5 text-blue-600" />
+              <span>Tin tức báo chí & AI</span>
+            </button>
           </div>
         </div>
 
         {/* 4. List Content */}
         <div className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-3 bg-gray-50/30">
-          {displayedClusters.length === 0 ? (
+          {activeTab === 'news' ? (
+            <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs">
+              <NewsFeedTab onRefreshFloods={onDataChanged} />
+            </div>
+          ) : displayedClusters.length === 0 ? (
             <div className="py-14 text-center flex flex-col items-center justify-center text-gray-400 gap-3">
               <div className="w-14 h-14 rounded-2xl bg-pastel-mint-50 border border-pastel-mint-200 flex items-center justify-center text-emerald-600 shadow-sm">
                 <CheckCircle2 className="w-7 h-7" />
