@@ -65,6 +65,8 @@ export interface UserReport {
    reviewedAt?: Date;
    userId?: string;
    authorName?: string;
+   authorRole?: UserRole;
+   isOfficial?: boolean;
 }
 
 export interface ReportCluster {

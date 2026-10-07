@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { X, MapPin, Edit3, Loader2, Check, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { X, MapPin, Edit3, Loader2, Check, CheckCircle2, AlertTriangle, ShieldCheck, Radio } from 'lucide-react';
 import { submitReport } from '../../services/api';
+import { AuthUser } from '../../types';
 
 export interface SelectedReportLocation {
   lat: number;
@@ -31,10 +32,12 @@ function calculateDistanceM(lat1: number, lon1: number, lat2: number, lon2: numb
 export const ReportFloodModal: React.FC<{
   isOpen: boolean;
   location: SelectedReportLocation | null;
+  currentUser?: AuthUser | null;
   onClose: () => void;
   onReportSubmitted: () => void;
   onRePickLocation: () => void;
-}> = ({ isOpen, location, onClose, onReportSubmitted, onRePickLocation }) => {
+}> = ({ isOpen, location, currentUser, onClose, onReportSubmitted, onRePickLocation }) => {
+  const isAdmin = currentUser?.role === 'admin';
   const [depthLevel, setDepthLevel] = useState<'ankle' | 'wheel' | 'knee' | 'deep'>('wheel');
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
@@ -75,7 +78,7 @@ export const ReportFloodModal: React.FC<{
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (loading || alreadyReported) return;
+    if (loading || (!isAdmin && alreadyReported)) return;
     setLoading(true);
     setErrorMsg(null);
     try {
@@ -124,14 +127,16 @@ export const ReportFloodModal: React.FC<{
       <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-gray-900/40 backdrop-blur-md p-4 animate-in fade-in duration-200">
         <div className="bg-white/95 backdrop-blur-xl rounded-3xl p-6 sm:p-7 w-full max-w-sm shadow-glass-xl border border-white/70 flex flex-col items-center text-center gap-3.5 animate-in zoom-in-95 duration-200">
           <div className="w-14 h-14 rounded-2xl bg-pastel-mint-50 border border-pastel-mint-200 flex items-center justify-center text-emerald-600 shadow-sm">
-            <CheckCircle2 className="w-7 h-7" />
+            {isAdmin ? <ShieldCheck className="w-7 h-7 text-blue-600" /> : <CheckCircle2 className="w-7 h-7" />}
           </div>
           <div>
             <h3 className="font-bold text-base text-gray-900 leading-tight">
-              Đã tiếp nhận báo cáo của bạn!
+              {isAdmin ? 'Đã phát cảnh báo ngập thành công!' : 'Đã tiếp nhận báo cáo của bạn!'}
             </h3>
             <p className="text-xs text-gray-600 leading-relaxed mt-2">
-              Cảm ơn tinh thần đóng góp của bạn. Báo cáo đã được chuyển đến ban điều phối để kiểm duyệt trước khi đưa lên bản đồ điều hướng.
+              {isAdmin
+                ? 'Điểm ngập đã được đưa trực tiếp lên bản đồ công cộng. Toàn bộ người dân và thuật toán tìm đường đã được cập nhật ngay lập tức để né tránh vị trí này.'
+                : 'Cảm ơn tinh thần đóng góp của bạn. Báo cáo đã được chuyển đến ban điều phối để kiểm duyệt trước khi đưa lên bản đồ điều hướng.'}
             </p>
           </div>
           <button
@@ -139,7 +144,7 @@ export const ReportFloodModal: React.FC<{
             onClick={handleFinish}
             className="w-full mt-2 py-3.5 min-h-[48px] bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold text-sm rounded-xl shadow-lg transition-all cursor-pointer whitespace-nowrap"
           >
-            Đã hiểu
+            {isAdmin ? 'Hoàn tất & Xem bản đồ' : 'Đã hiểu'}
           </button>
         </div>
       </div>
@@ -156,11 +161,21 @@ export const ReportFloodModal: React.FC<{
               <img src="/logo.png" alt="SafeRoute" className="w-full h-full object-contain" />
             </div>
             <div>
-              <h3 className="font-bold text-base text-slate-900 leading-tight">
-                Báo cáo điểm ngập tức thì
-              </h3>
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-base text-slate-900 leading-tight">
+                  {isAdmin ? 'Phát cảnh báo điểm ngập' : 'Báo cáo điểm ngập tức thì'}
+                </h3>
+                {isAdmin && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200/80 rounded-full text-[11px] font-bold">
+                    <ShieldCheck className="w-3 h-3 text-blue-600" />
+                    <span>Admin</span>
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-gray-500 font-medium mt-0.5">
-                Cập nhật ngay vào bản đồ cho toàn bộ cộng đồng
+                {isAdmin
+                  ? 'Cảnh báo chính thức được đưa thẳng lên bản đồ điều hướng'
+                  : 'Cập nhật ngay vào bản đồ cho toàn bộ cộng đồng'}
               </p>
             </div>
           </div>
@@ -215,16 +230,28 @@ export const ReportFloodModal: React.FC<{
           </div>
         )}
 
-        {alreadyReported && (
-          <div className="p-3 bg-pastel-mint-50 border border-pastel-mint-200 text-emerald-950 text-xs rounded-2xl flex items-start gap-2.5">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+        {isAdmin ? (
+          <div className="p-3 bg-gradient-to-r from-blue-50/90 via-indigo-50/70 to-blue-50/90 border border-blue-200/80 rounded-2xl flex items-start gap-2.5 shadow-xs">
+            <ShieldCheck className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="font-bold text-xs">Bạn đã gửi báo cáo tại khu vực này</p>
-              <p className="text-xs text-emerald-800 mt-0.5 leading-relaxed">
-                Hệ thống đã tiếp nhận dữ liệu và đang kiểm duyệt. Bạn không cần gửi lặp lại.
+              <p className="font-bold text-xs text-blue-950">Chế độ Quản trị viên (Official Dispatch)</p>
+              <p className="text-xs text-blue-800 mt-0.5 leading-relaxed">
+                Điểm ngập sẽ được duyệt và hiển thị trực tiếp lên bản đồ ngay lập tức với độ tin cậy 100%, không cần qua hàng chờ duyệt.
               </p>
             </div>
           </div>
+        ) : (
+          alreadyReported && (
+            <div className="p-3 bg-pastel-mint-50 border border-pastel-mint-200 text-emerald-950 text-xs rounded-2xl flex items-start gap-2.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold text-xs">Bạn đã gửi báo cáo tại khu vực này</p>
+                <p className="text-xs text-emerald-800 mt-0.5 leading-relaxed">
+                  Hệ thống đã tiếp nhận dữ liệu và đang kiểm duyệt. Bạn không cần gửi lặp lại.
+                </p>
+              </div>
+            </div>
+          )
         )}
 
         {/* 3. Form Content */}
@@ -348,9 +375,11 @@ export const ReportFloodModal: React.FC<{
             </button>
             <button
               type="submit"
-              disabled={loading || alreadyReported}
+              disabled={loading || (!isAdmin && alreadyReported)}
               className={`flex-1 py-3 px-4 min-h-[46px] font-bold text-sm rounded-xl transition-all flex items-center justify-center gap-2 active:scale-95 cursor-pointer whitespace-nowrap ${
-                alreadyReported
+                isAdmin
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:from-blue-800 active:to-indigo-800 text-white shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed'
+                  : alreadyReported
                   ? 'bg-emerald-600 text-white shadow-md opacity-90 cursor-not-allowed'
                   : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed'
               }`}
@@ -358,7 +387,12 @@ export const ReportFloodModal: React.FC<{
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin text-white" />
-                  <span>Đang gửi báo cáo...</span>
+                  <span>{isAdmin ? 'Đang phát cảnh báo...' : 'Đang gửi báo cáo...'}</span>
+                </>
+              ) : isAdmin ? (
+                <>
+                  <Radio className="w-4 h-4" />
+                  <span>Phát cảnh báo ngập ngay</span>
                 </>
               ) : alreadyReported ? (
                 <>

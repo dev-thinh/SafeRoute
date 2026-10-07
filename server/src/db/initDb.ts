@@ -64,7 +64,9 @@ export async function initDb(): Promise<boolean> {
             cluster_id VARCHAR(100),
             is_auto_approved BOOLEAN NOT NULL DEFAULT FALSE,
             reviewed_by VARCHAR(50),
-            reviewed_at TIMESTAMPTZ
+            reviewed_at TIMESTAMPTZ,
+            is_official BOOLEAN NOT NULL DEFAULT FALSE,
+            author_role VARCHAR(20) DEFAULT 'user'
         );
 
         ALTER TABLE user_reports ADD COLUMN IF NOT EXISTS last_verified_at TIMESTAMPTZ DEFAULT NOW();
@@ -74,6 +76,8 @@ export async function initDb(): Promise<boolean> {
         ALTER TABLE user_reports ADD COLUMN IF NOT EXISTS is_auto_approved BOOLEAN DEFAULT FALSE;
         ALTER TABLE user_reports ADD COLUMN IF NOT EXISTS reviewed_by VARCHAR(50);
         ALTER TABLE user_reports ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ;
+        ALTER TABLE user_reports ADD COLUMN IF NOT EXISTS is_official BOOLEAN DEFAULT FALSE;
+        ALTER TABLE user_reports ADD COLUMN IF NOT EXISTS author_role VARCHAR(20) DEFAULT 'user';
         CREATE INDEX IF NOT EXISTS idx_user_reports_geom ON user_reports USING GIST(location_geom);
         CREATE INDEX IF NOT EXISTS idx_user_reports_cluster ON user_reports(cluster_id);
         CREATE INDEX IF NOT EXISTS idx_user_reports_status ON user_reports(status);

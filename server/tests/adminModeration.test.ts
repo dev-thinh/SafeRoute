@@ -375,4 +375,36 @@ describe('Role-Based Flood Reporting & Admin Moderation', () => {
     const foundCluster = adminRes.body.clusters.find((c: any) => c.clusterId === clusterId);
     expect(foundCluster).toBeUndefined();
   });
+
+  it('Admin Instant Dispatch: Admin reporting should be immediately approved, marked as official, and published to public map', async () => {
+    // 1. Admin submits an emergency official report
+    const adminReportRes = await request(app)
+      .post('/api/reports')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        coordinate: { lat: 10.7950, lng: 106.7219 },
+        depth_level: 'deep',
+        description: 'Cảnh báo khẩn cấp: Ngập sâu > 60cm khu vực chân cầu Sài Gòn, xe máy không thể lưu thông',
+      });
+
+    expect(adminReportRes.status).toBe(201);
+    expect(adminReportRes.body.success).toBe(true);
+    expect(adminReportRes.body.message).toContain('Đã phát cảnh báo ngập chính thức');
+    expect(adminReportRes.body.report.status).toBe('approved');
+    expect(adminReportRes.body.report.isOfficial).toBe(true);
+    expect(adminReportRes.body.report.authorRole).toBe('admin');
+    expect(adminReportRes.body.report.reviewedBy).toBe('admin');
+    expect(adminReportRes.body.report.aiConfidence).toBe(1.0);
+
+    const officialReportId = adminReportRes.body.report.id;
+
+    // 2. Report MUST appear IMMEDIATELY on the public active reports map (without manual admin approval)
+    const publicMapRes = await request(app).get('/api/reports');
+    expect(publicMapRes.status).toBe(200);
+    const foundOnPublic = publicMapRes.body.reports.find((r: any) => r.id === officialReportId);
+    expect(foundOnPublic).toBeDefined();
+    expect(foundOnPublic.status).toBe('approved');
+    expect(foundOnPublic.isOfficial).toBe(true);
+    expect(foundOnPublic.authorRole).toBe('admin');
+  });
 });

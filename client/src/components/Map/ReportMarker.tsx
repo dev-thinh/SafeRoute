@@ -3,13 +3,20 @@ import { Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import { UserReport } from '../../types';
 import { voteReport } from '../../services/api';
-import { Loader2, ThumbsUp, Sun, Check, Clock } from 'lucide-react';
+import { Loader2, ThumbsUp, Sun, Check, Clock, ShieldCheck } from 'lucide-react';
 
 const reportIcon = L.divIcon({
   className: 'custom-report-icon',
   html: `<div style="background: linear-gradient(135deg, #2563EB, #1D4ED8); color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border: 2.5px solid white; box-shadow: 0 4px 14px rgba(37,99,235,0.45); cursor: pointer;"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg></div>`,
   iconSize: [30, 30],
   iconAnchor: [15, 15],
+});
+
+const officialReportIcon = L.divIcon({
+  className: 'custom-official-report-icon',
+  html: `<div style="background: linear-gradient(135deg, #1E3A8A, #312E81); color: white; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: 2.5px solid #93C5FD; box-shadow: 0 4px 16px rgba(30,58,138,0.55); cursor: pointer;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>`,
+  iconSize: [32, 32],
+  iconAnchor: [16, 16],
 });
 
 const getDepthLevelInfo = (level: UserReport['depthLevel']) => {
@@ -34,6 +41,7 @@ const SingleReportMarker: React.FC<{
   const [hasVoted, setHasVoted] = useState<'upvote' | 'resolved' | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const isOfficial = Boolean(report.isOfficial || report.authorRole === 'admin' || report.reviewedBy === 'admin');
   const depthInfo = getDepthLevelInfo(report.depthLevel);
 
   const upvotesCount = report.upvotes + (hasVoted === 'upvote' ? 1 : 0);
@@ -65,15 +73,22 @@ const SingleReportMarker: React.FC<{
   return (
     <Marker
       position={[report.coordinate.lat, report.coordinate.lng]}
-      icon={reportIcon}
+      icon={isOfficial ? officialReportIcon : reportIcon}
     >
       <Popup>
-        <div className="text-xs p-1 min-w-[220px] max-w-[250px] font-sans">
+        <div className="text-xs p-1 min-w-[220px] max-w-[260px] font-sans">
           <div className="flex items-center justify-between pb-1">
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-pastel-mint-50 text-pastel-mint-800 border border-pastel-mint-200 rounded-full font-bold text-xs">
-              <Check className="w-3 h-3" />
-              <span>Điểm ngập đã duyệt</span>
-            </span>
+            {isOfficial ? (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-800 border border-blue-200 rounded-full font-bold text-xs shadow-xs">
+                <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+                <span>Xác thực bởi Quản trị viên</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-pastel-mint-50 text-pastel-mint-800 border border-pastel-mint-200 rounded-full font-bold text-xs">
+                <Check className="w-3 h-3" />
+                <span>Điểm ngập đã duyệt</span>
+              </span>
+            )}
             <span className="text-xs text-slate-500 flex items-center gap-0.5">
               <Clock className="w-3 h-3" />
               <span>{report.reportedAt ? new Date(report.reportedAt).toLocaleTimeString('vi-VN', { hour12: false, hour: '2-digit', minute: '2-digit' }) : 'Vừa xong'}</span>
