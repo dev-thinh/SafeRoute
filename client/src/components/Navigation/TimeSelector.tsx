@@ -176,13 +176,13 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
     setOpenDropdown(type);
   };
 
-  // Generate 7 upcoming days (optimal forecast window) with full, non-truncated labels
+  // Generate 14 upcoming days (full tidal cycle & travel planning window)
   const dateOptions = useMemo(() => {
     const list: { key: string; label: string; fullLabel: string }[] = [];
     const now = new Date();
     const daysOfWeek = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
 
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < 14; i++) {
       const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
       const key = toLocalDateKey(d);
       const dd = d.getDate().toString().padStart(2, '0');
@@ -544,7 +544,7 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
                   <div className="px-3.5 py-2.5 bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-700 uppercase tracking-wider shrink-0 flex items-center justify-between select-none">
                     <span>Chọn ngày khởi hành</span>
                     <span className="text-xs text-blue-700 font-bold bg-blue-100/70 px-2 py-0.5 rounded-full border border-blue-200">
-                      7 ngày tới
+                      14 ngày tới
                     </span>
                   </div>
                   <div className="overflow-y-auto max-h-[220px] divide-y divide-slate-100 py-1 flex-1">
