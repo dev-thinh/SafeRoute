@@ -23,34 +23,12 @@ const toLocalTimeKey = (d: Date): string => {
   return `${hh}:${mm}`;
 };
 
-const TIME_PRESETS = [
-  { value: '06:00', label: '06:00 - Sáng sớm' },
-  { value: '06:30', label: '06:30' },
-  { value: '07:00', label: '07:00 - Đầu giờ sáng' },
-  { value: '07:30', label: '07:30 - Cao điểm sáng' },
-  { value: '08:00', label: '08:00 - Giờ làm việc' },
-  { value: '08:30', label: '08:30' },
-  { value: '09:00', label: '09:00' },
-  { value: '10:00', label: '10:00' },
-  { value: '11:00', label: '11:00' },
-  { value: '12:00', label: '12:00 - Buổi trưa' },
-  { value: '13:00', label: '13:00' },
-  { value: '14:00', label: '14:00' },
-  { value: '15:00', label: '15:00' },
-  { value: '16:00', label: '16:00' },
-  { value: '16:30', label: '16:30' },
-  { value: '17:00', label: '17:00 - Bắt đầu tan tầm' },
-  { value: '17:30', label: '17:30 - Đỉnh tan tầm' },
-  { value: '18:00', label: '18:00 - Tan tầm tối' },
-  { value: '18:30', label: '18:30' },
-  { value: '19:00', label: '19:00' },
-  { value: '19:30', label: '19:30 - Đỉnh triều cường' },
-  { value: '20:00', label: '20:00 - Buổi tối' },
-  { value: '20:30', label: '20:30' },
-  { value: '21:00', label: '21:00' },
-  { value: '22:00', label: '22:00' },
-  { value: '23:00', label: '23:00 - Đêm khuya' },
-];
+const TIME_PRESETS = Array.from({ length: 48 }, (_, i) => {
+  const h = Math.floor(i / 2).toString().padStart(2, '0');
+  const m = i % 2 === 0 ? '00' : '30';
+  const val = `${h}:${m}`;
+  return { value: val, label: val };
+});
 
 export const TimeSelector: React.FC<TimeSelectorProps> = ({
   selectedTime,
@@ -118,7 +96,7 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
       const shouldOpenAbove = spaceBelow < expectedHeight && rect.top > expectedHeight;
 
       const top = shouldOpenAbove ? Math.max(10, rect.top - expectedHeight - 6) : rect.bottom + 6;
-      const popoverWidth = Math.max(rect.width, openDropdown === 'date' ? 320 : 240);
+      const popoverWidth = Math.max(rect.width, 300);
       const left = Math.min(Math.max(12, rect.left), window.innerWidth - popoverWidth - 12);
 
       setPopoverCoords({ top, left, width: popoverWidth });
@@ -133,7 +111,7 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
       const shouldOpenAbove = spaceBelow < expectedHeight && rect.top > expectedHeight;
 
       const top = shouldOpenAbove ? Math.max(10, rect.top - expectedHeight - 6) : rect.bottom + 6;
-      const popoverWidth = Math.max(rect.width, openDropdown === 'date' ? 320 : 240);
+      const popoverWidth = Math.max(rect.width, 300);
       const left = Math.min(Math.max(12, rect.left), window.innerWidth - popoverWidth - 12);
 
       setPopoverCoords({ top, left, width: popoverWidth });
@@ -169,7 +147,7 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
     const shouldOpenAbove = spaceBelow < expectedHeight && rect.top > expectedHeight;
 
     const top = shouldOpenAbove ? Math.max(10, rect.top - expectedHeight - 6) : rect.bottom + 6;
-    const popoverWidth = Math.max(rect.width, type === 'date' ? 320 : 240);
+    const popoverWidth = Math.max(rect.width, 300);
     const left = Math.min(Math.max(12, rect.left), window.innerWidth - popoverWidth - 12);
 
     setPopoverCoords({ top, left, width: popoverWidth });
@@ -390,7 +368,7 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
       <div className="flex items-center justify-between">
         <label className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
           <Clock className="w-4 h-4 text-blue-600" />
-          <span>Thời gian khởi hành • 24h</span>
+          <span>Thời gian khởi hành</span>
         </label>
 
         <button
@@ -435,74 +413,34 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
         </button>
       </div>
 
-      {/* 3. Hàng chọn giờ 24h: Mốc giờ dropdown (Trái) + Ô chỉnh 24h chi tiết (Phải) */}
-      <div className="flex items-center gap-2">
-        {/* Mốc giờ Dropdown Button */}
-        <div className="flex-1 min-w-0">
-          <button
-            ref={timeBtnRef}
-            type="button"
-            disabled={disabled}
-            onClick={() => handleToggleDropdown('time')}
-            className={`w-full flex items-center justify-between p-2.5 rounded-xl border-2 transition-all cursor-pointer min-h-[50px] text-left shadow-xs ${
-              openDropdown === 'time'
-                ? 'bg-white border-blue-600 ring-4 ring-blue-500/15 shadow-md'
-                : 'bg-white hover:bg-blue-50/40 border-slate-200/90 hover:border-blue-400'
-            } disabled:opacity-50 disabled:cursor-not-allowed`}
-            title="Chọn mốc giờ khởi hành (thang 24h)"
-          >
-            <div className="flex items-center gap-2.5 min-w-0 flex-1">
-              <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-                <Clock className="w-4 h-4" />
-              </div>
-              <span className="text-sm font-bold text-slate-900 truncate">
-                {selectedTimeLabel}
-              </span>
-            </div>
-            <ChevronDown
-              className={`w-4 h-4 text-blue-600 shrink-0 ml-1.5 transition-transform duration-200 ${
-                openDropdown === 'time' ? 'rotate-180 text-blue-700' : ''
-              }`}
-            />
-          </button>
-        </div>
-
-        {/* Ô chỉnh giờ phút chính xác thang 24h */}
-        <div
-          className="flex items-center gap-1.5 bg-white px-3 py-2 rounded-xl border-2 border-slate-200/90 shadow-xs min-h-[50px] focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-100 shrink-0"
-          title="Chỉnh giờ chính xác từng phút theo thang 24h"
+      {/* 3. Hàng chọn giờ: 1 ô duy nhất đồng bộ hoàn toàn với hàng chọn ngày */}
+      <div className="relative">
+        <button
+          ref={timeBtnRef}
+          type="button"
+          disabled={disabled}
+          onClick={() => handleToggleDropdown('time')}
+          className={`w-full flex items-center justify-between p-2.5 rounded-xl border-2 transition-all cursor-pointer min-h-[50px] text-left shadow-xs ${
+            openDropdown === 'time'
+              ? 'bg-white border-blue-600 ring-4 ring-blue-500/15 shadow-md'
+              : 'bg-white hover:bg-blue-50/40 border-slate-200/90 hover:border-blue-400'
+          } disabled:opacity-50 disabled:cursor-not-allowed`}
+          title="Chọn giờ khởi hành"
         >
-          <input
-            type="text"
-            inputMode="numeric"
-            disabled={disabled}
-            maxLength={2}
-            value={inputHours}
-            onChange={handleHoursChange}
-            onBlur={handleHoursBlur}
-            onKeyDown={handleHoursKeyDown}
-            className="w-7 text-center text-sm font-black text-slate-900 bg-slate-100 hover:bg-slate-200/80 focus:bg-white focus:ring-1 focus:ring-blue-500 rounded py-1 outline-none transition cursor-text disabled:opacity-50"
-            aria-label="Giờ 00 đến 23"
-            title="Giờ (00-23)"
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+            <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <Clock className="w-4 h-4" />
+            </div>
+            <span className="text-sm font-bold text-slate-900 truncate">
+              {selectedTimeLabel}
+            </span>
+          </div>
+          <ChevronDown
+            className={`w-4 h-4 text-blue-600 shrink-0 ml-2 transition-transform duration-200 ${
+              openDropdown === 'time' ? 'rotate-180 text-blue-700' : ''
+            }`}
           />
-          <span className="text-sm font-black text-slate-400 select-none">:</span>
-          <input
-            type="text"
-            inputMode="numeric"
-            disabled={disabled}
-            maxLength={2}
-            value={inputMinutes}
-            onChange={handleMinutesChange}
-            onBlur={handleMinutesBlur}
-            onKeyDown={handleMinutesKeyDown}
-            className="w-7 text-center text-sm font-black text-slate-900 bg-slate-100 hover:bg-slate-200/80 focus:bg-white focus:ring-1 focus:ring-blue-500 rounded py-1 outline-none transition cursor-text disabled:opacity-50"
-            aria-label="Phút 00 đến 59"
-            title="Phút (00-59)"
-          />
-          <span className="text-xs font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 select-none">
-            24h
-          </span>
-        </div>
+        </button>
       </div>
 
       {/* 4. REACT PORTAL DROPDOWNS: Thả nổi ngoài DOM panel, KHÔNG làm cuộn panel, KHÔNG bị che khuất */}
@@ -527,11 +465,8 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
             >
               {openDropdown === 'date' && (
                 <>
-                  <div className="px-3.5 py-2.5 bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-700 uppercase tracking-wider shrink-0 flex items-center justify-between select-none">
+                  <div className="px-3.5 py-2.5 bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-700 uppercase tracking-wider shrink-0 select-none">
                     <span>Chọn ngày khởi hành</span>
-                    <span className="text-xs text-blue-700 font-bold bg-blue-100/70 px-2 py-0.5 rounded-full border border-blue-200">
-                      14 ngày tới
-                    </span>
                   </div>
                   <div className="overflow-y-auto max-h-[220px] divide-y divide-slate-100 py-1 flex-1">
                     {dateOptions.map((opt) => {
@@ -558,13 +493,41 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
 
               {openDropdown === 'time' && (
                 <>
-                  <div className="px-3.5 py-2.5 bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-700 uppercase tracking-wider shrink-0 flex items-center justify-between select-none">
-                    <span>Chọn mốc giờ (24h)</span>
-                    <span className="text-xs text-blue-700 font-bold bg-blue-100/70 px-2 py-0.5 rounded-full border border-blue-200">
-                      Theo giờ
-                    </span>
+                  <div className="px-3.5 py-2.5 bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-700 uppercase tracking-wider shrink-0 select-none">
+                    <span>Chọn giờ khởi hành</span>
                   </div>
-                  <div className="overflow-y-auto max-h-[220px] divide-y divide-slate-100 py-1 flex-1">
+                  {/* Ô chỉnh giờ phút chính xác nếu cần chỉnh từng phút */}
+                  <div className="px-3.5 py-2 bg-slate-50/70 border-b border-slate-100 flex items-center justify-between gap-2 shrink-0">
+                    <span className="text-xs font-bold text-slate-600">Giờ chính xác:</span>
+                    <div className="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-xl border border-slate-200 shadow-xs focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-100">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={2}
+                        value={inputHours}
+                        onChange={handleHoursChange}
+                        onBlur={handleHoursBlur}
+                        onKeyDown={handleHoursKeyDown}
+                        className="w-7 text-center text-sm font-bold text-slate-900 bg-slate-100 hover:bg-slate-200/70 focus:bg-white rounded py-0.5 outline-none transition"
+                        title="Giờ (00-23)"
+                        aria-label="Giờ"
+                      />
+                      <span className="text-sm font-bold text-slate-400 select-none">:</span>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={2}
+                        value={inputMinutes}
+                        onChange={handleMinutesChange}
+                        onBlur={handleMinutesBlur}
+                        onKeyDown={handleMinutesKeyDown}
+                        className="w-7 text-center text-sm font-bold text-slate-900 bg-slate-100 hover:bg-slate-200/70 focus:bg-white rounded py-0.5 outline-none transition"
+                        title="Phút (00-59)"
+                        aria-label="Phút"
+                      />
+                    </div>
+                  </div>
+                  <div className="overflow-y-auto max-h-[190px] divide-y divide-slate-100 py-1 flex-1">
                     {TIME_PRESETS.map((p) => {
                       const isSelected = p.value === currentTimeKey;
                       return (

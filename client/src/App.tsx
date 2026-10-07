@@ -88,6 +88,43 @@ export const App: React.FC = () => {
     loadFloods();
   }, []);
 
+  // Automatically determine Point A (origin) using user's current GPS location on startup
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        setOrigin({
+          label: 'Đang xác định địa chỉ GPS...',
+          lat: latitude,
+          lng: longitude,
+        });
+        setMapCenter([latitude, longitude]);
+
+        reverseGeocode(latitude, longitude)
+          .then((rev) => {
+            setOrigin({
+              label: rev.label || 'Vị trí hiện tại của bạn',
+              lat: latitude,
+              lng: longitude,
+            });
+          })
+          .catch(() => {
+            setOrigin({
+              label: `Tọa độ: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`,
+              lat: latitude,
+              lng: longitude,
+            });
+          });
+      },
+      (err) => {
+        console.info('GPS permission not granted or timeout:', err.message);
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  }, []);
+
   // Debounced reverse geocode when map center moves during pinning mode
   useEffect(() => {
     if (!isPinningReport) return;
