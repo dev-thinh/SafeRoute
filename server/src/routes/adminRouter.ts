@@ -9,8 +9,12 @@ import {
   getAdminSettings,
   updateAdminSettings,
 } from '../db/reportsRepo';
+import { requireAdmin } from '../services/authMiddleware';
 
 export const adminRouter = Router();
+
+// Protect all admin endpoints with requireAdmin
+adminRouter.use(requireAdmin);
 
 /**
  * GET /api/admin/reports

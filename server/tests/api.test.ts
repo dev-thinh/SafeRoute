@@ -1,9 +1,26 @@
 import { describe, it, expect } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../src/app';
+import { generateToken } from '../src/db/usersRepo';
 
 describe('SafeRoute REST API', () => {
   const app = createApp();
+
+  const userToken = generateToken({
+    id: 'user_citizen_001',
+    username: 'user',
+    fullName: 'Người dân TP.HCM',
+    role: 'user',
+    createdAt: new Date().toISOString(),
+  });
+
+  const adminToken = generateToken({
+    id: 'user_admin_001',
+    username: 'admin',
+    fullName: 'Quản trị viên SafeRoute',
+    role: 'admin',
+    createdAt: new Date().toISOString(),
+  });
 
   it('GET /api/health should return ok status', async () => {
     const res = await request(app).get('/api/health');
@@ -36,6 +53,7 @@ describe('SafeRoute REST API', () => {
   it('POST /api/reports should accept crowdsourced flood report and allow voting', async () => {
     const res = await request(app)
       .post('/api/reports')
+      .set('Authorization', `Bearer ${userToken}`)
       .send({
         coordinate: { lat: 10.748, lng: 106.708 },
         depth_level: 'wheel',
@@ -52,7 +70,9 @@ describe('SafeRoute REST API', () => {
     expect(res.body.report.status).toBe('pending');
 
     // Admin approves report for public voting & display
-    await request(app).post(`/api/admin/reports/${reportId}/approve`);
+    await request(app)
+      .post(`/api/admin/reports/${reportId}/approve`)
+      .set('Authorization', `Bearer ${adminToken}`);
 
     // Test upvote (now upvotes = 2, downvotes = 0)
     const voteRes = await request(app)
@@ -95,6 +115,7 @@ describe('SafeRoute REST API', () => {
     // 1. Create a fresh report at current time
     const createRes = await request(app)
       .post('/api/reports')
+      .set('Authorization', `Bearer ${userToken}`)
       .send({
         coordinate: { lat: 10.755, lng: 106.690 },
         depth_level: 'knee',
@@ -104,7 +125,9 @@ describe('SafeRoute REST API', () => {
     const reportId = createRes.body.report.id;
 
     // Approve report so it is eligible for public active listing
-    await request(app).post(`/api/admin/reports/${reportId}/approve`);
+    await request(app)
+      .post(`/api/admin/reports/${reportId}/approve`)
+      .set('Authorization', `Bearer ${adminToken}`);
 
     // 2. Query at current time -> report must be present
     const nowRes = await request(app).get('/api/reports');

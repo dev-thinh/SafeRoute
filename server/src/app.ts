@@ -7,6 +7,7 @@ import { geocodingRouter } from './routes/geocodingRouter';
 import { newsRouter } from './routes/newsRouter';
 import { weatherRouter } from './routes/weatherRouter';
 import { adminRouter } from './routes/adminRouter';
+import { authRouter } from './routes/authRouter';
 
 export function createApp() {
   const app = express();
@@ -17,6 +18,7 @@ export function createApp() {
     res.json({ status: 'ok', service: 'SafeRoute Backend' });
   });
 
+  app.use(['/api/auth', '/auth'], authRouter);
   app.use(['/api/routes', '/routes'], routesRouter);
   app.use(['/api/floods', '/floods'], floodsRouter);
   app.use(['/api/reports', '/reports'], reportsRouter);

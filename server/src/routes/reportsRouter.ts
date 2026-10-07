@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { randomUUID } from 'crypto';
 import { UserReport } from '../types';
 import { saveReport, getActiveReports, voteReport, inMemoryReports, checkClientSpamLimits } from '../db/reportsRepo';
+import { requireAuth, AuthenticatedRequest } from '../services/authMiddleware';
 
 export const reportsRouter = Router();
 export { inMemoryReports };
@@ -23,7 +24,8 @@ reportsRouter.get('/', async (req, res) => {
   }
 });
 
-reportsRouter.post('/', async (req, res) => {
+reportsRouter.post('/', requireAuth, async (req, res) => {
+  const authReq = req as AuthenticatedRequest;
   const { coordinate, depth_level, description, image_url } = req.body;
   if (!coordinate || !depth_level) {
     return res.status(400).json({ error: 'Coordinate and depth_level are required' });
@@ -33,6 +35,7 @@ reportsRouter.post('/', async (req, res) => {
   const clientIdentifier =
     (req.headers['x-client-token'] as string) ||
     req.body.clientToken ||
+    authReq.user?.id ||
     req.ip ||
     'anonymous';
 
@@ -54,6 +57,8 @@ reportsRouter.post('/', async (req, res) => {
     upvotes: 1,
     downvotes: 0,
     status: 'pending',
+    userId: authReq.user?.id,
+    authorName: authReq.user?.fullName || authReq.user?.username,
   };
 
   const saved = await saveReport(report);
