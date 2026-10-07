@@ -13,13 +13,13 @@ import {
   Loader2,
   PanelLeftClose,
   AlertTriangle,
-  Waves,
   AlertOctagon,
   ShieldCheck,
 } from 'lucide-react';
 import { VehicleSelector } from './VehicleSelector';
 import { TimeSelector } from './TimeSelector';
 import { RouteComparisonCard } from './RouteComparisonCard';
+import { QuickPresetChips } from './QuickPresetChips';
 import { NewsFeedTab } from '../News/NewsFeedTab';
 import { WeatherTab } from '../Weather/WeatherTab';
 import {
@@ -49,6 +49,8 @@ interface RoutePlannerPanelProps {
   onRefreshFloods?: (targetTime?: string) => void;
   onSelectLocation?: (lat: number, lng: number) => void;
   onToggleCollapse?: () => void;
+  activeTab?: 'routes' | 'news' | 'weather';
+  onTabChange?: (t: 'routes' | 'news' | 'weather') => void;
 }
 
 export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
@@ -65,8 +67,16 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
   onRefreshFloods,
   onSelectLocation,
   onToggleCollapse,
+  activeTab,
+  onTabChange,
 }) => {
-  const [mainTab, setMainTab] = useState<'routes' | 'news' | 'weather'>('routes');
+  const [internalTab, setInternalTab] = useState<'routes' | 'news' | 'weather'>('routes');
+  const mainTab = activeTab !== undefined ? activeTab : internalTab;
+  const setMainTab = (tab: 'routes' | 'news' | 'weather') => {
+    if (onTabChange) onTabChange(tab);
+    setInternalTab(tab);
+  };
+
   const [vehicle, setVehicle] = useState<'motorbike' | 'car'>('motorbike');
   const [targetTime, setTargetTime] = useState<string>(() => new Date().toISOString());
   const [loading, setLoading] = useState(false);
@@ -110,6 +120,15 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
     setSearchQuery('');
   };
 
+  const handlePresetSelect = (preset: LocationItem, targetField: 'origin' | 'dest') => {
+    setErrorMsg(null);
+    if (targetField === 'origin') {
+      onChangeOrigin(preset);
+    } else {
+      onChangeDestination(preset);
+    }
+  };
+
   const handleGetCurrentLocation = () => {
     if (!navigator.geolocation) {
       setGpsError('Trình duyệt không hỗ trợ định vị GPS.');
@@ -123,7 +142,7 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
       (pos) => {
         const { latitude, longitude } = pos.coords;
         setGpsLoading(false);
-        // Optimistically update origin immediately so marker and panel update in 0ms
+        // Optimistically update origin immediately
         onChangeOrigin({
           label: 'Đang xác định địa chỉ GPS...',
           lat: latitude,
@@ -210,19 +229,24 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
       origin.lng === destination.lng);
 
   return (
-    <div className="absolute top-4 left-4 z-[1000] w-[calc(100vw-2rem)] sm:w-96 max-h-[92vh] overflow-y-auto bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-2xl border border-gray-200/80 flex flex-col gap-3.5 transition-all">
+    <div className="absolute top-4 left-4 z-[1000] w-[calc(100vw-2rem)] sm:w-[410px] max-h-[92vh] overflow-y-auto bg-white/92 backdrop-blur-xl p-4 sm:p-4.5 rounded-3xl shadow-2xl border border-sky-100/90 flex flex-col gap-3.5 transition-all select-none">
       {/* Brand Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between pb-0.5">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-200/60 flex items-center justify-center shadow-xs">
-            <Waves className="w-4 h-4 text-blue-600" />
+          <div className="w-10 h-10 rounded-2xl bg-white border border-slate-200/80 flex items-center justify-center shadow-xs overflow-hidden p-1 flex-shrink-0">
+            <img src="/logo.png" alt="SafeRoute Logo" className="w-full h-full object-contain" />
           </div>
           <div>
-            <h2 className="font-bold text-base text-gray-900 tracking-tight leading-tight">
-              SafeRoute
-            </h2>
-            <p className="text-[11px] text-gray-500 font-medium">
-              Định tuyến né ngập thông minh TP.HCM
+            <div className="flex items-center gap-1.5">
+              <h2 className="font-extrabold text-base text-slate-900 tracking-tight leading-tight">
+                SafeRoute
+              </h2>
+              <span className="px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-pastel-mint-100 text-pastel-mint-800 border border-pastel-mint-200">
+                TP.HCM
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-500 font-medium">
+              Định tuyến né ngập thông minh & an toàn
             </p>
           </div>
         </div>
@@ -233,22 +257,24 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
             onClick={onToggleCollapse}
             title="Thu gọn bảng điều khiển"
             aria-label="Thu gọn bảng điều khiển"
-            className="p-1.5 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition active:scale-95 cursor-pointer"
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100/80 transition active:scale-95 cursor-pointer"
           >
             <PanelLeftClose className="w-4 h-4" />
           </button>
         )}
       </div>
 
-      {/* Navigation Tab Bar: Lộ Trình vs Tin Tức vs Thời Tiết */}
-      <div className="flex items-center gap-1 p-1 bg-gray-100/90 rounded-xl border border-gray-200/80">
+      {/* Segmented Pill Tab Bar: Lộ Trình vs Tin Tức vs Thời Tiết */}
+      <div className="flex items-center gap-1 p-1 bg-slate-100/80 rounded-2xl border border-slate-200/60">
         <button
           type="button"
           onClick={() => setMainTab('routes')}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-xs font-bold transition-all min-h-[36px] cursor-pointer ${
+          title="Tìm kiếm và so sánh lộ trình né ngập"
+          aria-label="Chuyển sang tab Tìm lộ trình"
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold transition-all duration-200 min-h-[38px] cursor-pointer ${
             mainTab === 'routes'
-              ? 'bg-white text-blue-700 shadow-sm ring-1 ring-black/5'
-              : 'text-gray-600 hover:text-gray-900 hover:bg-white/40'
+              ? 'bg-white text-blue-700 shadow-sm shadow-blue-500/10 ring-1 ring-black/5'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-white/40'
           }`}
         >
           <Navigation className="w-3.5 h-3.5" />
@@ -258,10 +284,12 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
         <button
           type="button"
           onClick={() => setMainTab('news')}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-xs font-bold transition-all min-h-[36px] cursor-pointer ${
+          title="Xem tin tức ngập lụt được AI tổng hợp"
+          aria-label="Chuyển sang tab Tin tức ngập lụt"
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold transition-all duration-200 min-h-[38px] cursor-pointer ${
             mainTab === 'news'
-              ? 'bg-white text-blue-700 shadow-sm ring-1 ring-black/5'
-              : 'text-gray-600 hover:text-gray-900 hover:bg-white/40'
+              ? 'bg-white text-blue-700 shadow-sm shadow-blue-500/10 ring-1 ring-black/5'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-white/40'
           }`}
         >
           <Newspaper className="w-3.5 h-3.5" />
@@ -271,10 +299,12 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
         <button
           type="button"
           onClick={() => setMainTab('weather')}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-xs font-bold transition-all min-h-[36px] cursor-pointer ${
+          title="Xem tình hình mưa & triều cường TP.HCM"
+          aria-label="Chuyển sang tab Thời tiết và triều cường"
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl text-xs font-bold transition-all duration-200 min-h-[38px] cursor-pointer ${
             mainTab === 'weather'
-              ? 'bg-white text-blue-700 shadow-sm ring-1 ring-black/5'
-              : 'text-gray-600 hover:text-gray-900 hover:bg-white/40'
+              ? 'bg-white text-blue-700 shadow-sm shadow-blue-500/10 ring-1 ring-black/5'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-white/40'
           }`}
         >
           <CloudRain className="w-3.5 h-3.5" />
@@ -294,53 +324,49 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
           {/* Banner when pick-on-map is active */}
           {pickingField && (
             <div
-              className={`p-2.5 rounded-xl flex items-center justify-between text-xs border ${
+              className={`p-3 rounded-2xl flex items-center justify-between text-xs border transition-all animate-in fade-in ${
                 pickingField === 'origin'
-                  ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
-                  : 'bg-rose-50 border-rose-200 text-rose-900'
+                  ? 'bg-pastel-mint-50 text-pastel-mint-800 border-pastel-mint-200'
+                  : 'bg-pastel-coral-50 text-pastel-coral-800 border-pastel-coral-200'
               }`}
             >
-              <div className="flex items-center gap-2 font-semibold">
+              <div className="flex items-center gap-2 font-bold">
                 {pickingField === 'origin' ? (
-                  <MapPin className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                  <MapPin className="w-4 h-4 text-pastel-mint-600 flex-shrink-0" />
                 ) : (
-                  <Target className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                  <Target className="w-4 h-4 text-pastel-coral-600 flex-shrink-0" />
                 )}
                 <span>
                   {pickingField === 'origin'
-                    ? 'Chấm chọn Điểm xuất phát'
-                    : 'Chấm chọn Điểm đến'}
+                    ? 'Chạm bản đồ để ghim Điểm xuất phát'
+                    : 'Chạm bản đồ để ghim Điểm đến'}
                 </span>
               </div>
               <button
                 type="button"
                 onClick={onCancelPickOnMap}
-                className={`text-xs font-bold hover:underline px-1.5 py-0.5 ${
-                  pickingField === 'origin'
-                    ? 'text-emerald-700 hover:text-emerald-900'
-                    : 'text-rose-700 hover:text-rose-900'
-                }`}
+                className="shrink-0 text-xs font-bold px-3 py-1.5 rounded-xl transition active:scale-95 cursor-pointer bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 shadow-sm whitespace-nowrap"
               >
                 Hủy
               </button>
             </div>
           )}
 
-          {/* Origin & Destination Inputs */}
+          {/* Origin & Destination Inputs Card */}
           <div className="space-y-2">
             {/* Origin Field */}
             <div className="relative">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[11px] font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-xs inline-block" />
-                  <span>Điểm xuất phát</span>
+              <div className="flex items-center justify-between mb-1 px-0.5">
+                <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-pastel-mint-600 shadow-xs inline-block" />
+                  <span>Điểm xuất phát (A)</span>
                 </span>
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
                     disabled={loading || gpsLoading}
                     onClick={handleGetCurrentLocation}
-                    className="text-[10px] font-bold text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-md flex items-center gap-1 transition active:scale-95 disabled:opacity-50"
+                    className="text-[10px] font-bold text-blue-700 hover:text-blue-900 bg-pastel-sky-50 hover:bg-pastel-sky-100 px-2 py-1 rounded-lg flex items-center gap-1 transition active:scale-95 disabled:opacity-50 cursor-pointer"
                     title="Lấy vị trí GPS hiện tại"
                   >
                     {gpsLoading ? (
@@ -355,10 +381,10 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                     type="button"
                     disabled={loading}
                     onClick={() => onStartPickOnMap('origin')}
-                    className={`text-[10px] font-bold px-2 py-1 rounded-md flex items-center gap-1 transition active:scale-95 disabled:opacity-50 ${
+                    className={`text-[10px] font-bold px-2 py-1 rounded-lg flex items-center gap-1 transition active:scale-95 disabled:opacity-50 cursor-pointer ${
                       pickingField === 'origin'
-                        ? 'bg-blue-600 text-white'
-                        : 'text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200'
+                        ? 'bg-pastel-mint-600 text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200'
                     }`}
                     title="Ghim điểm xuất phát trên bản đồ"
                   >
@@ -368,12 +394,13 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 p-2 bg-gray-50/80 rounded-xl border border-gray-200/90 focus-within:border-emerald-500 focus-within:bg-white transition">
-                <MapPin className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+              <div className="flex items-center gap-2 p-2.5 bg-pastel-mint-50/40 rounded-2xl border border-pastel-mint-200/70 focus-within:border-pastel-mint-600 focus-within:ring-2 focus-within:ring-pastel-mint-100 focus-within:bg-white transition-all">
+                <MapPin className="w-4 h-4 text-pastel-mint-600 flex-shrink-0" />
                 <input
                   type="text"
                   disabled={loading}
                   value={activeField === 'origin' ? searchQuery : origin.label}
+                  title={origin.label || 'Nhập địa chỉ xuất phát...'}
                   onFocus={() => {
                     setActiveField('origin');
                     setSearchQuery(origin.label);
@@ -392,7 +419,7 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                     });
                   }}
                   placeholder="Nhập địa chỉ xuất phát..."
-                  className="text-xs bg-transparent w-full outline-none font-medium text-gray-800 placeholder-gray-400 disabled:opacity-50"
+                  className="text-xs bg-transparent w-full outline-none font-semibold text-slate-800 placeholder-slate-400 disabled:opacity-50"
                 />
                 {origin.label && !loading && (
                   <button
@@ -401,7 +428,8 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                       onChangeOrigin({ label: '', lat: 0, lng: 0 });
                       setSearchQuery('');
                     }}
-                    className="text-gray-400 hover:text-gray-600 p-0.5 active:scale-90 transition"
+                    className="text-slate-400 hover:text-slate-600 p-0.5 active:scale-90 transition cursor-pointer"
+                    title="Xóa địa chỉ xuất phát"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -410,38 +438,39 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
 
               {/* Dropdown Suggestions for Origin */}
               {activeField === 'origin' && (
-                <div className="absolute top-full left-0 right-0 z-50 bg-white border border-gray-200 rounded-xl shadow-2xl mt-1.5 max-h-56 overflow-y-auto divide-y divide-gray-100">
-                  <div className="p-2 bg-gray-50/95 backdrop-blur-sm text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center justify-between sticky top-0 z-10">
+                <div className="absolute top-full left-0 right-0 z-50 bg-white border border-slate-200 rounded-2xl shadow-2xl mt-1.5 max-h-56 overflow-y-auto divide-y divide-slate-100 animate-in fade-in">
+                  <div className="p-2 bg-slate-50/95 backdrop-blur-sm text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between sticky top-0 z-10">
                     <span className="flex items-center gap-1">
-                      <Search className="w-3 h-3 text-emerald-600" />
-                      Gợi ý địa chỉ
+                      <Search className="w-3 h-3 text-pastel-mint-600" />
+                      Gợi ý địa chỉ xuất phát
                     </span>
                   </div>
 
                   {searching ? (
-                    <div className="py-7 flex flex-col items-center justify-center gap-2 text-gray-500">
-                      <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
-                      <span className="text-xs font-semibold text-gray-700">Đang tìm kiếm địa chỉ...</span>
-                      <span className="text-[10px] text-gray-400">Vui lòng chờ trong giây lát</span>
+                    <div className="py-7 flex flex-col items-center justify-center gap-2 text-slate-500">
+                      <Loader2 className="w-6 h-6 animate-spin text-pastel-mint-600" />
+                      <span className="text-xs font-semibold text-slate-700">Đang tìm kiếm địa chỉ...</span>
+                      <span className="text-[10px] text-slate-400">Vui lòng chờ trong giây lát</span>
                     </div>
                   ) : suggestions.length === 0 ? (
-                    <div className="p-4 text-xs text-gray-500 text-center flex flex-col items-center justify-center gap-1">
-                      <span className="font-semibold text-gray-700">Không tìm thấy địa chỉ</span>
-                      <span className="text-[11px] text-gray-400">Thử nhập tên đường hoặc địa danh phổ biến</span>
+                    <div className="p-4 text-xs text-slate-500 text-center flex flex-col items-center justify-center gap-1">
+                      <span className="font-semibold text-slate-700">Không tìm thấy địa chỉ</span>
+                      <span className="text-[11px] text-slate-400">Thử nhập tên đường hoặc địa danh phổ biến</span>
                     </div>
                   ) : (
                     suggestions.map((item, idx) => (
                       <div
                         key={idx}
                         onMouseDown={() => handleSelectLocation(item)}
-                        className="p-2.5 text-xs text-gray-800 hover:bg-emerald-50 hover:text-emerald-800 cursor-pointer transition flex items-start gap-2 active:bg-emerald-100"
+                        title={`${item.label} (${item.lat.toFixed(4)}, ${item.lng.toFixed(4)})`}
+                        className="p-2.5 text-xs text-slate-800 hover:bg-pastel-mint-50 hover:text-pastel-mint-900 cursor-pointer transition flex items-start gap-2 active:bg-pastel-mint-100"
                       >
-                        <MapPin className="w-3.5 h-3.5 text-emerald-500 mt-0.5 flex-shrink-0" />
+                        <MapPin className="w-3.5 h-3.5 text-pastel-mint-600 mt-0.5 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-gray-900 leading-snug">
+                          <div className="font-semibold text-slate-900 leading-snug">
                             {item.label}
                           </div>
-                          <div className="text-[10px] text-gray-400 mt-0.5 font-mono">
+                          <div className="text-[10px] text-slate-400 mt-0.5 font-mono">
                             {item.lat.toFixed(4)}, {item.lng.toFixed(4)}
                           </div>
                         </div>
@@ -452,7 +481,7 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
               )}
 
               {gpsError && (
-                <div className="p-2 bg-amber-50 border border-amber-200/90 rounded-xl text-[11px] text-amber-900 flex items-center gap-2 mt-1.5 animate-in fade-in">
+                <div className="p-2.5 bg-amber-50 border border-amber-200/90 rounded-xl text-[11px] text-amber-900 flex items-center gap-2 mt-1.5 animate-in fade-in">
                   <AlertTriangle className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
                   <span className="flex-1">{gpsError}</span>
                   <button
@@ -474,7 +503,8 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                 disabled={loading}
                 onClick={handleSwap}
                 title="Đảo chiều điểm đi và điểm đến"
-                className="group p-1.5 bg-white border border-gray-200/90 text-gray-600 hover:text-blue-600 rounded-full shadow-sm hover:shadow transition active:scale-90 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label="Đảo chiều điểm đi và điểm đến"
+                className="group p-2 bg-white hover:bg-slate-50 border border-slate-200/90 text-slate-600 hover:text-blue-600 rounded-full shadow-sm hover:shadow-md transition-all active:scale-90 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ArrowUpDown className="w-3.5 h-3.5 group-hover:rotate-180 transition-transform duration-300" />
               </button>
@@ -482,19 +512,19 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
 
             {/* Destination Field */}
             <div className="relative">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[11px] font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-xs inline-block" />
-                  <span>Điểm đến</span>
+              <div className="flex items-center justify-between mb-1 px-0.5">
+                <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-pastel-coral-600 shadow-xs inline-block" />
+                  <span>Điểm đến (B)</span>
                 </span>
                 <button
                   type="button"
                   disabled={loading}
                   onClick={() => onStartPickOnMap('dest')}
-                  className={`text-[10px] font-bold px-2 py-1 rounded-md flex items-center gap-1 transition active:scale-95 disabled:opacity-50 ${
+                  className={`text-[10px] font-bold px-2 py-1 rounded-lg flex items-center gap-1 transition active:scale-95 disabled:opacity-50 cursor-pointer ${
                     pickingField === 'dest'
-                      ? 'bg-rose-600 text-white'
-                      : 'text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200'
+                      ? 'bg-pastel-coral-600 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200'
                   }`}
                   title="Ghim điểm đến trên bản đồ"
                 >
@@ -503,12 +533,13 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                 </button>
               </div>
 
-              <div className="flex items-center gap-2 p-2 bg-gray-50/80 rounded-xl border border-gray-200/90 focus-within:border-rose-500 focus-within:bg-white transition">
-                <Target className="w-4 h-4 text-rose-600 flex-shrink-0" />
+              <div className="flex items-center gap-2 p-2.5 bg-pastel-coral-50/40 rounded-2xl border border-pastel-coral-200/70 focus-within:border-pastel-coral-600 focus-within:ring-2 focus-within:ring-pastel-coral-100 focus-within:bg-white transition-all">
+                <Target className="w-4 h-4 text-pastel-coral-600 flex-shrink-0" />
                 <input
                   type="text"
                   disabled={loading}
                   value={activeField === 'dest' ? searchQuery : destination.label}
+                  title={destination.label || 'Nhập địa chỉ điểm đến...'}
                   onFocus={() => {
                     setActiveField('dest');
                     setSearchQuery(destination.label);
@@ -527,7 +558,7 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                     });
                   }}
                   placeholder="Nhập địa chỉ điểm đến..."
-                  className="text-xs bg-transparent w-full outline-none font-medium text-gray-800 placeholder-gray-400 disabled:opacity-50"
+                  className="text-xs bg-transparent w-full outline-none font-semibold text-slate-800 placeholder-slate-400 disabled:opacity-50"
                 />
                 {destination.label && !loading && (
                   <button
@@ -536,7 +567,8 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                       onChangeDestination({ label: '', lat: 0, lng: 0 });
                       setSearchQuery('');
                     }}
-                    className="text-gray-400 hover:text-gray-600 p-0.5 active:scale-90 transition"
+                    className="text-slate-400 hover:text-slate-600 p-0.5 active:scale-90 transition cursor-pointer"
+                    title="Xóa địa chỉ điểm đến"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -545,38 +577,39 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
 
               {/* Dropdown Suggestions for Destination */}
               {activeField === 'dest' && (
-                <div className="absolute top-full left-0 right-0 z-50 bg-white border border-gray-200 rounded-xl shadow-2xl mt-1.5 max-h-56 overflow-y-auto divide-y divide-gray-100">
-                  <div className="p-2 bg-gray-50/95 backdrop-blur-sm text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center justify-between sticky top-0 z-10">
+                <div className="absolute top-full left-0 right-0 z-50 bg-white border border-slate-200 rounded-2xl shadow-2xl mt-1.5 max-h-56 overflow-y-auto divide-y divide-slate-100 animate-in fade-in">
+                  <div className="p-2 bg-slate-50/95 backdrop-blur-sm text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between sticky top-0 z-10">
                     <span className="flex items-center gap-1">
-                      <Search className="w-3 h-3 text-rose-600" />
-                      Gợi ý địa chỉ
+                      <Search className="w-3 h-3 text-pastel-coral-600" />
+                      Gợi ý địa chỉ điểm đến
                     </span>
                   </div>
 
                   {searching ? (
-                    <div className="py-7 flex flex-col items-center justify-center gap-2 text-gray-500">
-                      <Loader2 className="w-6 h-6 animate-spin text-rose-600" />
-                      <span className="text-xs font-semibold text-gray-700">Đang tìm kiếm địa chỉ...</span>
-                      <span className="text-[10px] text-gray-400">Vui lòng chờ trong giây lát</span>
+                    <div className="py-7 flex flex-col items-center justify-center gap-2 text-slate-500">
+                      <Loader2 className="w-6 h-6 animate-spin text-pastel-coral-600" />
+                      <span className="text-xs font-semibold text-slate-700">Đang tìm kiếm địa chỉ...</span>
+                      <span className="text-[10px] text-slate-400">Vui lòng chờ trong giây lát</span>
                     </div>
                   ) : suggestions.length === 0 ? (
-                    <div className="p-4 text-xs text-gray-500 text-center flex flex-col items-center justify-center gap-1">
-                      <span className="font-semibold text-gray-700">Không tìm thấy địa chỉ</span>
-                      <span className="text-[11px] text-gray-400">Thử nhập tên đường hoặc địa danh phổ biến</span>
+                    <div className="p-4 text-xs text-slate-500 text-center flex flex-col items-center justify-center gap-1">
+                      <span className="font-semibold text-slate-700">Không tìm thấy địa chỉ</span>
+                      <span className="text-[11px] text-slate-400">Thử nhập tên đường hoặc địa danh phổ biến</span>
                     </div>
                   ) : (
                     suggestions.map((item, idx) => (
                       <div
                         key={idx}
                         onMouseDown={() => handleSelectLocation(item)}
-                        className="p-2.5 text-xs text-gray-800 hover:bg-rose-50 hover:text-rose-800 cursor-pointer transition flex items-start gap-2 active:bg-rose-100"
+                        title={`${item.label} (${item.lat.toFixed(4)}, ${item.lng.toFixed(4)})`}
+                        className="p-2.5 text-xs text-slate-800 hover:bg-pastel-coral-50 hover:text-pastel-coral-900 cursor-pointer transition flex items-start gap-2 active:bg-pastel-coral-100"
                       >
-                        <Target className="w-3.5 h-3.5 text-rose-500 mt-0.5 flex-shrink-0" />
+                        <Target className="w-3.5 h-3.5 text-pastel-coral-600 mt-0.5 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-gray-900 leading-snug">
+                          <div className="font-semibold text-slate-900 leading-snug">
                             {item.label}
                           </div>
-                          <div className="text-[10px] text-gray-400 mt-0.5 font-mono">
+                          <div className="text-[10px] text-slate-400 mt-0.5 font-mono">
                             {item.lat.toFixed(4)}, {item.lng.toFixed(4)}
                           </div>
                         </div>
@@ -587,6 +620,13 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
               )}
             </div>
           </div>
+
+          {/* Quick HCMC Preset Chips */}
+          <QuickPresetChips
+            activeField={activeField}
+            onSelectPreset={handlePresetSelect}
+            disabled={loading}
+          />
 
           <VehicleSelector vehicle={vehicle} onChange={setVehicle} disabled={loading} />
           <TimeSelector
@@ -603,7 +643,7 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
             type="button"
             onClick={handleSearch}
             disabled={isFindRouteDisabled}
-            className="w-full py-3.5 min-h-[46px] bg-blue-600 hover:bg-blue-700 active:bg-blue-800 active:scale-[0.98] text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 text-xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            className="w-full py-3.5 min-h-[48px] bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-[0.98] text-white font-bold rounded-2xl shadow-pastel-blue hover:shadow-lg transition-all flex items-center justify-center gap-2 text-xs disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {loading ? (
               <>
@@ -613,25 +653,25 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
             ) : (
               <>
                 <Navigation className="w-4 h-4 fill-current text-white" />
-                <span>Tìm lộ trình an toàn</span>
+                <span>Tìm lộ trình né ngập an toàn</span>
               </>
             )}
           </button>
 
           {/* Route calculation error notification */}
           {errorMsg && (
-            <div className="p-3 bg-red-50 border border-red-200/90 rounded-xl text-xs flex items-start gap-2.5 text-red-900 animate-in fade-in">
-              <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+            <div className="p-3 bg-pastel-coral-50 border border-pastel-coral-200 rounded-2xl text-xs flex items-start gap-2.5 text-pastel-coral-900 animate-in fade-in">
+              <AlertTriangle className="w-4 h-4 text-pastel-coral-600 flex-shrink-0 mt-0.5" />
               <div className="flex-1 min-w-0">
-                <div className="font-bold text-red-900 mb-0.5 leading-snug">
+                <div className="font-bold mb-0.5 leading-snug">
                   Không thể tính lộ trình
                 </div>
-                <p className="text-[11px] text-red-700 leading-normal">{errorMsg}</p>
+                <p className="text-[11px] leading-normal opacity-90">{errorMsg}</p>
               </div>
               <button
                 type="button"
                 onClick={() => setErrorMsg(null)}
-                className="p-1 text-red-600 hover:text-red-800 hover:bg-red-100/60 rounded-lg transition cursor-pointer"
+                className="p-1 text-pastel-coral-700 hover:text-pastel-coral-900 hover:bg-pastel-coral-100 rounded-lg transition cursor-pointer"
                 title="Đóng thông báo"
               >
                 <X className="w-3.5 h-3.5" />
@@ -641,29 +681,35 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
 
           {/* Route Results Comparison Section */}
           {routeData && (
-            <div className="space-y-2.5 pt-2 border-t border-gray-100">
+            <div className="space-y-2.5 pt-2 border-t border-slate-200">
               {/* Visual Flood Detection Alert Banner */}
               {routeData.safe_route.isFlooded ? (
-                <div className="p-3 bg-red-50 border border-red-200/90 rounded-xl text-xs space-y-1">
-                  <div className="flex items-center gap-1.5 font-bold text-red-900">
-                    <AlertOctagon className="w-4 h-4 text-red-600 flex-shrink-0" />
+                <div
+                  className="p-3 bg-pastel-coral-50 border border-pastel-coral-200/90 rounded-2xl text-xs space-y-1"
+                  title={`Mọi ngả đường đều ngập sâu ${routeData.safe_route.maxFloodDepthCm} cm (${routeData.safe_route.floodedDistanceMeters} m). Khu vực ngập diện rộng.`}
+                >
+                  <div className="flex items-center gap-1.5 font-bold text-pastel-coral-900">
+                    <AlertOctagon className="w-4 h-4 text-pastel-coral-600 flex-shrink-0" />
                     <span>
                       Mọi ngả đường đều ngập sâu {routeData.safe_route.maxFloodDepthCm} cm ({routeData.safe_route.floodedDistanceMeters} m)
                     </span>
                   </div>
-                  <p className="text-red-700 text-[11px] leading-tight">
+                  <p className="text-pastel-coral-800 text-[11px] leading-tight">
                     Khu vực xung quanh ngập sâu diện rộng. Vui lòng cân nhắc đổi thời gian di chuyển.
                   </p>
                 </div>
               ) : routeData.fastest_route.isFlooded ? (
-                <div className="p-3 bg-emerald-50 border border-emerald-200/90 rounded-xl text-xs space-y-1">
-                  <div className="flex items-center gap-1.5 font-bold text-emerald-900">
-                    <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                <div
+                  className="p-3 bg-pastel-mint-50 border border-pastel-mint-200 rounded-2xl text-xs space-y-1"
+                  title={`Tuyến nhanh nhất ngập ${routeData.fastest_route.maxFloodDepthCm} cm (${routeData.fastest_route.floodedDistanceMeters} m). Đã chuyển sang lộ trình khô ráo.`}
+                >
+                  <div className="flex items-center gap-1.5 font-bold text-pastel-mint-900">
+                    <ShieldCheck className="w-4 h-4 text-pastel-mint-600 flex-shrink-0" />
                     <span>
                       Đã tự động né ngập thành công
                     </span>
                   </div>
-                  <p className="text-emerald-700 text-[11px] leading-tight">
+                  <p className="text-pastel-mint-800 text-[11px] leading-tight">
                     Tuyến nhanh nhất ngập {routeData.fastest_route.maxFloodDepthCm} cm ({routeData.fastest_route.floodedDistanceMeters} m). Đã chuyển sang lộ trình khô ráo.
                   </p>
                 </div>

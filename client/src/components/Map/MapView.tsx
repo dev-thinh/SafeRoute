@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Route } from 'lucide-react';
 import { NavigateResponse } from '../../types';
 
 interface MapViewProps {
@@ -20,6 +19,7 @@ interface MapViewProps {
   onMapCenterChange?: (lat: number, lng: number) => void;
   onMapMovingChange?: (isMoving: boolean) => void;
   onRegisterZoomHandlers?: (handlers: { zoomIn: () => void; zoomOut: () => void }) => void;
+  onRegisterFitRoute?: (fitFn: () => void) => void;
 }
 
 const MapNavigationController: React.FC<{
@@ -112,47 +112,37 @@ const MapNavigationController: React.FC<{
   return null;
 };
 
-const FitRouteButton: React.FC<{
+const FitRouteRegistrar: React.FC<{
   routes?: NavigateResponse | null;
   origin?: { lat: number; lng: number };
   destination?: { lat: number; lng: number };
-  hidden?: boolean;
-}> = ({ routes, origin, destination, hidden }) => {
+  onRegisterFitRoute?: (fitFn: () => void) => void;
+}> = ({ routes, origin, destination, onRegisterFitRoute }) => {
   const map = useMap();
-  if (hidden || !routes || (!routes.safe_route && !routes.fastest_route)) return null;
 
-  const handleFit = () => {
-    const bounds = L.latLngBounds([]);
-    if (origin?.lat && origin?.lng) bounds.extend([origin.lat, origin.lng]);
-    if (destination?.lat && destination?.lng) bounds.extend([destination.lat, destination.lng]);
-    if (routes.safe_route?.geometry?.coordinates) {
-      routes.safe_route.geometry.coordinates.forEach(([lng, lat]) => bounds.extend([lat, lng]));
-    }
-    if (routes.fastest_route?.geometry?.coordinates) {
-      routes.fastest_route.geometry.coordinates.forEach(([lng, lat]) => bounds.extend([lat, lng]));
-    }
-    if (bounds.isValid()) {
-      map.fitBounds(bounds, {
-        paddingTopLeft: [420, 60],
-        paddingBottomRight: [60, 60],
-        maxZoom: 15,
-      });
-    }
-  };
+  useEffect(() => {
+    if (!onRegisterFitRoute) return;
+    onRegisterFitRoute(() => {
+      const bounds = L.latLngBounds([]);
+      if (origin?.lat && origin?.lng) bounds.extend([origin.lat, origin.lng]);
+      if (destination?.lat && destination?.lng) bounds.extend([destination.lat, destination.lng]);
+      if (routes?.safe_route?.geometry?.coordinates) {
+        routes.safe_route.geometry.coordinates.forEach(([lng, lat]) => bounds.extend([lat, lng]));
+      }
+      if (routes?.fastest_route?.geometry?.coordinates) {
+        routes.fastest_route.geometry.coordinates.forEach(([lng, lat]) => bounds.extend([lat, lng]));
+      }
+      if (bounds.isValid()) {
+        map.fitBounds(bounds, {
+          paddingTopLeft: [420, 60],
+          paddingBottomRight: [60, 60],
+          maxZoom: 15,
+        });
+      }
+    });
+  }, [map, routes, origin, destination, onRegisterFitRoute]);
 
-  return (
-    <div className="leaflet-top leaflet-right z-[1000] pointer-events-auto m-4">
-      <button
-        type="button"
-        onClick={handleFit}
-        title="Thu nhỏ để xem toàn cảnh lộ trình"
-        className="bg-white/95 hover:bg-white text-gray-800 font-bold px-3 py-2 rounded-xl shadow-lg border border-gray-200 text-xs flex items-center gap-1.5 transition backdrop-blur-sm cursor-pointer hover:shadow-xl active:scale-95"
-      >
-        <Route className="w-4 h-4 text-blue-600 flex-shrink-0" />
-        <span>Toàn bộ lộ trình</span>
-      </button>
-    </div>
-  );
+  return null;
 };
 
 const MapPinTracker: React.FC<{
@@ -443,6 +433,7 @@ export const MapView: React.FC<MapViewProps> = ({
   onMapCenterChange,
   onMapMovingChange,
   onRegisterZoomHandlers,
+  onRegisterFitRoute,
 }) => {
   const defaultCenter: [number, number] = [10.7626, 106.6823];
   const tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
@@ -467,11 +458,11 @@ export const MapView: React.FC<MapViewProps> = ({
           center={center}
           routes={routes}
         />
-        <FitRouteButton
+        <FitRouteRegistrar
           routes={routes}
           origin={origin}
           destination={destination}
-          hidden={isPinningReport}
+          onRegisterFitRoute={onRegisterFitRoute}
         />
         <MapPinTracker
           active={isPinningReport}

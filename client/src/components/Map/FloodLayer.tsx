@@ -71,7 +71,12 @@ export const FloodLayer: React.FC<FloodLayerProps> = ({ events }) => {
           >
             <Popup>
               <div className="p-1.5 text-xs max-w-[220px]">
-                <h4 className="font-bold text-gray-900 text-sm leading-snug">{event.streetName}</h4>
+                <h4
+                  className="font-bold text-gray-900 text-sm leading-snug"
+                  title={`${event.streetName}, ${event.district}`}
+                >
+                  {event.streetName}
+                </h4>
                 <p className="text-gray-500 text-[11px] mt-0.5">Quận: {event.district}</p>
                 <div className="mt-2 flex items-center justify-between">
                   <span className="text-gray-600 text-[11px]">Độ sâu dự báo:</span>
@@ -79,7 +84,10 @@ export const FloodLayer: React.FC<FloodLayerProps> = ({ events }) => {
                     {isActive ? `~${depth} cm` : `Khô ráo`}
                   </span>
                 </div>
-                <div className={`mt-2 p-1.5 rounded-lg border text-[10px] font-semibold leading-tight ${badgeBg}`}>
+                <div
+                  className={`mt-2 p-1.5 rounded-lg border text-[10px] font-semibold leading-tight ${badgeBg}`}
+                  title={severityText}
+                >
                   {severityText}
                 </div>
                 {event.estimatedDepthCm !== undefined && (

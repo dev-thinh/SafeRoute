@@ -8,8 +8,9 @@ import { RoutePlannerPanel, LocationItem } from './components/Navigation/RoutePl
 import { ReportFloodModal, SelectedReportLocation } from './components/Reporting/ReportFloodModal';
 import { ReportLocationPinOverlay } from './components/Reporting/ReportLocationPinOverlay';
 import { AdminDashboardModal } from './components/Admin/AdminDashboardModal';
+import { TopUtilityBar } from './components/Navigation/TopUtilityBar';
 import { getActiveFloods, reverseGeocode, getAdminReports } from './services/api';
-import { Droplet, PanelLeftOpen, MapPin, Target, AlertTriangle, X, Waves, ShieldCheck } from 'lucide-react';
+import { MapPin, MapPinPlus, Target, AlertTriangle, X } from 'lucide-react';
 import { NavigateResponse, FloodEvent, UserReport } from './types';
 
 export const App: React.FC = () => {
@@ -23,11 +24,13 @@ export const App: React.FC = () => {
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [pendingAdminCount, setPendingAdminCount] = useState(0);
 
-  // Panel Collapsible State for responsive layout
+  // Panel State
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
+  const [activeTab, setActiveTab] = useState<'routes' | 'news' | 'weather'>('routes');
 
-  // Zoom handlers ref from MapView
+  // Zoom & Fit handlers ref from MapView
   const zoomHandlersRef = useRef<{ zoomIn: () => void; zoomOut: () => void } | null>(null);
+  const fitRouteRef = useRef<(() => void) | null>(null);
   const skipNextReverseGeocodeRef = useRef(false);
 
   // Modal & Pinning Mode State
@@ -258,6 +261,8 @@ export const App: React.FC = () => {
           onRefreshFloods={loadFloods}
           onSelectLocation={(lat, lng) => setMapCenter([lat, lng])}
           onToggleCollapse={() => setIsPanelCollapsed(true)}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
         />
       )}
 
@@ -266,14 +271,16 @@ export const App: React.FC = () => {
         <button
           type="button"
           onClick={() => setIsPanelCollapsed(false)}
-          className="absolute top-4 left-4 z-[1000] flex items-center gap-2 px-4 py-2.5 bg-white/95 backdrop-blur-md border border-gray-200/80 rounded-2xl shadow-xl hover:shadow-2xl hover:bg-white text-gray-800 font-bold text-xs active:scale-95 transition-all cursor-pointer min-h-[44px]"
+          className="absolute top-4 left-4 z-[1000] flex items-center gap-2.5 px-3.5 py-2.5 bg-white/92 backdrop-blur-xl border border-sky-100/90 rounded-2xl shadow-xl hover:bg-white text-slate-800 font-bold text-xs active:scale-95 transition-all cursor-pointer min-h-[44px]"
           aria-label="Mở bảng điều khiển SafeRoute"
+          title="Mở bảng điều khiển SafeRoute (tìm lộ trình, tin tức, thời tiết)"
         >
-          <PanelLeftOpen className="w-4 h-4 text-blue-600" />
-          <Waves className="w-4 h-4 text-blue-600" />
-          <span>Bảng điều khiển</span>
-          <span className="text-[10px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-bold border border-blue-100">
-            Mở
+          <div className="w-6 h-6 rounded-lg bg-white border border-slate-200/80 flex items-center justify-center overflow-hidden p-0.5 shadow-xs">
+            <img src="/logo.png" alt="SafeRoute" className="w-full h-full object-contain" />
+          </div>
+          <span className="font-extrabold text-slate-900 tracking-tight">SafeRoute</span>
+          <span className="text-[10px] bg-pastel-mint-100 text-pastel-mint-800 px-2 py-0.5 rounded-full font-bold border border-pastel-mint-200">
+            Mở bảng
           </span>
         </button>
       )}
@@ -295,6 +302,9 @@ export const App: React.FC = () => {
         onRegisterZoomHandlers={(handlers) => {
           zoomHandlersRef.current = handlers;
         }}
+        onRegisterFitRoute={(fn) => {
+          fitRouteRef.current = fn;
+        }}
       >
         <FloodLayer events={floodEvents} />
         <ReportMarker reports={reports} onVoteReport={() => loadFloods()} />
@@ -309,11 +319,25 @@ export const App: React.FC = () => {
         )}
       </MapView>
 
+      {/* Top Right Consolidated Utility Bar */}
+      {!isPinningReport && (
+        <TopUtilityBar
+          onOpenAdmin={() => setIsAdminOpen(true)}
+          onOpenWeather={() => {
+            setActiveTab('weather');
+            setIsPanelCollapsed(false);
+          }}
+          pendingAdminCount={pendingAdminCount}
+          onFitRoute={() => fitRouteRef.current?.()}
+          hasRoute={!!(routes?.safe_route || routes?.fastest_route)}
+        />
+      )}
+
       {/* Floating Picking Notification Banner */}
       {pickingField && (
-        <div className="absolute top-5 left-1/2 -translate-x-1/2 z-[1100] bg-white/95 backdrop-blur-md px-4 py-2.5 rounded-2xl shadow-2xl border border-gray-200/90 flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+        <div className="absolute top-5 left-1/2 -translate-x-1/2 z-[1100] bg-white/92 backdrop-blur-xl px-4 py-2.5 rounded-2xl shadow-xl border border-sky-100/90 flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
           <div
-            className={`w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-xs ${
+            className={`w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-xs shrink-0 ${
               pickingField === 'origin' ? 'bg-emerald-600' : 'bg-rose-600'
             }`}
           >
@@ -323,38 +347,42 @@ export const App: React.FC = () => {
               <Target className="w-4 h-4" />
             )}
           </div>
-          <div>
-            <div className="text-xs font-bold text-gray-900">
+          <div className="min-w-0">
+            <div className="text-xs font-bold text-slate-900 whitespace-nowrap">
               {pickingField === 'origin' ? 'Ghim điểm xuất phát' : 'Ghim điểm đến'}
             </div>
-            <div className="text-[11px] text-gray-500">
+            <div className="text-[11px] text-slate-500 whitespace-nowrap hidden sm:block">
               Chạm hoặc click vị trí trên bản đồ để ghim
             </div>
           </div>
           <button
             type="button"
             onClick={() => setPickingField(null)}
-            className="ml-2 px-3 py-1.5 text-xs font-bold text-gray-700 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-xl transition active:scale-95 cursor-pointer"
+            className="ml-2 px-3.5 py-1.5 text-xs font-bold text-slate-800 hover:text-slate-950 bg-white hover:bg-slate-100 border border-slate-300 rounded-xl transition active:scale-95 cursor-pointer shadow-sm min-h-[36px] whitespace-nowrap shrink-0"
           >
             Hủy
           </button>
         </div>
       )}
 
-      {/* 3. Floating Flood Depth Legend Bar (Hidden during report pin mode) */}
-      {!isPinningReport && <FloodDepthLegend />}
-
-      {/* 4. Floating Action Button "Báo ngập tại đây" (Hidden during report pin mode) */}
+      {/* 3. Floating Bottom-Right Action Dock (Legend + FAB) */}
       {!isPinningReport && (
-        <div className="absolute bottom-6 right-6 z-[1000]">
+        <div className="absolute bottom-6 right-6 z-[1000] flex flex-col items-end gap-2.5 select-none pointer-events-auto">
+          {/* Flood Depth Legend */}
+          <FloodDepthLegend />
+
+          {/* Floating Action Button "Báo ngập tại đây" - Unified with RoutePlannerPanel CTA */}
           <button
             type="button"
             onClick={handleStartReportPinning}
-            className="flex items-center gap-2 px-5 py-3 min-h-[44px] bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-bold rounded-full shadow-xl transition-all hover:shadow-2xl hover:scale-105 active:scale-95 cursor-pointer"
+            className="flex items-center gap-2.5 px-5 py-3.5 min-h-[48px] bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-[0.98] text-white font-bold text-xs rounded-2xl shadow-pastel-blue hover:shadow-lg transition-all cursor-pointer whitespace-nowrap"
             title="Báo ngập tại vị trí"
+            aria-label="Báo ngập tại vị trí trên bản đồ"
           >
-            <Droplet className="w-4 h-4 fill-current text-white" />
-            <span>Báo ngập tại đây</span>
+            <div className="w-6 h-6 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+              <MapPinPlus className="w-4 h-4 text-white" />
+            </div>
+            <span className="font-extrabold tracking-wide">Báo ngập tại đây</span>
           </button>
         </div>
       )}
@@ -376,36 +404,16 @@ export const App: React.FC = () => {
 
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="absolute top-5 left-1/2 -translate-x-1/2 z-[1200] bg-white/95 backdrop-blur-md px-4 py-2.5 rounded-2xl shadow-2xl border border-gray-200/90 flex items-center gap-2.5 animate-in fade-in slide-in-from-top-2">
+        <div className="absolute top-5 left-1/2 -translate-x-1/2 z-[1200] bg-white/95 backdrop-blur-xl px-4 py-2.5 rounded-2xl shadow-xl border border-slate-200/90 flex items-center gap-2.5 animate-in fade-in slide-in-from-top-2">
           <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
           <span className="text-xs font-semibold text-gray-800">{toastMessage}</span>
           <button
             type="button"
             onClick={() => setToastMessage(null)}
-            className="p-1 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-600 transition cursor-pointer"
+            className="p-1 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-600 transition cursor-pointer shrink-0"
             title="Đóng thông báo"
           >
             <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      )}
-
-      {/* Floating Admin Moderation Button */}
-      {!isPinningReport && (
-        <div className="absolute top-4 right-4 z-[1000]">
-          <button
-            type="button"
-            onClick={() => setIsAdminOpen(true)}
-            className="flex items-center gap-2 px-3.5 py-2.5 min-h-[44px] bg-white/95 backdrop-blur-md border border-gray-200/80 rounded-2xl shadow-xl hover:shadow-2xl hover:bg-white text-gray-800 font-bold text-xs active:scale-95 transition-all cursor-pointer"
-            title="Mở trung tâm quản trị & kiểm duyệt ngập lụt"
-          >
-            <ShieldCheck className="w-4 h-4 text-blue-600" />
-            <span>Quản trị</span>
-            {pendingAdminCount > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white font-mono animate-pulse">
-                {pendingAdminCount}
-              </span>
-            )}
           </button>
         </div>
       )}

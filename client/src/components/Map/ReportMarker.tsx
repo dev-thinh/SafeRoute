@@ -3,27 +3,27 @@ import { Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import { UserReport } from '../../types';
 import { voteReport } from '../../services/api';
-import { Loader2, ThumbsUp, Sun, Check } from 'lucide-react';
+import { Loader2, ThumbsUp, Sun, Check, Clock } from 'lucide-react';
 
 const reportIcon = L.divIcon({
   className: 'custom-report-icon',
-  html: `<div style="background-color: #2563EB; color: white; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 4px 12px rgba(37,99,235,0.4);"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg></div>`,
-  iconSize: [28, 28],
-  iconAnchor: [14, 14],
+  html: `<div style="background: linear-gradient(135deg, #2563EB, #1D4ED8); color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border: 2.5px solid white; box-shadow: 0 4px 14px rgba(37,99,235,0.45); cursor: pointer;"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg></div>`,
+  iconSize: [30, 30],
+  iconAnchor: [15, 15],
 });
 
 const getDepthLevelInfo = (level: UserReport['depthLevel']) => {
   switch (level) {
     case 'ankle':
-      return { label: 'Mắt cá chân (< 20 cm)', dotBg: 'bg-yellow-500' };
+      return { label: 'Mắt cá chân (< 20 cm)', dotBg: 'bg-amber-400', badge: 'bg-pastel-amber-50 text-amber-900 border-pastel-amber-200' };
     case 'wheel':
-      return { label: 'Nửa bánh xe (20 - 40 cm)', dotBg: 'bg-amber-500' };
+      return { label: 'Nửa bánh xe (20 - 40 cm)', dotBg: 'bg-orange-400', badge: 'bg-pastel-coral-50/70 text-orange-950 border-orange-200' };
     case 'knee':
-      return { label: 'Đầu gối / Ngập pô (40 - 60 cm)', dotBg: 'bg-orange-500' };
+      return { label: 'Đầu gối / Ngập pô (40 - 60 cm)', dotBg: 'bg-rose-500', badge: 'bg-pastel-coral-50 text-rose-950 border-pastel-coral-200' };
     case 'deep':
-      return { label: 'Ngập sâu (> 60 cm)', dotBg: 'bg-red-600' };
+      return { label: 'Ngập sâu (> 60 cm)', dotBg: 'bg-red-600', badge: 'bg-red-50 text-red-950 border-red-200' };
     default:
-      return { label: 'Báo cáo ngập', dotBg: 'bg-blue-600' };
+      return { label: 'Báo cáo ngập', dotBg: 'bg-blue-600', badge: 'bg-pastel-sky-50 text-blue-900 border-sky-200' };
   }
 };
 
@@ -47,7 +47,6 @@ const SingleReportMarker: React.FC<{
     setIsSubmitting(true);
     try {
       if (hasVoted === type) {
-        // Unvote toggle
         setHasVoted(null);
       } else {
         await voteReport(report.id, type);
@@ -69,59 +68,64 @@ const SingleReportMarker: React.FC<{
       icon={reportIcon}
     >
       <Popup>
-        <div className="text-xs p-1 min-w-[210px] max-w-[240px]">
-          <div className="flex items-center justify-between">
-            <span className="inline-block px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full font-bold text-[10px] flex items-center gap-1">
+        <div className="text-xs p-1 min-w-[220px] max-w-[250px] font-sans">
+          <div className="flex items-center justify-between pb-1">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-pastel-mint-50 text-pastel-mint-800 border border-pastel-mint-200 rounded-full font-bold text-[10px]">
               <Check className="w-2.5 h-2.5" />
               <span>Điểm ngập đã duyệt</span>
             </span>
-            <span className="text-[10px] text-gray-400 font-mono">
-              {report.reportedAt ? new Date(report.reportedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : 'Vừa xong'}
+            <span className="text-[10px] text-slate-400 font-mono flex items-center gap-0.5">
+              <Clock className="w-2.5 h-2.5" />
+              <span>{report.reportedAt ? new Date(report.reportedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : 'Vừa xong'}</span>
             </span>
           </div>
 
-          <div className="mt-1.5 font-bold text-gray-900 text-xs leading-snug flex items-center gap-1.5">
-            <span className={`w-2 h-2 rounded-full ${depthInfo.dotBg} inline-block flex-shrink-0`} />
-            <span>{depthInfo.label}</span>
+          <div className={`mt-1.5 p-2 rounded-xl border flex items-center justify-between ${depthInfo.badge}`}>
+            <div className="flex items-center gap-1.5 font-bold text-xs">
+              <span className={`w-2.5 h-2.5 rounded-full ${depthInfo.dotBg} shadow-xs inline-block`} />
+              <span>{depthInfo.label}</span>
+            </div>
+            <span className="font-mono font-bold text-xs">~{report.depthCm} cm</span>
           </div>
-          <div className="text-[11px] text-gray-600 font-mono mt-0.5 font-medium">
-            Độ sâu ghi nhận: ~{report.depthCm} cm
-          </div>
+
           {report.description && (
-            <p className="text-gray-700 text-[11px] mt-1.5 italic bg-gray-50 p-1.5 rounded-lg border border-gray-100">
+            <p
+              title={report.description}
+              className="text-slate-700 text-[11px] mt-1.5 italic bg-slate-50 p-2 rounded-xl border border-slate-200 leading-relaxed"
+            >
               "{report.description}"
             </p>
           )}
 
           {/* Consensus Progress Bar */}
-          <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden flex my-2 shadow-inner">
+          <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden flex my-2 shadow-inner">
             <div
               style={{ width: `${upPercent}%` }}
               className="bg-blue-600 h-full transition-all duration-300"
             />
             <div
               style={{ width: `${downPercent}%` }}
-              className="bg-amber-500 h-full transition-all duration-300"
+              className="bg-amber-400 h-full transition-all duration-300"
             />
           </div>
 
-          <div className="text-gray-500 text-[10px] flex items-center justify-between font-medium">
+          <div className="text-slate-500 text-[10px] flex items-center justify-between font-medium">
             <span className="flex items-center gap-1">
               <ThumbsUp className="w-3 h-3 text-blue-600 flex-shrink-0" />
               <span>{upvotesCount} đang ngập ({upPercent}%)</span>
             </span>
             <span className="flex items-center gap-1">
               <Sun className="w-3 h-3 text-amber-500 flex-shrink-0" />
-              <span>{downvotesCount}/{totalVotes} báo đã rút ({downPercent}%)</span>
+              <span>{downvotesCount} đã rút ({downPercent}%)</span>
             </span>
           </div>
 
           {/* Community Vote CTA buttons */}
-          <div className="mt-2.5 pt-2 border-t border-gray-100 flex items-center gap-1.5">
+          <div className="mt-2.5 pt-2 border-t border-slate-200 flex items-center gap-1.5">
             {hasVoted ? (
-              <div className="w-full text-center py-1.5 px-2 bg-emerald-50 text-emerald-800 font-bold text-[10px] rounded-lg border border-emerald-200 flex items-center justify-center gap-1">
-                <Check className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Đã ghi nhận đóng góp của bạn!</span>
+              <div className="w-full text-center py-2 px-2 bg-pastel-mint-50 text-pastel-mint-800 font-bold text-[10px] rounded-xl border border-pastel-mint-200 flex items-center justify-center gap-1">
+                <Check className="w-3.5 h-3.5 text-pastel-mint-600" />
+                <span>Đã ghi nhận đóng góp cộng đồng!</span>
               </div>
             ) : (
               <>
@@ -129,7 +133,7 @@ const SingleReportMarker: React.FC<{
                   type="button"
                   disabled={isSubmitting}
                   onClick={() => handleVote('upvote')}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-[10px] rounded-lg border border-blue-200 active:scale-95 transition cursor-pointer disabled:opacity-50"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 px-2 bg-pastel-sky-50 hover:bg-pastel-sky-100 text-blue-800 font-bold text-[10px] rounded-xl border border-sky-200 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
                   title="Xác nhận điểm ngập này vẫn còn (tự động gia hạn thêm 3 giờ)"
                 >
                   {isSubmitting ? (
@@ -143,11 +147,11 @@ const SingleReportMarker: React.FC<{
                   type="button"
                   disabled={isSubmitting}
                   onClick={() => handleVote('resolved')}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-[10px] rounded-lg border border-emerald-200 active:scale-95 transition cursor-pointer disabled:opacity-50"
-                  title="Báo cáo nước đã rút tại đây (khi đa số ≥ 60% xác nhận sẽ tự động ẩn điểm ngập)"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 px-2 bg-pastel-mint-50 hover:bg-pastel-mint-100 text-pastel-mint-800 font-bold text-[10px] rounded-xl border border-pastel-mint-200 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+                  title="Báo cáo nước đã rút tại đây"
                 >
                   {isSubmitting ? (
-                    <Loader2 className="w-3 h-3 animate-spin text-emerald-600" />
+                    <Loader2 className="w-3 h-3 animate-spin text-pastel-mint-600" />
                   ) : (
                     <Sun className="w-3 h-3 text-amber-500" />
                   )}

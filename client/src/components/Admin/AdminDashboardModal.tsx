@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import {
   X,
-  ShieldCheck,
   CheckCircle2,
-  Clock,
   Sparkles,
   Loader2,
   Eye,
-  Check,
+  CheckCheck,
   Trash2,
   AlertTriangle,
   RotateCcw,
+  Bot,
+  Hourglass,
+  Layers,
 } from 'lucide-react';
 import { ReportCluster, AdminSettings } from '../../types';
 import {
@@ -45,6 +46,18 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
   const [selectedCluster, setSelectedCluster] = useState<ReportCluster | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+
+  // Keyboard accessibility: ESC to close
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isDetailOpen) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, isDetailOpen, onClose]);
 
   const loadData = async () => {
     setLoading(true);
@@ -129,16 +142,16 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
   const displayedClusters = activeTab === 'pending' ? pendingClusters : approvedClusters;
 
   return (
-    <div className="fixed inset-0 z-[2050] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[92vh] shadow-2xl border border-gray-200 flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-[2050] flex items-center justify-center bg-gray-900/50 backdrop-blur-md p-3 sm:p-4 animate-in fade-in duration-200">
+      <div className="bg-white/95 backdrop-blur-xl rounded-3xl w-full max-w-3xl max-h-[92vh] shadow-2xl border border-sky-100/90 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
         {/* 1. Header */}
-        <div className="p-4 sm:p-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/70">
+        <div className="p-4 sm:p-5 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-pastel-sky-50/50 via-white to-pastel-lavender-50/40">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-md flex-shrink-0">
-              <ShieldCheck className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-2xl bg-white border border-slate-200/80 flex items-center justify-center overflow-hidden p-1 flex-shrink-0 shadow-xs">
+              <img src="/logo.png" alt="SafeRoute" className="w-full h-full object-contain" />
             </div>
             <div>
-              <h2 className="font-bold text-base sm:text-lg text-gray-900 leading-tight">
+              <h2 className="font-bold text-base sm:text-lg text-slate-900 leading-tight">
                 Trung Tâm Điều Phối & Kiểm Duyệt Ngập Lụt
               </h2>
               <p className="text-[11px] text-gray-500 font-medium mt-0.5">
@@ -153,15 +166,16 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
               onClick={loadData}
               disabled={loading}
               title="Làm mới dữ liệu"
-              className="p-2 rounded-xl text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition active:scale-95 cursor-pointer disabled:opacity-50"
+              className="w-9 h-9 rounded-xl text-gray-500 hover:text-gray-800 hover:bg-gray-100/80 flex items-center justify-center transition-all active:scale-95 cursor-pointer disabled:opacity-50"
             >
               <RotateCcw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition active:scale-95 cursor-pointer"
+              className="w-9 h-9 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100/80 flex items-center justify-center transition-all active:scale-95 cursor-pointer"
               aria-label="Đóng bảng quản trị"
+              title="Đóng (Esc)"
             >
               <X className="w-5 h-5" />
             </button>
@@ -169,14 +183,16 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
         </div>
 
         {/* 2. Top Summary & Auto-Pilot Toggle Bar */}
-        <div className="p-4 sm:p-5 border-b border-gray-100 bg-white grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="p-3.5 sm:p-4 border-b border-gray-100 bg-white/70 grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
           {/* Stat 1: Pending Clusters */}
-          <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-200/80 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center flex-shrink-0">
-              <Clock className="w-4 h-4" />
+          <div className="p-3 rounded-2xl bg-pastel-amber-50/80 border border-pastel-amber-200/80 flex items-center gap-3 shadow-glass-xs">
+            <div className="w-9 h-9 rounded-xl bg-pastel-amber-500 text-white flex items-center justify-center flex-shrink-0 shadow-xs">
+              <Hourglass className="w-4 h-4" />
             </div>
             <div>
-              <span className="text-[10px] font-bold text-amber-800 uppercase block">Chờ duyệt</span>
+              <span className="text-[10px] font-bold text-amber-900 uppercase tracking-wide block">
+                Chờ duyệt
+              </span>
               <span className="text-base font-bold text-amber-950 font-mono">
                 {pendingClusters.length} cụm
               </span>
@@ -184,12 +200,14 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
           </div>
 
           {/* Stat 2: Approved / Live on map */}
-          <div className="p-3 rounded-xl bg-emerald-50/70 border border-emerald-200/80 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center flex-shrink-0">
+          <div className="p-3 rounded-2xl bg-pastel-mint-50/80 border border-pastel-mint-200/80 flex items-center gap-3 shadow-glass-xs">
+            <div className="w-9 h-9 rounded-xl bg-pastel-mint-600 text-white flex items-center justify-center flex-shrink-0 shadow-xs">
               <CheckCircle2 className="w-4 h-4" />
             </div>
             <div>
-              <span className="text-[10px] font-bold text-emerald-800 uppercase block">Đang trên bản đồ</span>
+              <span className="text-[10px] font-bold text-emerald-900 uppercase tracking-wide block">
+                Đang trên bản đồ
+              </span>
               <span className="text-base font-bold text-emerald-950 font-mono">
                 {approvedClusters.length} điểm
               </span>
@@ -197,68 +215,82 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
           </div>
 
           {/* Stat 3: Auto-Pilot Switch Card */}
-          <div className="p-3 rounded-xl bg-gray-50 border border-gray-200/80 flex items-center justify-between gap-3">
-            <div>
-              <span className="text-xs font-bold text-gray-700 uppercase tracking-wide">
-                Auto-Pilot AI
-              </span>
+          <div className="p-3 rounded-2xl bg-pastel-lavender-50/70 border border-pastel-lavender-200/80 flex items-center justify-between gap-3 shadow-glass-xs">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-purple-600 text-white flex items-center justify-center flex-shrink-0 shadow-xs">
+                <Bot className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="text-xs font-bold text-gray-800 uppercase tracking-wide block">
+                  Auto-Pilot AI
+                </span>
+                <span className="text-[10px] text-gray-500">
+                  {settings.isAutoPilotEnabled ? 'Tự duyệt tin cậy > 85%' : 'Duyệt thủ công'}
+                </span>
+              </div>
             </div>
 
             <button
               type="button"
               onClick={handleToggleAutoPilot}
-              className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer flex items-center p-0.5 ${
-                settings.isAutoPilotEnabled ? 'bg-blue-600' : 'bg-gray-300'
+              className={`w-12 h-6.5 rounded-full transition-colors relative cursor-pointer flex items-center p-0.5 ${
+                settings.isAutoPilotEnabled ? 'bg-pastel-sky-600' : 'bg-gray-300'
               }`}
               title="Bật/Tắt chế độ tự động duyệt khi tin cậy cao"
             >
               <div
-                className={`w-5 h-5 rounded-full bg-white shadow-md transform transition-transform ${
-                  settings.isAutoPilotEnabled ? 'translate-x-5' : 'translate-x-0'
+                className={`w-5.5 h-5.5 rounded-full bg-white shadow-md transform transition-transform ${
+                  settings.isAutoPilotEnabled ? 'translate-x-5.5' : 'translate-x-0'
                 }`}
               />
             </button>
           </div>
         </div>
 
-        {/* 3. Navigation Tabs */}
-        <div className="px-4 sm:px-5 pt-3 border-b border-gray-100 flex items-center gap-4 bg-gray-50/40">
-          <button
-            type="button"
-            onClick={() => setActiveTab('pending')}
-            className={`pb-2.5 text-xs font-bold transition border-b-2 cursor-pointer flex items-center gap-1.5 ${
-              activeTab === 'pending'
-                ? 'border-blue-600 text-blue-700'
-                : 'border-transparent text-gray-500 hover:text-gray-800'
-            }`}
-          >
-            <span>Cụm tin chờ duyệt</span>
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-100 text-amber-800 font-mono">
-              {pendingClusters.length}
-            </span>
-          </button>
+        {/* 3. Navigation Tabs: Segmented Pill design consistent with RoutePlannerPanel */}
+        <div className="px-4 sm:px-5 py-3 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between flex-wrap gap-2">
+          <div className="flex p-1 bg-gray-200/70 rounded-2xl gap-1.5 w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={() => setActiveTab('pending')}
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                activeTab === 'pending'
+                  ? 'bg-white text-gray-900 shadow-glass-xs'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Hourglass className="w-3.5 h-3.5 text-amber-600" />
+              <span>Cụm tin chờ duyệt</span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] bg-pastel-amber-100 text-amber-900 font-mono font-bold">
+                {pendingClusters.length}
+              </span>
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab('approved')}
-            className={`pb-2.5 text-xs font-bold transition border-b-2 cursor-pointer flex items-center gap-1.5 ${
-              activeTab === 'approved'
-                ? 'border-blue-600 text-blue-700'
-                : 'border-transparent text-gray-500 hover:text-gray-800'
-            }`}
-          >
-            <span>Điểm đang hiển thị trên bản đồ</span>
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-emerald-100 text-emerald-800 font-mono">
-              {approvedClusters.length}
-            </span>
-          </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('approved')}
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                activeTab === 'approved'
+                  ? 'bg-white text-gray-900 shadow-glass-xs'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Đang trên bản đồ</span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] bg-pastel-mint-100 text-emerald-900 font-mono font-bold">
+                {approvedClusters.length}
+              </span>
+            </button>
+          </div>
         </div>
 
         {/* 4. List Content */}
         <div className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-3 bg-gray-50/30">
           {displayedClusters.length === 0 ? (
-            <div className="py-12 text-center flex flex-col items-center justify-center text-gray-400 gap-2">
-              <CheckCircle2 className="w-10 h-10 text-emerald-500/80 stroke-1" />
+            <div className="py-14 text-center flex flex-col items-center justify-center text-gray-400 gap-3">
+              <div className="w-14 h-14 rounded-2xl bg-pastel-mint-50 border border-pastel-mint-200 flex items-center justify-center text-emerald-600 shadow-sm">
+                <CheckCircle2 className="w-7 h-7" />
+              </div>
               <p className="text-xs font-bold text-gray-700">
                 {activeTab === 'pending'
                   ? 'Hiện không có cụm báo cáo nào đang chờ duyệt!'
@@ -272,110 +304,129 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
             displayedClusters.map((cluster) => {
               const confidencePercent = Math.round((cluster.aiConfidence || 0.5) * 100);
               const isBusy = actionLoadingId === cluster.clusterId;
-              const isSpamCluster = confidencePercent <= 15 || cluster.aiReasoning.includes('spam') || cluster.aiReasoning.includes('SPAM');
+              const isSpamCluster =
+                confidencePercent <= 15 ||
+                cluster.aiReasoning.includes('spam') ||
+                cluster.aiReasoning.includes('SPAM');
 
               return (
                 <div
                   key={cluster.clusterId}
-                  className={`rounded-xl border p-4 shadow-xs transition space-y-3 ${
+                  className={`rounded-2xl border p-4 shadow-glass-sm hover:shadow-glass-md transition-all space-y-3 ${
                     isSpamCluster
-                      ? 'bg-red-50/20 border-red-200 hover:border-red-300'
-                      : 'bg-white border-gray-200/90 hover:border-gray-300'
+                      ? 'bg-pastel-coral-50/25 border-pastel-coral-200/80 hover:border-pastel-coral-300'
+                      : 'bg-white/90 backdrop-blur-sm border-gray-200/90 hover:border-pastel-sky-300'
                   }`}
                 >
                   {/* Top row: Cluster summary */}
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-xs text-gray-900">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span
+                          className="font-bold text-xs text-gray-900 font-mono"
+                          title={`Tọa độ tâm cụm báo cáo: ${cluster.coordinate.lat}, ${cluster.coordinate.lng}`}
+                        >
                           Tọa độ: {cluster.coordinate.lat.toFixed(4)}, {cluster.coordinate.lng.toFixed(4)}
                         </span>
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                          isSpamCluster
-                            ? 'bg-red-50 text-red-700 border-red-200'
-                            : 'bg-blue-50 text-blue-700 border-blue-200'
-                        }`}>
-                          {cluster.totalReports} báo cáo từ dân
+                        <span
+                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border flex items-center gap-1 ${
+                            isSpamCluster
+                              ? 'bg-pastel-coral-50 text-pastel-coral-900 border-pastel-coral-200'
+                              : 'bg-pastel-sky-50 text-pastel-sky-900 border-pastel-sky-200'
+                          }`}
+                        >
+                          <Layers className="w-3 h-3 flex-shrink-0" />
+                          <span>{cluster.totalReports} báo cáo từ dân</span>
                         </span>
                       </div>
-                      <p className="text-[11px] text-gray-500 mt-0.5 font-mono">
-                        Độ sâu trung bình: ~{cluster.avgDepthCm} cm • Báo lúc: {new Date(cluster.latestReportedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                      <p className="text-[11px] text-gray-500 mt-1 font-mono">
+                        Độ sâu trung bình: ~{cluster.avgDepthCm} cm • Báo lúc:{' '}
+                        {new Date(cluster.latestReportedAt).toLocaleTimeString('vi-VN', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
                       </p>
                     </div>
 
                     {/* AI Score Badge */}
                     <div className="flex items-center gap-1.5 flex-shrink-0">
                       {isSpamCluster ? (
-                        <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-800 border border-red-300 flex items-center gap-1">
-                          <AlertTriangle className="w-3 h-3 text-red-600" />
+                        <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-pastel-coral-100 text-rose-950 border border-pastel-coral-300 flex items-center gap-1 shadow-xs">
+                          <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
                           <span>Spam rác: {confidencePercent}%</span>
                         </span>
                       ) : (
-                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                          confidencePercent >= 85
-                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                            : confidencePercent >= 60
-                            ? 'bg-amber-100 text-amber-800 border border-amber-300'
-                            : 'bg-gray-100 text-gray-800 border border-gray-300'
-                        }`}>
-                          AI chấm: {confidencePercent}%
+                        <span
+                          className={`text-xs font-bold px-2.5 py-1 rounded-full border shadow-xs flex items-center gap-1 ${
+                            confidencePercent >= 85
+                              ? 'bg-pastel-mint-100 text-emerald-950 border-pastel-mint-300'
+                              : confidencePercent >= 60
+                              ? 'bg-pastel-amber-100 text-amber-950 border-pastel-amber-300'
+                              : 'bg-gray-100 text-gray-800 border-gray-300'
+                          }`}
+                        >
+                          <Sparkles className="w-3 h-3 text-current" />
+                          <span>AI chấm: {confidencePercent}%</span>
                         </span>
                       )}
                     </div>
                   </div>
 
                   {/* AI Reasoning Bar */}
-                  <div className={`p-2.5 rounded-lg border flex items-center gap-2 text-xs ${
-                    isSpamCluster
-                      ? 'bg-red-50 border-red-200 text-red-800'
-                      : 'bg-gray-50/80 border-gray-100 text-gray-700'
-                  }`}>
+                  <div
+                    title={cluster.aiReasoning}
+                    className={`p-2.5 rounded-xl border flex items-center gap-2 text-xs ${
+                      isSpamCluster
+                        ? 'bg-pastel-coral-50/70 border-pastel-coral-200 text-pastel-coral-900'
+                        : 'bg-gray-50/80 border-gray-100 text-gray-700'
+                    }`}
+                  >
                     {isSpamCluster ? (
-                      <AlertTriangle className="w-3.5 h-3.5 text-red-600 flex-shrink-0" />
+                      <AlertTriangle className="w-3.5 h-3.5 text-rose-600 flex-shrink-0" />
                     ) : (
-                      <Sparkles className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
+                      <Bot className="w-3.5 h-3.5 text-pastel-sky-600 flex-shrink-0" />
                     )}
-                    <p className="text-[11px] font-medium line-clamp-1">
-                      {cluster.aiReasoning}
-                    </p>
+                    <p className="text-[11px] font-medium line-clamp-1" title={cluster.aiReasoning}>{cluster.aiReasoning}</p>
                   </div>
 
                   {/* Action buttons */}
-                  <div className="flex items-center justify-between pt-1 border-t border-gray-50">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 pt-2.5 border-t border-slate-200">
                     <button
                       type="button"
                       onClick={() => {
                         setSelectedCluster(cluster);
                         setIsDetailOpen(true);
                       }}
-                      className="text-xs font-bold text-blue-600 hover:text-blue-800 transition flex items-center gap-1 cursor-pointer"
+                      className="text-xs font-bold text-blue-700 hover:text-blue-900 transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap self-start sm:self-auto"
                     >
-                      <Eye className="w-3.5 h-3.5" />
+                      <Eye className="w-3.5 h-3.5 text-blue-600" />
                       <span>Xem chi tiết từng báo cáo ({cluster.reports.length})</span>
                     </button>
 
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
                       {activeTab === 'pending' ? (
                         <>
                           <button
                             type="button"
                             disabled={isBusy}
                             onClick={() => handleRejectCluster(cluster.clusterId)}
-                            className="py-1.5 px-3 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-bold text-[11px] rounded-lg transition active:scale-95 cursor-pointer disabled:opacity-50 flex items-center gap-1"
+                            title="Bác bỏ cụm báo cáo này"
+                            className="py-2 px-3.5 bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-900 border border-rose-300 font-bold text-xs rounded-xl transition active:scale-95 cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shadow-sm whitespace-nowrap"
                           >
-                            <Trash2 className="w-3 h-3" />
+                            <Trash2 className="w-3.5 h-3.5" />
                             <span>Bác bỏ</span>
                           </button>
                           <button
                             type="button"
                             disabled={isBusy}
                             onClick={() => handleApproveCluster(cluster.clusterId)}
-                            className="py-1.5 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] rounded-lg shadow transition active:scale-95 cursor-pointer disabled:opacity-50 flex items-center gap-1"
+                            title="Duyệt cụm báo cáo và đưa lên bản đồ SafeRoute trực tiếp"
+                            className="py-2 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-md hover:shadow-lg transition active:scale-95 cursor-pointer disabled:opacity-50 flex items-center gap-1.5 whitespace-nowrap"
                           >
                             {isBusy ? (
-                              <Loader2 className="w-3 h-3 animate-spin text-white" />
+                              <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
                             ) : (
-                              <Check className="w-3 h-3" />
+                              <CheckCheck className="w-3.5 h-3.5" />
                             )}
                             <span>Duyệt & Lên map</span>
                           </button>
@@ -385,10 +436,10 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                           type="button"
                           disabled={isBusy}
                           onClick={() => handleTakedownCluster(cluster)}
-                          className="py-1.5 px-3 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-bold text-[11px] rounded-lg transition active:scale-95 cursor-pointer disabled:opacity-50 flex items-center gap-1"
+                          className="py-2 px-3.5 bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-900 border border-rose-300 font-bold text-xs rounded-xl transition active:scale-95 cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shadow-sm whitespace-nowrap"
                           title="Gỡ bỏ điểm ngập này khỏi bản đồ"
                         >
-                          <AlertTriangle className="w-3 h-3" />
+                          <AlertTriangle className="w-3.5 h-3.5" />
                           <span>Gỡ bỏ khỏi bản đồ</span>
                         </button>
                       )}
@@ -401,14 +452,12 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
         </div>
 
         {/* 5. Footer */}
-        <div className="p-3.5 sm:p-4 border-t border-gray-100 bg-gray-50/70 flex items-center justify-between text-xs text-gray-500">
-          <span>
-            Hệ thống tự động đồng bộ theo thời gian thực với PostgreSQL / Memory
-          </span>
+        <div className="p-3.5 sm:p-4 border-t border-slate-200 bg-slate-50/90 flex flex-col sm:flex-row items-center justify-between gap-2.5 text-xs text-slate-500">
+          <span className="text-center sm:text-left">Hệ thống tự động đồng bộ theo thời gian thực với PostgreSQL / Memory</span>
           <button
             type="button"
             onClick={onClose}
-            className="py-1.5 px-4 bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 font-bold rounded-lg transition active:scale-95 cursor-pointer shadow-xs"
+            className="w-full sm:w-auto py-2.5 px-5 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 font-bold text-xs rounded-xl transition active:scale-95 cursor-pointer shadow-sm text-center shrink-0 whitespace-nowrap"
           >
             Đóng
           </button>

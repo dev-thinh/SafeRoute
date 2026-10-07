@@ -18,8 +18,8 @@ html, body, #root {
 
 /* Custom modern thin scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
@@ -27,18 +27,18 @@ html, body, #root {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(156, 163, 175, 0.4);
+  background: rgba(148, 163, 184, 0.35);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(107, 114, 128, 0.6);
+  background: rgba(100, 116, 139, 0.6);
 }
 
 /* Pulse radar ring for flood pins */
 @keyframes radar-pulse {
   0% {
-    transform: scale(0.95);
+    transform: scale(0.9);
     opacity: 0.8;
   }
   70% {
@@ -46,11 +46,19 @@ html, body, #root {
     opacity: 0;
   }
   100% {
-    transform: scale(0.95);
+    transform: scale(0.9);
     opacity: 0;
   }
 }
 
 .animate-radar {
   animation: radar-pulse 2s cubic-bezier(0, 0.2, 0.8, 1) infinite;
+}
+
+/* Subtle glass surface utility */
+.glass-panel {
+  background-color: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(224, 242, 254, 0.8);
 }
