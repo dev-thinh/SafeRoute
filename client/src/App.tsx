@@ -9,9 +9,10 @@ import { ReportFloodModal, SelectedReportLocation } from './components/Reporting
 import { ReportLocationPinOverlay } from './components/Reporting/ReportLocationPinOverlay';
 import { AdminDashboardModal } from './components/Admin/AdminDashboardModal';
 import { TopUtilityBar } from './components/Navigation/TopUtilityBar';
-import { getActiveFloods, reverseGeocode, getAdminReports } from './services/api';
+import { AuthModal } from './components/Auth/AuthModal';
+import { getActiveFloods, reverseGeocode, getAdminReports, getMe, getAuthToken, setAuthToken } from './services/api';
 import { MapPin, MapPinPlus, Target, AlertTriangle, X } from 'lucide-react';
-import { NavigateResponse, FloodEvent, UserReport } from './types';
+import { NavigateResponse, FloodEvent, UserReport, AuthUser } from './types';
 
 export const App: React.FC = () => {
   const [routes, setRoutes] = useState<NavigateResponse | null>(null);
@@ -23,6 +24,11 @@ export const App: React.FC = () => {
   // Admin Dashboard State
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [pendingAdminCount, setPendingAdminCount] = useState(0);
+
+  // RBAC Authentication State
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [authReason, setAuthReason] = useState<string | null>(null);
 
   // Panel State
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
@@ -190,8 +196,64 @@ export const App: React.FC = () => {
       });
   };
 
-  // Start pinning mode for report flood
+  // Check active auth session on mount
+  useEffect(() => {
+    const token = getAuthToken();
+    if (token) {
+      getMe()
+        .then((res) => {
+          if (res?.user) {
+            setCurrentUser(res.user);
+          }
+        })
+        .catch((err) => {
+          console.warn('Session expired or invalid, reverting to guest', err);
+          setAuthToken(null);
+          setCurrentUser(null);
+        });
+    }
+  }, []);
+
+  // Reload admin data when user switches to admin
+  useEffect(() => {
+    if (currentUser?.role === 'admin') {
+      loadFloods();
+    }
+  }, [currentUser]);
+
+  const handleOpenAuth = (reason?: string) => {
+    setAuthReason(reason || null);
+    setIsAuthOpen(true);
+  };
+
+  const handleLogout = () => {
+    setAuthToken(null);
+    setCurrentUser(null);
+    setIsAdminOpen(false);
+    setToastMessage('Đã đăng xuất tài khoản thành công.');
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const handleAuthSuccess = (user: AuthUser) => {
+    setCurrentUser(user);
+    setToastMessage(`Đăng nhập thành công! Chào mừng ${user.fullName}.`);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  const handleOpenAdmin = () => {
+    if (!currentUser || currentUser.role !== 'admin') {
+      handleOpenAuth('Vui lòng đăng nhập với tài khoản Quản trị viên (admin/admin123) để vào trung tâm quản trị.');
+      return;
+    }
+    setIsAdminOpen(true);
+  };
+
+  // Start pinning mode for report flood (requires registered citizen or admin)
   const handleStartReportPinning = () => {
+    if (!currentUser) {
+      handleOpenAuth('Vui lòng đăng nhập hoặc tạo tài khoản để báo ngập. Tính năng này giúp bảo vệ bản đồ khỏi tin giả và nội dung spam!');
+      return;
+    }
     setIsPinningReport(true);
     setIsReportOpen(false);
   };
@@ -322,11 +384,14 @@ export const App: React.FC = () => {
       {/* Top Right Consolidated Utility Bar */}
       {!isPinningReport && (
         <TopUtilityBar
-          onOpenAdmin={() => setIsAdminOpen(true)}
+          onOpenAdmin={handleOpenAdmin}
           onOpenWeather={() => {
             setActiveTab('weather');
             setIsPanelCollapsed(false);
           }}
+          onOpenAuth={() => handleOpenAuth()}
+          onLogout={handleLogout}
+          currentUser={currentUser}
           pendingAdminCount={pendingAdminCount}
           onFitRoute={() => fitRouteRef.current?.()}
           hasRoute={!!(routes?.safe_route || routes?.fastest_route)}
@@ -432,6 +497,14 @@ export const App: React.FC = () => {
         isOpen={isAdminOpen}
         onClose={() => setIsAdminOpen(false)}
         onDataChanged={loadFloods}
+      />
+
+      {/* 8. RBAC Authentication Modal */}
+      <AuthModal
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
+        onSuccess={handleAuthSuccess}
+        reasonMessage={authReason}
       />
     </div>
   );

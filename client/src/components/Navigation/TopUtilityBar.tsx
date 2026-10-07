@@ -1,9 +1,13 @@
 import React from 'react';
-import { CloudRain, ShieldCheck, Compass } from 'lucide-react';
+import { CloudRain, ShieldCheck, Compass, LogIn, LogOut, User } from 'lucide-react';
+import { AuthUser } from '../../types';
 
 interface TopUtilityBarProps {
   onOpenAdmin: () => void;
   onOpenWeather: () => void;
+  onOpenAuth: () => void;
+  onLogout: () => void;
+  currentUser: AuthUser | null;
   pendingAdminCount: number;
   onFitRoute?: () => void;
   hasRoute: boolean;
@@ -16,11 +20,16 @@ interface TopUtilityBarProps {
 export const TopUtilityBar: React.FC<TopUtilityBarProps> = ({
   onOpenAdmin,
   onOpenWeather,
+  onOpenAuth,
+  onLogout,
+  currentUser,
   pendingAdminCount,
   onFitRoute,
   hasRoute,
   weatherSummary,
 }) => {
+  const isAdmin = currentUser?.role === 'admin';
+
   return (
     <div className="absolute top-4 right-4 z-[1000] select-none">
       {/* Unified Floating Island Capsule - Consistent with Left Panel */}
@@ -61,26 +70,82 @@ export const TopUtilityBar: React.FC<TopUtilityBarProps> = ({
           </>
         )}
 
+        {/* 3. Admin Moderation Button (Only visible to Admin) */}
+        {isAdmin && (
+          <>
+            <div className="h-4 w-px bg-slate-200/80" />
+            <button
+              type="button"
+              onClick={onOpenAdmin}
+              className="group flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:text-blue-700 hover:bg-slate-100/70 transition-all duration-200 active:scale-95 cursor-pointer min-h-[38px]"
+              title="Mở trung tâm quản trị & kiểm duyệt ngập lụt"
+              aria-label="Mở trung tâm quản trị & kiểm duyệt"
+            >
+              <div className="w-5 h-5 rounded-lg bg-pastel-sky-100 text-pastel-sky-700 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                <ShieldCheck className="w-3.5 h-3.5" />
+              </div>
+              <span className="font-bold">Quản trị</span>
+              {pendingAdminCount > 0 ? (
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-amber-500 text-white font-mono animate-pulse shadow-xs">
+                  {pendingAdminCount}
+                </span>
+              ) : null}
+            </button>
+          </>
+        )}
+
         <div className="h-4 w-px bg-slate-200/80" />
 
-        {/* 3. Admin Moderation Button */}
-        <button
-          type="button"
-          onClick={onOpenAdmin}
-          className="group flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:text-blue-700 hover:bg-slate-100/70 transition-all duration-200 active:scale-95 cursor-pointer min-h-[38px]"
-          title="Mở trung tâm quản trị & kiểm duyệt ngập lụt"
-          aria-label="Mở trung tâm quản trị & kiểm duyệt"
-        >
-          <div className="w-5 h-5 rounded-lg bg-pastel-sky-100 text-pastel-sky-700 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
-            <ShieldCheck className="w-3.5 h-3.5" />
+        {/* 4. RBAC Auth Section: Guest vs Logged-in User/Admin */}
+        {!currentUser ? (
+          <button
+            type="button"
+            onClick={onOpenAuth}
+            className="group flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 active:scale-95 transition-all duration-200 cursor-pointer min-h-[38px] shadow-sm shadow-blue-500/20"
+            title="Đăng nhập hoặc đăng ký tài khoản"
+            aria-label="Đăng nhập hoặc đăng ký tài khoản"
+          >
+            <LogIn className="w-3.5 h-3.5" />
+            <span>Đăng nhập</span>
+          </button>
+        ) : (
+          <div className="flex items-center gap-1.5 pl-1.5 pr-1 py-0.5 rounded-xl bg-slate-100/80 border border-slate-200/60">
+            <div className="flex items-center gap-1.5">
+              <div
+                className={`w-5 h-5 rounded-lg flex items-center justify-center text-[10px] font-bold ${
+                  isAdmin
+                    ? 'bg-amber-100 text-amber-700 border border-amber-200'
+                    : 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                }`}
+                title={isAdmin ? 'Tài khoản Quản trị viên' : 'Tài khoản Thành viên'}
+              >
+                <User className="w-3 h-3" />
+              </div>
+              <span className="text-xs font-bold text-gray-800 max-w-[100px] truncate hidden sm:inline" title={currentUser.fullName || currentUser.username}>
+                {currentUser.fullName || currentUser.username}
+              </span>
+              <span
+                className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider ${
+                  isAdmin
+                    ? 'bg-amber-500/15 text-amber-800 font-semibold'
+                    : 'bg-emerald-500/15 text-emerald-800 font-semibold'
+                }`}
+              >
+                {isAdmin ? 'Admin' : 'Dân'}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={onLogout}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-600 hover:bg-red-50 active:scale-90 transition-all cursor-pointer"
+              title="Đăng xuất tài khoản"
+              aria-label="Đăng xuất tài khoản"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
           </div>
-          <span className="font-bold">Quản trị</span>
-          {pendingAdminCount > 0 ? (
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-amber-500 text-white font-mono animate-pulse shadow-xs">
-              {pendingAdminCount}
-            </span>
-          ) : null}
-        </button>
+        )}
       </div>
     </div>
   );
