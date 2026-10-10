@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import {
   getActiveNewsFloodEvents,
   crawledArticlesStore,
@@ -6,10 +6,18 @@ import {
   HCMC_GEO_KEYWORDS,
   EXCLUSION_KEYWORDS,
   STREET_INDICATORS,
+  reanalyzeFallbackArticlesWithGemini,
+  shouldMarkArticleForGeminiReanalysis,
 } from '../src/services/newsCrawler';
+import { noteProviderFailureForTest, resetCircuitBreaker } from '../src/services/geminiExtractor';
+import { selectArticlesNeedingGeminiReanalysis } from '../src/db/newsRepo';
 import { FloodEvent } from '../src/types';
 
 describe('Smart News Crawler & Deduplication', () => {
+  beforeEach(() => {
+    resetCircuitBreaker();
+  });
+
   it('should maintain initial seeded news articles', () => {
     expect(crawledArticlesStore.length).toBeGreaterThanOrEqual(4);
   });
@@ -116,6 +124,81 @@ describe('Smart News Crawler & Deduplication', () => {
     // An unknown street should have default base multiplier 1.0
     const unknownRisk = calculateHistoricalPriorRisk('Đường Hoàn Toàn Mới Lạ 123');
     expect(unknownRisk).toBe(1.0);
+  });
+  it('should mark Groq and rule-based extractions for later Gemini reanalysis', () => {
+    expect(shouldMarkArticleForGeminiReanalysis('groq')).toBe(true);
+    expect(shouldMarkArticleForGeminiReanalysis('rule_based')).toBe(true);
+    expect(shouldMarkArticleForGeminiReanalysis('gemini')).toBe(false);
+  });
+
+  it('should select only fallback-derived articles that still need Gemini reanalysis', () => {
+    const now = new Date().toISOString();
+    const candidates = selectArticlesNeedingGeminiReanalysis(
+      [
+        {
+          id: 'a1',
+          source: 'VnExpress',
+          title: 'Fallback Groq article',
+          url: 'https://example.com/a1',
+          publishedAt: now,
+          crawledAt: now,
+          summary: 'fallback',
+          cause: 'combined',
+          extractedLocations: [],
+          contentSnippet: 'content',
+          extractionProvider: 'groq',
+          needsGeminiReanalysis: true,
+          geminiReanalysisAttempts: 1,
+        },
+        {
+          id: 'a2',
+          source: 'VnExpress',
+          title: 'Gemini article',
+          url: 'https://example.com/a2',
+          publishedAt: now,
+          crawledAt: now,
+          summary: 'primary',
+          cause: 'combined',
+          extractedLocations: [],
+          contentSnippet: 'content',
+          extractionProvider: 'gemini',
+          needsGeminiReanalysis: false,
+          geminiReanalysisAttempts: 0,
+        },
+        {
+          id: 'a3',
+          source: 'VnExpress',
+          title: 'Exhausted fallback article',
+          url: 'https://example.com/a3',
+          publishedAt: now,
+          crawledAt: now,
+          summary: 'fallback',
+          cause: 'combined',
+          extractedLocations: [],
+          contentSnippet: 'content',
+          extractionProvider: 'rule_based',
+          needsGeminiReanalysis: true,
+          geminiReanalysisAttempts: 3,
+        },
+      ],
+      10
+    );
+
+    expect(candidates.map((a) => a.id)).toEqual(['a1']);
+  });
+
+  it('should skip Gemini reanalysis batch while Gemini circuit breaker is open', async () => {
+    noteProviderFailureForTest(
+      'Gemini',
+      'gemini-3.8-flash',
+      Object.assign(new Error('Quota exceeded [{"@type":"type.googleapis.com/google.rpc.RetryInfo","retryDelay":"60s"}]'), {
+        status: 429,
+      })
+    );
+
+    const result = await reanalyzeFallbackArticlesWithGemini(5);
+
+    expect(result).toEqual({ attempted: 0, upgraded: 0, skipped: 5 });
   });
 });
 

@@ -20,7 +20,7 @@ Dự án định tuyến tránh các vùng ngập do triều cường và mưa l
    * 🚗 **Ô tô**: Ngưỡng an toàn $\le 25\text{cm}$, cấm tuyệt đối $> 35\text{cm}$.
 
 4. **Trích xuất tin tức tự động bằng Google Gemini AI & Cơ chế Tự phục hồi (Resilient AI)**:
-   * Hỗ trợ thế hệ mô hình Gemini tiên tiến: **Primary:** `gemini-3-pro` (chất lượng cao) và **Fallback:** `gemini-3.8-flash` (tốc độ cao, tiết kiệm quota).
+   * Hỗ trợ mô hình chính **Gemini `gemini-3.8-flash`** và fallback khác provider qua **Groq** để tránh lãng phí retry khi quota Gemini đã cạn theo project.
    * Tích hợp **Circuit Breaker Pattern** với Exponential Backoff Retry (1.5s, 3.0s).
    * Tự động định tuyến sang Flash khi gặp lỗi Quota (429) hoặc mạng; định kỳ 5 phút tự động kích hoạt lượt probe thăm dò để **hồi phục về Gemini Pro** ngay khi quota hoặc kết nối khả dụng trở lại.
    * Geocoding chuẩn xác: Tích hợp từ điển các tuyến đường xung yếu tại TP.HCM, loại bỏ hoàn toàn các điểm ngập ảo do lỗi tọa độ fallback.
@@ -67,8 +67,12 @@ NODE_ENV=development
 
 # Gemini AI API Key & Models
 GEMINI_API_KEY=your_gemini_api_key_here
-GEMINI_MODEL=gemini-3-pro
-GEMINI_FALLBACK_MODEL=gemini-3.8-flash
+GEMINI_MODEL=gemini-3.8-flash
+
+# Groq fallback provider
+GROQ_API_KEY=your_groq_api_key_here
+GROQ_MODEL=openai/gpt-oss-120b
+GROQ_BASE_URL=https://api.groq.com/openai/v1
 
 # Database (PostgreSQL / PostGIS - Tùy chọn)
 DATABASE_URL=postgresql://user:password@localhost:5432/saferoute

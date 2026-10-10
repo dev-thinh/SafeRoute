@@ -2,6 +2,21 @@ import { pool } from './pool';
 import { isDbConnected } from './initDb';
 import { ScrapedArticle } from '../services/newsCrawler';
 
+export function selectArticlesNeedingGeminiReanalysis(
+  articles: ScrapedArticle[],
+  limit: number = 10
+): ScrapedArticle[] {
+  return articles
+    .filter(
+      (article) =>
+        article.needsGeminiReanalysis === true &&
+        article.extractionProvider !== 'gemini' &&
+        (article.geminiReanalysisAttempts || 0) < 3
+    )
+    .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+    .slice(0, limit);
+}
+
 /**
  * Saves a scraped article to PostgreSQL (or in-memory fallback).
  */
@@ -26,6 +41,11 @@ export async function saveArticle(article: ScrapedArticle): Promise<void> {
             cause: article.cause,
             source: article.source,
             extractedLocations: article.extractedLocations,
+            extractionProvider: article.extractionProvider,
+            extractionModel: article.extractionModel,
+            extractionQuality: article.extractionQuality,
+            needsGeminiReanalysis: article.needsGeminiReanalysis,
+            geminiReanalysisAttempts: article.geminiReanalysisAttempts || 0,
           }),
           new Date(article.crawledAt),
         ]
@@ -62,6 +82,11 @@ export async function getArticles(fallbackArticles: ScrapedArticle[]): Promise<S
             cause: ai.cause || 'combined',
             extractedLocations: ai.extractedLocations || [],
             contentSnippet: r.content,
+            extractionProvider: ai.extractionProvider,
+            extractionModel: ai.extractionModel,
+            extractionQuality: ai.extractionQuality,
+            needsGeminiReanalysis: Boolean(ai.needsGeminiReanalysis),
+            geminiReanalysisAttempts: ai.geminiReanalysisAttempts || 0,
           };
         });
       }
