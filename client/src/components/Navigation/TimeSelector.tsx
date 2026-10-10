@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Clock, Calendar, ChevronDown, Check, RotateCcw } from 'lucide-react';
+import { Clock, ChevronDown, Check, RotateCcw, X } from 'lucide-react';
 
 interface TimeSelectorProps {
   selectedTime: string;
@@ -23,12 +23,9 @@ const toLocalTimeKey = (d: Date): string => {
   return `${hh}:${mm}`;
 };
 
-const TIME_PRESETS = Array.from({ length: 48 }, (_, i) => {
-  const h = Math.floor(i / 2).toString().padStart(2, '0');
-  const m = i % 2 === 0 ? '00' : '30';
-  const val = `${h}:${m}`;
-  return { value: val, label: val };
-});
+// 24 hours grid representation
+const HOURS_GRID = Array.from({ length: 24 }, (_, i) => i);
+const MINUTE_PRESETS = [0, 15, 30, 45];
 
 export const TimeSelector: React.FC<TimeSelectorProps> = ({
   selectedTime,
@@ -42,12 +39,12 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
   const currentDateKey = toLocalDateKey(currentDate);
   const currentTimeKey = toLocalTimeKey(currentDate);
 
-  // References to anchor the portal popovers
-  const dateBtnRef = useRef<HTMLButtonElement>(null);
+  // References to anchor portal popovers
+  const dateOtherBtnRef = useRef<HTMLButtonElement>(null);
   const timeBtnRef = useRef<HTMLButtonElement>(null);
 
-  // Custom dropdown open state: 'date' | 'time' | null
-  const [openDropdown, setOpenDropdown] = useState<'date' | 'time' | null>(null);
+  // Custom dropdown open state: 'dateOther' | 'timePicker' | null
+  const [openDropdown, setOpenDropdown] = useState<'dateOther' | 'timePicker' | null>(null);
   const [popoverCoords, setPopoverCoords] = useState<{
     top: number;
     left: number;
@@ -76,30 +73,26 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
     }
   }, [currentDate, isEditingHours, isEditingMinutes]);
 
-  // Ref for the popover element to prevent self-scroll from closing it
   const popoverRef = useRef<HTMLDivElement>(null);
 
-  // Compute smart popover position with screen-boundary clamping & flipping
-  const computePopoverPosition = (type: 'date' | 'time') => {
-    const btn = type === 'date' ? dateBtnRef.current : timeBtnRef.current;
+  // Compute smart popover position with screen-boundary clamping
+  const computePopoverPosition = (type: 'dateOther' | 'timePicker') => {
+    const btn = type === 'dateOther' ? dateOtherBtnRef.current : timeBtnRef.current;
     if (!btn) return null;
     const rect = btn.getBoundingClientRect();
 
-    // If button scrolled completely offscreen, close dropdown
     if (rect.bottom < 0 || rect.top > window.innerHeight) {
       return null;
     }
 
-    // Increased target height: 360px for time (plenty of time slots), 320px for date
-    const targetHeight = type === 'time' ? 360 : 320;
-    const popoverWidth = Math.max(rect.width, 300);
+    const targetHeight = type === 'timePicker' ? 360 : 300;
+    const popoverWidth = Math.max(rect.width, type === 'timePicker' ? 310 : 260);
     const left = Math.min(Math.max(12, rect.left), window.innerWidth - popoverWidth - 12);
 
     const margin = 12;
     const spaceBelow = window.innerHeight - rect.bottom - margin;
     const spaceAbove = rect.top - margin;
 
-    // Flip to open ABOVE button if below space is cramped and above has more room
     const shouldOpenAbove = spaceBelow < targetHeight && spaceAbove > spaceBelow;
 
     if (shouldOpenAbove) {
@@ -113,34 +106,22 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
     }
   };
 
-  // Close or reposition dropdown on window resize, scroll, or Escape key
   useEffect(() => {
     if (!openDropdown) return;
 
     const handleScroll = (e: Event) => {
-      // NEVER close or reposition if the user is scrolling INSIDE the popover list itself!
-      if (
-        popoverRef.current &&
-        (popoverRef.current === e.target || popoverRef.current.contains(e.target as Node))
-      ) {
+      if (popoverRef.current && (popoverRef.current === e.target || popoverRef.current.contains(e.target as Node))) {
         return;
       }
-
       const pos = computePopoverPosition(openDropdown);
-      if (!pos) {
-        setOpenDropdown(null);
-      } else {
-        setPopoverCoords(pos);
-      }
+      if (!pos) setOpenDropdown(null);
+      else setPopoverCoords(pos);
     };
 
     const handleResize = () => {
       const pos = computePopoverPosition(openDropdown);
-      if (!pos) {
-        setOpenDropdown(null);
-      } else {
-        setPopoverCoords(pos);
-      }
+      if (!pos) setOpenDropdown(null);
+      else setPopoverCoords(pos);
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -158,8 +139,7 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
     };
   }, [openDropdown]);
 
-  // Open or close dropdown with exact viewport coordinates
-  const handleToggleDropdown = (type: 'date' | 'time') => {
+  const handleToggleDropdown = (type: 'dateOther' | 'timePicker') => {
     if (openDropdown === type) {
       setOpenDropdown(null);
       return;
@@ -170,11 +150,12 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
     setOpenDropdown(type);
   };
 
-  // Generate 14 upcoming days (full tidal cycle & travel planning window)
-  const dateOptions = useMemo(() => {
-    const list: { key: string; label: string; fullLabel: string }[] = [];
+  // Generate date tabs: 3 prominent primary days (Hôm nay, Ngày mai, Ngày kia) + later days
+  const { primaryDateTabs, laterDateOptions } = useMemo(() => {
     const now = new Date();
     const daysOfWeek = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+    const tabs: { key: string; label: string; sublabel: string; fullLabel: string }[] = [];
+    const later: { key: string; label: string; fullLabel: string }[] = [];
 
     for (let i = 0; i < 14; i++) {
       const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
@@ -193,31 +174,31 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
         ? `${relPrefix} • ${dayName}, ${dd}/${mm}/${yyyy}`
         : `${dayName}, ${dd}/${mm}/${yyyy}`;
 
-      const label = relPrefix
-        ? `${relPrefix} • ${dayName}, ${dd}/${mm}`
-        : `${dayName}, ${dd}/${mm}`;
-
-      list.push({ key, label, fullLabel });
+      if (i < 3) {
+        tabs.push({
+          key,
+          label: relPrefix,
+          sublabel: `${dd}/${mm}`,
+          fullLabel,
+        });
+      } else {
+        later.push({
+          key,
+          label: `${dayName}, ${dd}/${mm}`,
+          fullLabel,
+        });
+      }
     }
-    return list;
+
+    return { primaryDateTabs: tabs, laterDateOptions: later };
   }, []);
 
-  // Selected date label for the main button
-  const selectedDateFullLabel = useMemo(() => {
-    const found = dateOptions.find((d) => d.key === currentDateKey);
-    if (found) return found.fullLabel;
-    const dd = currentDate.getDate().toString().padStart(2, '0');
-    const mm = (currentDate.getMonth() + 1).toString().padStart(2, '0');
-    const yyyy = currentDate.getFullYear();
-    return `${dd}/${mm}/${yyyy}`;
-  }, [dateOptions, currentDateKey, currentDate]);
+  // Determine if active date is one of the later dates (index >= 3)
+  const activeLaterDate = useMemo(() => {
+    return laterDateOptions.find((d) => d.key === currentDateKey) || null;
+  }, [laterDateOptions, currentDateKey]);
 
-  const selectedTimeLabel = useMemo(() => {
-    const preset = TIME_PRESETS.find((p) => p.value === currentTimeKey);
-    return preset ? preset.label : currentTimeKey;
-  }, [currentTimeKey]);
-
-  // Handle date selection
+  // Handle date selection: keep current hours & minutes intact
   const handleSelectDate = (newDateKey: string) => {
     const [yStr, mStr, dStr] = newDateKey.split('-');
     const year = parseInt(yStr, 10);
@@ -229,46 +210,51 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
     setOpenDropdown(null);
   };
 
-  // Handle time selection
-  const handleSelectTime = (newTimeVal: string) => {
-    const [hStr, mStr] = newTimeVal.split(':');
-    const hours = parseInt(hStr, 10);
-    const minutes = parseInt(mStr, 10);
+  // Adjust time by relative minutes (e.g. -30, +30, +60)
+  const handleAdjustMinutes = (deltaMinutes: number) => {
+    const nextDate = new Date(currentDate.getTime() + deltaMinutes * 60 * 1000);
+    onChange(nextDate.toISOString());
+  };
 
+  // Direct set hour (keeps minutes)
+  const handleSetHour = (hour: number) => {
     const nextDate = new Date(
       currentDate.getFullYear(),
       currentDate.getMonth(),
       currentDate.getDate(),
-      hours,
-      minutes,
+      hour,
+      currentDate.getMinutes(),
       0
     );
     onChange(nextDate.toISOString());
-    setOpenDropdown(null);
   };
 
-  // Quick reset to current real-time
+  // Direct set minute (keeps hour)
+  const handleSetMinute = (minute: number) => {
+    const nextDate = new Date(
+      currentDate.getFullYear(),
+      currentDate.getMonth(),
+      currentDate.getDate(),
+      currentDate.getHours(),
+      minute,
+      0
+    );
+    onChange(nextDate.toISOString());
+  };
+
+  // Reset to current real-time
   const handleSetNow = () => {
     onChange(new Date().toISOString());
   };
 
-  // Handle manual input for hours (00-23)
+  // Manual input hours handler
   const handleHoursChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value.replace(/\D/g, '').slice(0, 2);
     setInputHours(raw);
-    // Only dispatch onChange when a complete 2-digit number has been entered
     if (raw.length === 2) {
       const num = parseInt(raw, 10);
       if (!isNaN(num) && num >= 0 && num <= 23) {
-        const nextDate = new Date(
-          currentDate.getFullYear(),
-          currentDate.getMonth(),
-          currentDate.getDate(),
-          num,
-          currentDate.getMinutes(),
-          0
-        );
-        onChange(nextDate.toISOString());
+        handleSetHour(num);
       }
     }
   };
@@ -278,36 +264,18 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
     let num = parseInt(inputHours, 10);
     if (isNaN(num) || num < 0) num = 0;
     if (num > 23) num = 23;
-    const formatted = num.toString().padStart(2, '0');
-    setInputHours(formatted);
-    const nextDate = new Date(
-      currentDate.getFullYear(),
-      currentDate.getMonth(),
-      currentDate.getDate(),
-      num,
-      currentDate.getMinutes(),
-      0
-    );
-    onChange(nextDate.toISOString());
+    setInputHours(num.toString().padStart(2, '0'));
+    handleSetHour(num);
   };
 
-  // Handle manual input for minutes (00-59)
+  // Manual input minutes handler
   const handleMinutesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value.replace(/\D/g, '').slice(0, 2);
     setInputMinutes(raw);
-    // Only dispatch onChange when a complete 2-digit number has been entered
     if (raw.length === 2) {
       const num = parseInt(raw, 10);
       if (!isNaN(num) && num >= 0 && num <= 59) {
-        const nextDate = new Date(
-          currentDate.getFullYear(),
-          currentDate.getMonth(),
-          currentDate.getDate(),
-          currentDate.getHours(),
-          num,
-          0
-        );
-        onChange(nextDate.toISOString());
+        handleSetMinute(num);
       }
     }
   };
@@ -317,90 +285,13 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
     let num = parseInt(inputMinutes, 10);
     if (isNaN(num) || num < 0) num = 0;
     if (num > 59) num = 59;
-    const formatted = num.toString().padStart(2, '0');
-    setInputMinutes(formatted);
-    const nextDate = new Date(
-      currentDate.getFullYear(),
-      currentDate.getMonth(),
-      currentDate.getDate(),
-      currentDate.getHours(),
-      num,
-      0
-    );
-    onChange(nextDate.toISOString());
-  };
-
-  const handleHoursKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.currentTarget.blur();
-      return;
-    }
-    if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      const nextH = (currentDate.getHours() + 1) % 24;
-      setInputHours(nextH.toString().padStart(2, '0'));
-      const nextDate = new Date(
-        currentDate.getFullYear(),
-        currentDate.getMonth(),
-        currentDate.getDate(),
-        nextH,
-        currentDate.getMinutes(),
-        0
-      );
-      onChange(nextDate.toISOString());
-    } else if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      const prevH = (currentDate.getHours() - 1 + 24) % 24;
-      setInputHours(prevH.toString().padStart(2, '0'));
-      const nextDate = new Date(
-        currentDate.getFullYear(),
-        currentDate.getMonth(),
-        currentDate.getDate(),
-        prevH,
-        currentDate.getMinutes(),
-        0
-      );
-      onChange(nextDate.toISOString());
-    }
-  };
-
-  const handleMinutesKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.currentTarget.blur();
-      return;
-    }
-    if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      const nextM = (currentDate.getMinutes() + 1) % 60;
-      setInputMinutes(nextM.toString().padStart(2, '0'));
-      const nextDate = new Date(
-        currentDate.getFullYear(),
-        currentDate.getMonth(),
-        currentDate.getDate(),
-        currentDate.getHours(),
-        nextM,
-        0
-      );
-      onChange(nextDate.toISOString());
-    } else if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      const prevM = (currentDate.getMinutes() - 1 + 60) % 60;
-      setInputMinutes(prevM.toString().padStart(2, '0'));
-      const nextDate = new Date(
-        currentDate.getFullYear(),
-        currentDate.getMonth(),
-        currentDate.getDate(),
-        currentDate.getHours(),
-        prevM,
-        0
-      );
-      onChange(nextDate.toISOString());
-    }
+    setInputMinutes(num.toString().padStart(2, '0'));
+    handleSetMinute(num);
   };
 
   return (
     <div className="bg-gradient-to-br from-blue-50/70 via-indigo-50/40 to-slate-50/70 rounded-2xl border border-blue-200/80 p-3 shadow-xs space-y-2.5 font-sans select-none">
-      {/* 1. Header Bar: Tiêu đề + Nút Đặt lại về thời gian hiện tại */}
+      {/* 1. Header: Tiêu đề + Nút Đặt về thời gian hiện tại */}
       <div className="flex items-center justify-between">
         <label className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
           <Clock className="w-4 h-4 text-blue-600" />
@@ -419,73 +310,124 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
         </button>
       </div>
 
-      {/* 2. Hàng chọn ngày (Full width - Không bao giờ bị cắt chữ) */}
-      <div className="relative">
-        <button
-          ref={dateBtnRef}
-          type="button"
-          disabled={disabled}
-          onClick={() => handleToggleDropdown('date')}
-          className={`w-full flex items-center justify-between p-2.5 rounded-xl border-2 transition-all cursor-pointer min-h-[50px] text-left shadow-xs ${
-            openDropdown === 'date'
-              ? 'bg-white border-blue-600 ring-4 ring-blue-500/15 shadow-md'
-              : 'bg-white hover:bg-blue-50/40 border-slate-200/90 hover:border-blue-400'
-          } disabled:opacity-50 disabled:cursor-not-allowed`}
-          title="Chọn ngày khởi hành"
-        >
-          <div className="flex items-center gap-2.5 min-w-0 flex-1">
-            <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-              <Calendar className="w-4 h-4" />
+      {/* 2. Chọn Ngày dạng Segmented Tabs 1-chạm (Hôm nay, Ngày mai, Ngày kia, Khác) */}
+      <div className="grid grid-cols-4 gap-1.5 p-1 bg-white/80 rounded-xl border border-slate-200/90 shadow-2xs">
+        {primaryDateTabs.map((tab) => {
+          const isSelected = tab.key === currentDateKey;
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              disabled={disabled}
+              onClick={() => handleSelectDate(tab.key)}
+              className={`py-1.5 px-1 rounded-lg text-center transition-all cursor-pointer flex flex-col items-center justify-center min-h-[40px] ${
+                isSelected
+                  ? 'bg-blue-600 text-white font-bold shadow-xs'
+                  : 'text-slate-700 hover:bg-blue-50 hover:text-blue-700 font-semibold'
+              } disabled:opacity-50 disabled:cursor-not-allowed active:scale-95`}
+              title={tab.fullLabel}
+            >
+              <span className="text-xs leading-none">{tab.label}</span>
+              <span className={`text-[10px] mt-0.5 leading-none ${isSelected ? 'text-blue-100' : 'text-slate-400'}`}>
+                {tab.sublabel}
+              </span>
+            </button>
+          );
+        })}
+
+        {/* Tab 4: Chọn ngày khác */}
+        <div className="relative">
+          <button
+            ref={dateOtherBtnRef}
+            type="button"
+            disabled={disabled}
+            onClick={() => handleToggleDropdown('dateOther')}
+            className={`w-full h-full py-1.5 px-1 rounded-lg text-center transition-all cursor-pointer flex flex-col items-center justify-center min-h-[40px] ${
+              activeLaterDate || openDropdown === 'dateOther'
+                ? 'bg-blue-600 text-white font-bold shadow-xs'
+                : 'text-slate-700 hover:bg-blue-50 hover:text-blue-700 font-semibold'
+            } disabled:opacity-50 disabled:cursor-not-allowed active:scale-95`}
+            title={activeLaterDate ? activeLaterDate.fullLabel : 'Chọn ngày khác trong 2 tuần'}
+          >
+            <div className="flex items-center gap-0.5 text-xs leading-none">
+              <span>{activeLaterDate ? activeLaterDate.label.split(',')[0] : 'Khác'}</span>
+              <ChevronDown className="w-3 h-3" />
             </div>
-            <span className="text-sm font-bold text-slate-900 truncate">
-              {selectedDateFullLabel}
+            <span
+              className={`text-[10px] mt-0.5 leading-none truncate max-w-full ${
+                activeLaterDate ? 'text-blue-100' : 'text-slate-400'
+              }`}
+            >
+              {activeLaterDate ? activeLaterDate.label.split(',')[1]?.trim() : '2 tuần'}
             </span>
-          </div>
-          <ChevronDown
-            className={`w-4 h-4 text-blue-600 shrink-0 ml-2 transition-transform duration-200 ${
-              openDropdown === 'date' ? 'rotate-180 text-blue-700' : ''
-            }`}
-          />
-        </button>
+          </button>
+        </div>
       </div>
 
-      {/* 3. Hàng chọn giờ: 1 ô duy nhất đồng bộ hoàn toàn với hàng chọn ngày */}
-      <div className="relative">
+      {/* 3. Chọn Giờ: Nút Giờ trung tâm + Stepper điều chỉnh nhanh (+/-30p, +1h) */}
+      <div className="flex items-center gap-1.5">
+        {/* Nút lùi 30 phút */}
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => handleAdjustMinutes(-30)}
+          className="px-2 py-2 rounded-xl bg-white hover:bg-blue-50 border border-slate-200/90 hover:border-blue-300 text-slate-700 hover:text-blue-700 font-bold text-xs shadow-2xs transition active:scale-95 cursor-pointer disabled:opacity-50 shrink-0 min-h-[42px] flex items-center justify-center"
+          title="Lùi lại 30 phút"
+        >
+          -30p
+        </button>
+
+        {/* Ô Giờ trung tâm: Bấm vào mở lưới chọn giờ thông minh */}
         <button
           ref={timeBtnRef}
           type="button"
           disabled={disabled}
-          onClick={() => handleToggleDropdown('time')}
-          className={`w-full flex items-center justify-between p-2.5 rounded-xl border-2 transition-all cursor-pointer min-h-[50px] text-left shadow-xs ${
-            openDropdown === 'time'
-              ? 'bg-white border-blue-600 ring-4 ring-blue-500/15 shadow-md'
-              : 'bg-white hover:bg-blue-50/40 border-slate-200/90 hover:border-blue-400'
-          } disabled:opacity-50 disabled:cursor-not-allowed`}
-          title="Chọn giờ khởi hành"
+          onClick={() => handleToggleDropdown('timePicker')}
+          className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-xl border-2 transition-all cursor-pointer min-h-[42px] shadow-xs ${
+            openDropdown === 'timePicker'
+              ? 'bg-white border-blue-600 ring-3 ring-blue-500/15 shadow-sm'
+              : 'bg-white hover:bg-blue-50/50 border-blue-200/90 hover:border-blue-400'
+          } disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99]`}
+          title="Chạm để mở bộ chọn giờ nhanh"
         >
-          <div className="flex items-center gap-2.5 min-w-0 flex-1">
-            <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-              <Clock className="w-4 h-4" />
-            </div>
-            <span className="text-sm font-bold text-slate-900 truncate">
-              {selectedTimeLabel}
-            </span>
-          </div>
+          <Clock className="w-4 h-4 text-blue-600 shrink-0" />
+          <span className="text-base font-extrabold text-slate-900 tracking-tight">
+            {currentTimeKey}
+          </span>
           <ChevronDown
-            className={`w-4 h-4 text-blue-600 shrink-0 ml-2 transition-transform duration-200 ${
-              openDropdown === 'time' ? 'rotate-180 text-blue-700' : ''
+            className={`w-3.5 h-3.5 text-blue-600 shrink-0 transition-transform duration-200 ${
+              openDropdown === 'timePicker' ? 'rotate-180' : ''
             }`}
           />
         </button>
+
+        {/* Nút tiến 30 phút */}
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => handleAdjustMinutes(30)}
+          className="px-2 py-2 rounded-xl bg-white hover:bg-blue-50 border border-slate-200/90 hover:border-blue-300 text-slate-700 hover:text-blue-700 font-bold text-xs shadow-2xs transition active:scale-95 cursor-pointer disabled:opacity-50 shrink-0 min-h-[42px] flex items-center justify-center"
+          title="Tiến thêm 30 phút"
+        >
+          +30p
+        </button>
+
+        {/* Nút tiến 1 giờ */}
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => handleAdjustMinutes(60)}
+          className="px-2 py-2 rounded-xl bg-white hover:bg-blue-50 border border-slate-200/90 hover:border-blue-300 text-slate-700 hover:text-blue-700 font-bold text-xs shadow-2xs transition active:scale-95 cursor-pointer disabled:opacity-50 shrink-0 min-h-[42px] flex items-center justify-center"
+          title="Tiến thêm 1 giờ"
+        >
+          +1h
+        </button>
       </div>
 
-      {/* 4. REACT PORTAL DROPDOWNS: Thả nổi ngoài DOM panel, KHÔNG làm cuộn panel, KHÔNG bị che khuất */}
+      {/* 4. REACT PORTAL DROPDOWNS */}
       {openDropdown &&
         createPortal(
-          <div
-            className="fixed inset-0 z-[99999] pointer-events-auto"
-            onClick={() => setOpenDropdown(null)}
-          >
+          <div className="fixed inset-0 z-[99999] pointer-events-auto" onClick={() => setOpenDropdown(null)}>
             <div
               ref={popoverRef}
               style={{
@@ -499,13 +441,22 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
               onWheel={(e) => e.stopPropagation()}
               className="bg-white rounded-2xl border-2 border-slate-300 shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150"
             >
-              {openDropdown === 'date' && (
+              {/* Dropdown 1: Chọn ngày khác (từ ngày thứ 4 trở đi) */}
+              {openDropdown === 'dateOther' && (
                 <>
-                  <div className="px-3.5 py-2.5 bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-700 uppercase tracking-wider shrink-0 select-none">
-                    <span>Chọn ngày khởi hành</span>
+                  <div className="px-3.5 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between text-xs font-bold text-slate-700 uppercase tracking-wider shrink-0 select-none">
+                    <span>Chọn ngày khác</span>
+                    <button
+                      type="button"
+                      onClick={() => setOpenDropdown(null)}
+                      className="p-1 hover:bg-slate-200 rounded-lg text-slate-500 hover:text-slate-800 transition cursor-pointer"
+                      title="Đóng"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                   <div className="overflow-y-auto divide-y divide-slate-100 py-1 flex-1">
-                    {dateOptions.map((opt) => {
+                    {laterDateOptions.map((opt) => {
                       const isSelected = opt.key === currentDateKey;
                       return (
                         <button
@@ -527,69 +478,125 @@ export const TimeSelector: React.FC<TimeSelectorProps> = ({
                 </>
               )}
 
-              {openDropdown === 'time' && (
+              {/* Dropdown 2: Bộ chọn giờ thông minh (Lưới 24h + 4 mốc phút) */}
+              {openDropdown === 'timePicker' && (
                 <>
-                  <div className="px-3.5 py-2.5 bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-700 uppercase tracking-wider shrink-0 select-none">
-                    <span>Chọn giờ khởi hành</span>
+                  <div className="px-3.5 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between text-xs font-bold text-slate-700 uppercase tracking-wider shrink-0 select-none">
+                    <span className="flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-blue-600" />
+                      <span>Chọn giờ khởi hành</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setOpenDropdown(null)}
+                      className="p-1 hover:bg-slate-200 rounded-lg text-slate-500 hover:text-slate-800 transition cursor-pointer"
+                      title="Đóng"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
                   </div>
-                  {/* Ô chỉnh giờ phút chính xác nếu cần chỉnh từng phút */}
-                  <div className="px-3.5 py-2 bg-slate-50/70 border-b border-slate-100 flex items-center justify-between gap-2 shrink-0">
-                    <span className="text-xs font-bold text-slate-600">Giờ chính xác:</span>
-                    <div className="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-xl border border-slate-200 shadow-xs focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-100">
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        maxLength={2}
-                        value={inputHours}
-                        onFocus={(e) => {
-                          setIsEditingHours(true);
-                          e.target.select();
-                        }}
-                        onChange={handleHoursChange}
-                        onBlur={handleHoursBlur}
-                        onKeyDown={handleHoursKeyDown}
-                        className="w-7 text-center text-sm font-bold text-slate-900 bg-slate-100 hover:bg-slate-200/70 focus:bg-white rounded py-0.5 outline-none transition cursor-text select-all"
-                        title="Giờ (00-23)"
-                        aria-label="Giờ"
-                      />
-                      <span className="text-sm font-bold text-slate-400 select-none">:</span>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        maxLength={2}
-                        value={inputMinutes}
-                        onFocus={(e) => {
-                          setIsEditingMinutes(true);
-                          e.target.select();
-                        }}
-                        onChange={handleMinutesChange}
-                        onBlur={handleMinutesBlur}
-                        onKeyDown={handleMinutesKeyDown}
-                        className="w-7 text-center text-sm font-bold text-slate-900 bg-slate-100 hover:bg-slate-200/70 focus:bg-white rounded py-0.5 outline-none transition cursor-text select-all"
-                        title="Phút (00-59)"
-                        aria-label="Phút"
-                      />
+
+                  <div className="p-3 overflow-y-auto space-y-3 flex-1">
+                    {/* Hàng gõ giờ chính xác thủ công */}
+                    <div className="flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-200/80">
+                      <span className="text-xs font-semibold text-slate-600">Nhập giờ cụ thể:</span>
+                      <div className="flex items-center gap-1 bg-white px-2 py-0.5 rounded-lg border border-slate-300 shadow-2xs focus-within:border-blue-600 focus-within:ring-2 focus-within:ring-blue-100">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={2}
+                          value={inputHours}
+                          onFocus={(e) => {
+                            setIsEditingHours(true);
+                            e.target.select();
+                          }}
+                          onChange={handleHoursChange}
+                          onBlur={handleHoursBlur}
+                          className="w-6 text-center text-xs font-bold text-slate-900 bg-transparent outline-none cursor-text"
+                          title="Giờ (00-23)"
+                        />
+                        <span className="text-xs font-bold text-slate-400">:</span>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={2}
+                          value={inputMinutes}
+                          onFocus={(e) => {
+                            setIsEditingMinutes(true);
+                            e.target.select();
+                          }}
+                          onChange={handleMinutesChange}
+                          onBlur={handleMinutesBlur}
+                          className="w-6 text-center text-xs font-bold text-slate-900 bg-transparent outline-none cursor-text"
+                          title="Phút (00-59)"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Lưới 24 Giờ (4 hàng x 6 cột) */}
+                    <div>
+                      <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                        Chọn giờ (00 - 23h)
+                      </div>
+                      <div className="grid grid-cols-6 gap-1">
+                        {HOURS_GRID.map((h) => {
+                          const isCurrentH = currentDate.getHours() === h;
+                          const label = h.toString().padStart(2, '0');
+                          return (
+                            <button
+                              key={h}
+                              type="button"
+                              onClick={() => handleSetHour(h)}
+                              className={`py-1.5 rounded-lg text-xs font-bold transition cursor-pointer text-center ${
+                                isCurrentH
+                                  ? 'bg-blue-600 text-white shadow-xs'
+                                  : 'bg-slate-100 hover:bg-blue-50 text-slate-800 hover:text-blue-700'
+                              } active:scale-95`}
+                            >
+                              {label}h
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* 4 Mốc Phút chuẩn (:00, :15, :30, :45) */}
+                    <div>
+                      <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                        Chọn phút
+                      </div>
+                      <div className="grid grid-cols-4 gap-1.5">
+                        {MINUTE_PRESETS.map((m) => {
+                          const isCurrentM = currentDate.getMinutes() === m;
+                          const label = `:${m.toString().padStart(2, '0')}`;
+                          return (
+                            <button
+                              key={m}
+                              type="button"
+                              onClick={() => handleSetMinute(m)}
+                              className={`py-1.5 rounded-lg text-xs font-bold transition cursor-pointer text-center ${
+                                isCurrentM
+                                  ? 'bg-blue-600 text-white shadow-xs'
+                                  : 'bg-slate-100 hover:bg-blue-50 text-slate-800 hover:text-blue-700'
+                              } active:scale-95`}
+                            >
+                              {label}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
-                  <div className="overflow-y-auto divide-y divide-slate-100 py-1 flex-1">
-                    {TIME_PRESETS.map((p) => {
-                      const isSelected = p.value === currentTimeKey;
-                      return (
-                        <button
-                          key={p.value}
-                          type="button"
-                          onClick={() => handleSelectTime(p.value)}
-                          className={`w-full flex items-center justify-between px-3.5 py-2.5 text-sm transition text-left cursor-pointer ${
-                            isSelected
-                              ? 'bg-blue-600 text-white font-bold'
-                              : 'text-slate-800 hover:bg-blue-50 hover:text-blue-700 font-semibold'
-                          }`}
-                        >
-                          <span>{p.label}</span>
-                          {isSelected && <Check className="w-4 h-4 text-white shrink-0" />}
-                        </button>
-                      );
-                    })}
+
+                  {/* Nút Xong */}
+                  <div className="p-2.5 bg-slate-50 border-t border-slate-200 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setOpenDropdown(null)}
+                      className="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs transition active:scale-95 cursor-pointer"
+                    >
+                      Xong
+                    </button>
                   </div>
                 </>
               )}
