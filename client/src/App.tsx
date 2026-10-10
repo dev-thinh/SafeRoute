@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { MapView } from './components/Map/MapView';
 import { FloodLayer } from './components/Map/FloodLayer';
 import { RoutePolyline } from './components/Map/RoutePolyline';
@@ -63,11 +63,25 @@ export const App: React.FC = () => {
     lng: 0,
   });
 
-  const maxFloodDepthCm = Math.max(
-    0,
-    ...floodEvents.map((event) => event.current_depth_cm ?? event.estimatedDepthCm ?? 0),
-    ...reports.map((report) => report.depthCm ?? 0)
-  );
+  const activeFloodedEvents = useMemo(() => {
+    return floodEvents.filter((event: FloodEvent) => {
+      const depth =
+        event.current_depth_cm !== undefined
+          ? event.current_depth_cm
+          : event.estimatedDepthCm ?? 0;
+      return depth >= 10;
+    });
+  }, [floodEvents]);
+
+  const maxFloodDepthCm = useMemo(() => {
+    const depths: number[] = [
+      ...activeFloodedEvents.map((event: FloodEvent) =>
+        event.current_depth_cm !== undefined ? event.current_depth_cm : event.estimatedDepthCm ?? 0
+      ),
+      ...reports.map((report: UserReport) => report.depthCm ?? 0),
+    ];
+    return depths.length > 0 ? Math.max(0, ...depths) : 0;
+  }, [activeFloodedEvents, reports]);
 
   // Pick on map state for route: 'origin' | 'dest' | null
   const [pickingField, setPickingField] = useState<'origin' | 'dest' | null>(null);
@@ -368,7 +382,7 @@ export const App: React.FC = () => {
           onCancelPickOnMap={() => setPickingField(null)}
           onRefreshFloods={loadFloods}
           isRefreshingFloods={isFloodsLoading}
-          floodEventCount={floodEvents.length}
+          floodEventCount={activeFloodedEvents.length}
           reportCount={reports.length}
           maxFloodDepthCm={maxFloodDepthCm}
           onToggleCollapse={() => setIsPanelCollapsed(true)}

@@ -532,7 +532,7 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                   </div>
                 ) : floodEventCount + reportCount === 0 ? (
                   <div className="rounded-xl bg-white border border-slate-200/80 px-3 py-2 text-xs font-semibold text-slate-600">
-                    Khung giờ này chưa ghi nhận điểm ngập đáng kể.
+                    Khung giờ này đường phố thông thoáng, chưa ghi nhận điểm ngập.
                   </div>
                 ) : (
                   <button
@@ -866,8 +866,18 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
               )}
             </div>
             <div className="min-w-0 flex-1">
-              <div className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                Khung giờ tính lộ trình
+              <div className="flex items-center justify-between gap-1">
+                <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                  Khung giờ tính lộ trình
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setActiveMode('forecast')}
+                  className="text-xs font-bold text-blue-700 hover:text-blue-900 transition cursor-pointer"
+                  title="Chuyển sang tab Dự báo để đổi ngày và giờ"
+                >
+                  Đổi giờ
+                </button>
               </div>
               <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
                 <span className="text-sm font-extrabold text-blue-800">
