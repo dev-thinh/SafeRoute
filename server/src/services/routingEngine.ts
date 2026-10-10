@@ -40,6 +40,76 @@ export function calculateVehicleDuration(distanceMeters: number, vehicleType: Ve
   return Math.max(60, Math.round(distanceMeters / speedMps));
 }
 
+function distanceMetersBetween(a: [number, number], b: [number, number]): number {
+  return turf.distance(turf.point(a), turf.point(b), { units: 'meters' });
+}
+
+function isSamePoint(a: [number, number], b: [number, number], toleranceMeters = 3): boolean {
+  return distanceMetersBetween(a, b) <= toleranceMeters;
+}
+
+/**
+ * Detects synthetic endpoint connectors that draw a straight line from a raw GPS/geocoded point
+ * to the snapped road network. Those segments can visually cut across buildings or courtyards.
+ */
+export function hasSuspiciousEndpointConnector(
+  coords: [number, number][],
+  rawOrigin: Coordinate,
+  rawDestination: Coordinate,
+  maxConnectorMeters = 70
+): boolean {
+  if (!coords || coords.length < 3) return false;
+
+  const rawStart: [number, number] = [rawOrigin.lng, rawOrigin.lat];
+  const rawEnd: [number, number] = [rawDestination.lng, rawDestination.lat];
+  const first = coords[0];
+  const second = coords[1];
+  const last = coords[coords.length - 1];
+  const beforeLast = coords[coords.length - 2];
+
+  const hasLongStartConnector =
+    isSamePoint(first, rawStart) && distanceMetersBetween(first, second) > maxConnectorMeters;
+  const hasLongEndConnector =
+    isSamePoint(last, rawEnd) && distanceMetersBetween(beforeLast, last) > maxConnectorMeters;
+
+  return hasLongStartConnector || hasLongEndConnector;
+}
+
+export function stripRawEndpointConnectors(
+  geometry: GeoJSON.LineString,
+  rawOrigin: Coordinate,
+  rawDestination: Coordinate,
+  maxConnectorMeters = 70
+): GeoJSON.LineString {
+  const coords = geometry.coordinates as [number, number][];
+  if (!coords || coords.length < 3) return geometry;
+
+  const nextCoords = [...coords];
+  const rawStart: [number, number] = [rawOrigin.lng, rawOrigin.lat];
+  const rawEnd: [number, number] = [rawDestination.lng, rawDestination.lat];
+
+  if (
+    nextCoords.length >= 3 &&
+    isSamePoint(nextCoords[0], rawStart) &&
+    distanceMetersBetween(nextCoords[0], nextCoords[1]) > maxConnectorMeters
+  ) {
+    nextCoords.shift();
+  }
+
+  if (
+    nextCoords.length >= 3 &&
+    isSamePoint(nextCoords[nextCoords.length - 1], rawEnd) &&
+    distanceMetersBetween(nextCoords[nextCoords.length - 2], nextCoords[nextCoords.length - 1]) > maxConnectorMeters
+  ) {
+    nextCoords.pop();
+  }
+
+  return {
+    ...geometry,
+    coordinates: nextCoords,
+  };
+}
+
 /**
  * Detects whether an OSRM route contains a dead-end spur, U-turn, or cul-de-sac reversal.
  * Returns true if the route turns into a dead end, visits an impassable alley for cars, or backtracks.
@@ -406,7 +476,7 @@ export async function fetchOsrmRoute(
   vehicleType: VehicleType = 'motorbike'
 ): Promise<RouteResult[]> {
   const coordString = coordinates.map((c) => `${c.lng},${c.lat}`).join(';');
-  const url = `${ENV.OSRM_URL}/route/v1/driving/${coordString}?alternatives=true&geometries=geojson&overview=full&steps=true&continue_straight=true`;
+  const url = `${ENV.OSRM_URL}/route/v1/driving/${coordString}?alternatives=true&geometries=geojson&overview=full&steps=true&continue_straight=default`;
 
   try {
     const response = await axios.get(url, { timeout: 6000 });
@@ -414,34 +484,41 @@ export async function fetchOsrmRoute(
       throw new Error('No route found from OSRM');
     }
 
-    const validRoutes = response.data.routes
-      .filter((r: any) => !isRouteInvalidSpur(r, vehicleType))
-      .map((r: any) => ({
+    const sanitizeCandidateRoute = (r: any): RouteResult | null => {
+      const rawCoords = (r.geometry?.coordinates || []) as [number, number][];
+      const prunedCoords = pruneAlleyTurnaroundSpurs(rawCoords);
+      const geometry = stripRawEndpointConnectors(
+        { type: 'LineString', coordinates: prunedCoords },
+        coordinates[0],
+        coordinates[coordinates.length - 1]
+      );
+      if (isRouteInvalidSpur(r, vehicleType) || hasRouteBacktrack(geometry.coordinates as [number, number][])) {
+        return null;
+      }
+      return {
         distanceMeters: Math.round(r.distance),
         durationSeconds: calculateVehicleDuration(r.distance, vehicleType),
         isFlooded: false,
         maxFloodDepthCm: 0,
         floodedDistanceMeters: 0,
-        geometry: r.geometry,
-      }));
+        geometry,
+      };
+    };
+
+    const validRoutes = response.data.routes
+      .map(sanitizeCandidateRoute)
+      .filter((r: RouteResult | null): r is RouteResult => r !== null);
 
     if (validRoutes.length > 0) {
       return validRoutes;
     }
 
-    // Fallback: If all alternatives had spurs, return primary route if it was a direct query
+    // Fallback: If all alternatives had spurs, return primary route if it passes after pruning
     if (coordinates.length === 2) {
-      const primary = response.data.routes[0];
-      return [
-        {
-          distanceMeters: Math.round(primary.distance),
-          durationSeconds: calculateVehicleDuration(primary.distance, vehicleType),
-          isFlooded: false,
-          maxFloodDepthCm: 0,
-          floodedDistanceMeters: 0,
-          geometry: primary.geometry,
-        },
-      ];
+      const primary = sanitizeCandidateRoute(response.data.routes[0]);
+      if (primary) {
+        return [primary];
+      }
     }
 
     return [];
@@ -460,11 +537,20 @@ export async function fetchOsrmRoute(
           const sRes = await axios.get(snappedUrl, { timeout: 4000 });
           const sRoute = sRes.data?.routes?.[0];
           if (sRoute) {
-            const coords = [
+            const rawCoords = [
               [coordinates[0].lng, coordinates[0].lat],
               ...sRoute.geometry.coordinates,
               [coordinates[1].lng, coordinates[1].lat],
-            ];
+            ] as [number, number][];
+            const prunedCoords = pruneAlleyTurnaroundSpurs(rawCoords);
+            const geometry = stripRawEndpointConnectors(
+              { type: 'LineString', coordinates: prunedCoords },
+              coordinates[0],
+              coordinates[1]
+            );
+            if (hasRouteBacktrack(geometry.coordinates as [number, number][])) {
+              return [];
+            }
             return [
               {
                 distanceMeters: Math.round(sRoute.distance),
@@ -472,7 +558,7 @@ export async function fetchOsrmRoute(
                 isFlooded: false,
                 maxFloodDepthCm: 0,
                 floodedDistanceMeters: 0,
-                geometry: { type: 'LineString', coordinates: coords },
+                geometry,
               },
             ];
           }
@@ -486,30 +572,97 @@ export async function fetchOsrmRoute(
 }
 
 /**
+ * Removes dead-end cul-de-sac spurs at the start or end of a route (e.g., when a user is in the middle
+ * of an alley and the router sends them to the end of the alley to turn around before going out).
+ */
+export function pruneAlleyTurnaroundSpurs(coords: [number, number][]): [number, number][] {
+  if (!coords || coords.length < 5) return coords;
+
+  let current = [...coords];
+
+  // 1. Check start turnaround spur
+  const startMaxK = Math.min(current.length - 2, 25);
+  for (let k = 3; k < startMaxK; k++) {
+    const distToStart = turf.distance(turf.point(current[k]), turf.point(current[0]), { units: 'meters' });
+    if (distToStart < 20) {
+      let pathDist = 0;
+      for (let s = 0; s < k; s++) {
+        pathDist += turf.distance(turf.point(current[s]), turf.point(current[s + 1]), { units: 'meters' });
+      }
+      if (pathDist >= 20) {
+        const [dx1, dy1] = [current[1][0] - current[0][0], current[1][1] - current[0][1]];
+        const [dx2, dy2] = [current[k][0] - current[k - 1][0], current[k][1] - current[k - 1][1]];
+        const len1 = Math.hypot(dx1, dy1);
+        const len2 = Math.hypot(dx2, dy2);
+        if (len1 > 0 && len2 > 0 && (dx1 * dx2 + dy1 * dy2) / (len1 * len2) < -0.6) {
+          const distExact = turf.distance(turf.point(current[k]), turf.point(current[0]), { units: 'meters' });
+          const remainder = distExact < 3 ? current.slice(k + 1) : current.slice(k);
+          current = [current[0], ...remainder];
+          break;
+        }
+      }
+    }
+  }
+
+  // 2. Check end turnaround spur
+  if (current.length >= 5) {
+    const lastIdx = current.length - 1;
+    const endMinK = Math.max(1, current.length - 25);
+    for (let k = lastIdx - 3; k >= endMinK; k--) {
+      const distToEnd = turf.distance(turf.point(current[k]), turf.point(current[lastIdx]), { units: 'meters' });
+      if (distToEnd < 20) {
+        let pathDist = 0;
+        for (let s = k; s < lastIdx; s++) {
+          pathDist += turf.distance(turf.point(current[s]), turf.point(current[s + 1]), { units: 'meters' });
+        }
+        if (pathDist >= 20) {
+          const [dx1, dy1] = [current[k + 1][0] - current[k][0], current[k + 1][1] - current[k][1]];
+          const [dx2, dy2] = [current[lastIdx][0] - current[lastIdx - 1][0], current[lastIdx][1] - current[lastIdx - 1][1]];
+          const len1 = Math.hypot(dx1, dy1);
+          const len2 = Math.hypot(dx2, dy2);
+          if (len1 > 0 && len2 > 0 && (dx1 * dx2 + dy1 * dy2) / (len1 * len2) < -0.6) {
+            const distExact = turf.distance(turf.point(current[k]), turf.point(current[lastIdx]), { units: 'meters' });
+            const prefix = distExact < 3 ? current.slice(0, k) : current.slice(0, k + 1);
+            current = [...prefix, current[lastIdx]];
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  return current;
+}
+
+/**
  * Detects whether a route geometry contains any hairpin U-turn spurs or cul-de-sac backtracking
  * (e.g. driving into a dead-end alley to satisfy a waypoint, then turning 180° around and driving back out).
  */
 export function hasRouteBacktrack(coords: [number, number][]): boolean {
-  if (!coords || coords.length < 4) return false;
-  for (let i = 0; i < coords.length - 2; i++) {
+  if (!coords || coords.length < 5) return false;
+  for (let i = 0; i < coords.length - 3; i++) {
     const [x1, y1] = coords[i];
     const [x2, y2] = coords[i + 1];
     const dx1 = x2 - x1, dy1 = y2 - y1;
     const len1 = Math.hypot(dx1, dy1);
     if (len1 === 0) continue;
+    let pathDist = 0;
     const maxJ = Math.min(coords.length - 1, i + 35);
     for (let j = i + 1; j < maxJ; j++) {
       const [u1, v1] = coords[j];
       const [u2, v2] = coords[j + 1];
+      const legDist = turf.distance(turf.point([u1, v1]), turf.point([u2, v2]), { units: 'meters' });
+      pathDist += legDist;
+      if (j - i < 2 || pathDist < 25) continue;
       const dx2 = u2 - u1, dy2 = v2 - v1;
       const len2 = Math.hypot(dx2, dy2);
       if (len2 === 0) continue;
       const cosSim = (dx1 * dx2 + dy1 * dy2) / (len1 * len2);
-      if (cosSim < -0.82) {
+      if (cosSim < -0.80) {
         const mid1 = [(x1 + x2) / 2, (y1 + y2) / 2];
         const mid2 = [(u1 + u2) / 2, (v1 + v2) / 2];
         const dist = turf.distance(turf.point(mid1), turf.point(mid2), { units: 'meters' });
-        if (dist < 25) return true;
+        if (dist < 20) return true;
       }
     }
   }

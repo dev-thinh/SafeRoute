@@ -4,7 +4,11 @@ import {
   generateDetourWaypoints,
   calculateVehicleDuration,
   extractRouteFloodedSegments,
+  hasRouteBacktrack,
+  hasSuspiciousEndpointConnector,
   isRouteInvalidSpur,
+  pruneAlleyTurnaroundSpurs,
+  stripRawEndpointConnectors,
 } from '../src/services/routingEngine';
 import { FloodEvent } from '../src/types';
 import * as turf from '@turf/turf';
@@ -72,6 +76,113 @@ describe('RoutingEngine & Detour Logic', () => {
     expect(mbDuration).toBeLessThan(carDuration);
     expect(mbDuration).toBeGreaterThan(600);
     expect(carDuration).toBeGreaterThan(1200);
+  });
+
+  it('stripRawEndpointConnectors removes synthetic straight segments through buildings', () => {
+    const rawOrigin = { lat: 10.7600, lng: 106.6800 };
+    const rawDestination = { lat: 10.7610, lng: 106.6870 };
+    const snappedRoadStart: [number, number] = [106.6820, 10.7600];
+    const snappedRoadEnd: [number, number] = [106.6858, 10.7610];
+    const geometry: GeoJSON.LineString = {
+      type: 'LineString',
+      coordinates: [
+        [rawOrigin.lng, rawOrigin.lat],
+        snappedRoadStart,
+        [106.6835, 10.7604],
+        snappedRoadEnd,
+        [rawDestination.lng, rawDestination.lat],
+      ],
+    };
+
+    expect(hasSuspiciousEndpointConnector(geometry.coordinates, rawOrigin, rawDestination)).toBe(true);
+
+    const sanitized = stripRawEndpointConnectors(geometry, rawOrigin, rawDestination);
+
+    expect(sanitized.coordinates[0]).toEqual(snappedRoadStart);
+    expect(sanitized.coordinates[sanitized.coordinates.length - 1]).toEqual(snappedRoadEnd);
+  });
+
+  it('stripRawEndpointConnectors keeps normal short endpoint connectors', () => {
+    const rawOrigin = { lat: 10.7600, lng: 106.6800 };
+    const rawDestination = { lat: 10.7610, lng: 106.6810 };
+    const geometry: GeoJSON.LineString = {
+      type: 'LineString',
+      coordinates: [
+        [106.6800, 10.7600],
+        [106.68004, 10.76003],
+        [106.6805, 10.7605],
+        [106.68096, 10.76097],
+        [106.6810, 10.7610],
+      ],
+    };
+
+    expect(hasSuspiciousEndpointConnector(geometry.coordinates, rawOrigin, rawDestination)).toBe(false);
+    expect(stripRawEndpointConnectors(geometry, rawOrigin, rawDestination).coordinates).toEqual(geometry.coordinates);
+  });
+
+  it('hasRouteBacktrack detects short alley reversal loops', () => {
+    const coords: [number, number][] = [
+      [106.6800, 10.7600],
+      [106.6804, 10.7600],
+      [106.6808, 10.7600],
+      [106.6804, 10.7600],
+      [106.6800, 10.7600],
+      [106.6796, 10.7602],
+    ];
+
+    expect(hasRouteBacktrack(coords)).toBe(true);
+  });
+
+  it('hasRouteBacktrack does not flag tight continuous road curves or switchbacks', () => {
+    // 3 short segments forming a tight U-curve (e.g. ramp or roundabout corner, total length < 20m)
+    const tightCurveCoords: [number, number][] = [
+      [106.7022138, 10.7528920],
+      [106.7022671, 10.7528966],
+      [106.7022663, 10.7529120],
+      [106.7021614, 10.7529060],
+      [106.7020744, 10.7529481],
+    ];
+
+    expect(hasRouteBacktrack(tightCurveCoords)).toBe(false);
+  });
+
+  it('pruneAlleyTurnaroundSpurs eliminates initial dead-end alley loop when starting in the middle of an alley', () => {
+    const loopedCoords: [number, number][] = [
+      [106.6800, 10.7600], // Start in middle of alley
+      [106.6804, 10.7600], // Heading into dead end
+      [106.6808, 10.7600], // Dead end apex
+      [106.6804, 10.7600], // Returning back
+      [106.6800, 10.7600], // Back at start position
+      [106.6796, 10.7602], // Heading out to main street
+      [106.6790, 10.7605], // On main street
+    ];
+
+    expect(hasRouteBacktrack(loopedCoords)).toBe(true);
+
+    const pruned = pruneAlleyTurnaroundSpurs(loopedCoords);
+
+    expect(pruned[0]).toEqual([106.6800, 10.7600]);
+    expect(pruned[1]).toEqual([106.6796, 10.7602]);
+    expect(pruned[2]).toEqual([106.6790, 10.7605]);
+    expect(hasRouteBacktrack(pruned)).toBe(false);
+  });
+
+  it('pruneAlleyTurnaroundSpurs eliminates destination overshoot loop in an alley', () => {
+    const overshootCoords: [number, number][] = [
+      [106.6790, 10.7605], // Approaching on main street
+      [106.6796, 10.7602], // Entering alley
+      [106.6800, 10.7600], // Destination point reached
+      [106.6804, 10.7600], // Overshooting into dead end
+      [106.6808, 10.7600], // Dead end turnaround
+      [106.6804, 10.7600], // Returning
+      [106.6800, 10.7600], // Final destination
+    ];
+
+    const pruned = pruneAlleyTurnaroundSpurs(overshootCoords);
+
+    expect(pruned[pruned.length - 1]).toEqual([106.6800, 10.7600]);
+    expect(pruned.length).toBeLessThan(overshootCoords.length);
+    expect(hasRouteBacktrack(pruned)).toBe(false);
   });
 
   it('extractRouteFloodedSegments should differentiate clearance between motorbike (20cm) and car (35cm)', () => {
@@ -181,4 +292,3 @@ describe('RoutingEngine & Detour Logic', () => {
     expect(isRouteInvalidSpur(alleyRoute)).toBe(true);
   });
 });
-
