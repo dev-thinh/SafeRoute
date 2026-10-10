@@ -1,9 +1,9 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
-import { extractFloodEventsWithGemini } from './geminiExtractor';
+import { extractFloodEventsWithGemini, isCircuitBreakerOpen } from './geminiExtractor';
 import { geocodeStreet } from './geocodingService';
 import { inMemoryFloodEvents, saveFloodEvent } from '../db/floodsRepo';
-import { saveArticle, getArticles } from '../db/newsRepo';
+import { saveArticle, getArticles, selectArticlesNeedingGeminiReanalysis } from '../db/newsRepo';
 import { FloodEvent } from '../types';
 
 export interface ScrapedArticleLocation {
@@ -26,6 +26,17 @@ export interface ScrapedArticle {
   cause: 'high_tide' | 'heavy_rain' | 'combined';
   extractedLocations: ScrapedArticleLocation[];
   contentSnippet: string;
+  extractionProvider?: 'gemini' | 'groq' | 'rule_based';
+  extractionModel?: string;
+  extractionQuality?: 'primary' | 'fallback_ai' | 'rule_based';
+  needsGeminiReanalysis?: boolean;
+  geminiReanalysisAttempts?: number;
+}
+
+export function shouldMarkArticleForGeminiReanalysis(
+  provider?: 'gemini' | 'groq' | 'rule_based'
+): boolean {
+  return provider === 'groq' || provider === 'rule_based';
 }
 
 // Pre-seeded archive of real-world HCMC flood articles
@@ -289,9 +300,16 @@ export async function crawlLatestFloodNews(): Promise<{
 
               const pubTime = item.pubDate ? new Date(item.pubDate) : new Date();
               const startTime = loc.start_time ? new Date(loc.start_time) : new Date(pubTime.getTime() - 30 * 60 * 1000);
-              const peakTime = loc.peak_time ? new Date(loc.peak_time) : pubTime;
-              // 3-hour active navigation obstacle window
-              const endTime = loc.end_time ? new Date(loc.end_time) : new Date(pubTime.getTime() + 3 * 3600 * 1000);
+              const peakTime = loc.peak_time ? new Date(loc.peak_time) : new Date(startTime.getTime() + 60 * 60 * 1000);
+              // Active navigation hazard window:
+              // For rain & tide incidents in the news, retain active warning window for 12-24h
+              const activeWindowMs = (aiResult.cause === 'heavy_rain' || aiResult.cause === 'combined')
+                ? 24 * 3600 * 1000
+                : 12 * 3600 * 1000;
+              const calculatedEndTime = new Date(pubTime.getTime() + activeWindowMs);
+              const endTime = loc.end_time && new Date(loc.end_time) > calculatedEndTime
+                ? new Date(loc.end_time)
+                : calculatedEndTime;
 
               // Deduplication & clustering: check if street & district is already recorded
               const existingIdx = inMemoryFloodEvents.findIndex(
@@ -347,6 +365,13 @@ export async function crawlLatestFloodNews(): Promise<{
             cause: aiResult.cause,
             extractedLocations: extractedLocs,
             contentSnippet: article.content.slice(0, 300) + '...',
+            extractionProvider: aiResult.extractionProvider,
+            extractionModel: aiResult.extractionModel,
+            extractionQuality: aiResult.extractionQuality,
+            needsGeminiReanalysis:
+              aiResult.needsGeminiReanalysis ??
+              shouldMarkArticleForGeminiReanalysis(aiResult.extractionProvider),
+            geminiReanalysisAttempts: 0,
           };
 
           crawledArticlesStore.unshift(newScrapedItem);
@@ -402,6 +427,64 @@ export function calculateHistoricalPriorRisk(streetName: string): number {
     }
   }
   return Math.round((1.0 + 0.10 * Math.min(5, mentions)) * 100) / 100;
+}
+
+export async function reanalyzeFallbackArticlesWithGemini(
+  limit: number = 10
+): Promise<{ attempted: number; upgraded: number; skipped: number }> {
+  if (isCircuitBreakerOpen('Gemini')) {
+    return { attempted: 0, upgraded: 0, skipped: limit };
+  }
+
+  const articles = await getArticles(crawledArticlesStore);
+  const candidates = selectArticlesNeedingGeminiReanalysis(articles, limit);
+  let attempted = 0;
+  let upgraded = 0;
+
+  for (const article of candidates) {
+    attempted++;
+    const fullText = `${article.title}\n${article.contentSnippet}`;
+    const aiResult = await extractFloodEventsWithGemini(fullText);
+
+    if (aiResult.extractionProvider !== 'gemini') {
+      article.geminiReanalysisAttempts = (article.geminiReanalysisAttempts || 0) + 1;
+      await saveArticle(article);
+      if (isCircuitBreakerOpen('Gemini')) {
+        break;
+      }
+      continue;
+    }
+
+    const extractedLocs: ScrapedArticleLocation[] = [];
+    for (const loc of aiResult.locations || []) {
+      const coord = await geocodeStreet(loc.street_name, loc.district);
+      if (coord) {
+        extractedLocs.push({
+          streetName: loc.street_name,
+          district: loc.district,
+          depthCm: loc.estimated_depth_cm,
+          cause: aiResult.cause,
+          lat: coord.lat,
+          lng: coord.lng,
+        });
+      }
+    }
+
+    article.summary = aiResult.summary || article.summary;
+    article.cause = aiResult.cause;
+    article.extractedLocations = extractedLocs.length > 0 ? extractedLocs : article.extractedLocations;
+    article.extractionProvider = aiResult.extractionProvider;
+    article.extractionModel = aiResult.extractionModel;
+    article.extractionQuality = aiResult.extractionQuality;
+    article.needsGeminiReanalysis = false;
+    article.geminiReanalysisAttempts = (article.geminiReanalysisAttempts || 0) + 1;
+    article.crawledAt = new Date().toISOString();
+
+    await saveArticle(article);
+    upgraded++;
+  }
+
+  return { attempted, upgraded, skipped: Math.max(0, limit - attempted) };
 }
 
 
