@@ -3,7 +3,12 @@ import { pool } from '../db/pool';
 import { Coordinate, VehicleType, FloodEvent, RouteResult } from '../types';
 import { VEHICLE_THRESHOLDS } from '../config/env';
 import { calculateEventDepth } from './predictionEngine';
-import { calculateVehicleDuration, extractRouteFloodedSegments, FLOOD_HAZARD_RADIUS_KM } from './routingEngine';
+import {
+  calculateVehicleDuration,
+  extractRouteFloodedSegments,
+  FLOOD_HAZARD_RADIUS_KM,
+  stripRawEndpointConnectors,
+} from './routingEngine';
 
 interface VertexResult {
   id: string;
@@ -144,8 +149,9 @@ export async function findPgRoutingSafeRoute(
     type: 'LineString',
     coordinates: fastRecon.coordinates,
   };
+  const sanitizedFastLineString = stripRawEndpointConnectors(fastLineString, origin, destination);
 
-  const fastAnalysis = extractRouteFloodedSegments(fastLineString, events, targetTime, vehicleType);
+  const fastAnalysis = extractRouteFloodedSegments(sanitizedFastLineString, events, targetTime, vehicleType);
   const fastestRoute: RouteResult = {
     distanceMeters: fastRecon.totalDistanceMeters,
     durationSeconds: calculateVehicleDuration(fastRecon.totalDistanceMeters, vehicleType),
@@ -153,7 +159,7 @@ export async function findPgRoutingSafeRoute(
     maxFloodDepthCm: fastAnalysis.maxFloodDepthCm,
     floodedDistanceMeters: fastAnalysis.floodedDistanceMeters,
     floodedSegments: fastAnalysis.floodedSegments,
-    geometry: fastLineString,
+    geometry: sanitizedFastLineString,
   };
 
   // If the fastest route is already dry, safe route is the fastest route
@@ -209,8 +215,8 @@ export async function findPgRoutingSafeRoute(
           type: 'LineString',
           coordinates: safeRecon.coordinates,
         };
-
-        const safeAnalysis = extractRouteFloodedSegments(safeLineString, events, targetTime, vehicleType);
+        const sanitizedSafeLineString = stripRawEndpointConnectors(safeLineString, origin, destination);
+        const safeAnalysis = extractRouteFloodedSegments(sanitizedSafeLineString, events, targetTime, vehicleType);
         safeRoute = {
           distanceMeters: safeRecon.totalDistanceMeters,
           durationSeconds: calculateVehicleDuration(safeRecon.totalDistanceMeters, vehicleType),
@@ -218,7 +224,7 @@ export async function findPgRoutingSafeRoute(
           maxFloodDepthCm: safeAnalysis.maxFloodDepthCm,
           floodedDistanceMeters: safeAnalysis.floodedDistanceMeters,
           floodedSegments: safeAnalysis.floodedSegments,
-          geometry: safeLineString,
+          geometry: sanitizedSafeLineString,
         };
       }
     }

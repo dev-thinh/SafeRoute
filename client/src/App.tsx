@@ -20,6 +20,7 @@ export const App: React.FC = () => {
   const [floodEvents, setFloodEvents] = useState<FloodEvent[]>([]);
   const [reports, setReports] = useState<UserReport[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isFloodsLoading, setIsFloodsLoading] = useState(false);
 
   // Admin Dashboard State
   const [isAdminOpen, setIsAdminOpen] = useState(false);
@@ -62,11 +63,18 @@ export const App: React.FC = () => {
     lng: 0,
   });
 
+  const maxFloodDepthCm = Math.max(
+    0,
+    ...floodEvents.map((event) => event.current_depth_cm ?? event.estimatedDepthCm ?? 0),
+    ...reports.map((report) => report.depthCm ?? 0)
+  );
+
   // Pick on map state for route: 'origin' | 'dest' | null
   const [pickingField, setPickingField] = useState<'origin' | 'dest' | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number] | undefined>(undefined);
 
   const loadFloods = async (targetTime?: string) => {
+    setIsFloodsLoading(true);
     try {
       const [floodData, adminData] = await Promise.allSettled([
         getActiveFloods(targetTime),
@@ -81,6 +89,8 @@ export const App: React.FC = () => {
       }
     } catch (err) {
       console.error('Failed to load active floods', err);
+    } finally {
+      setIsFloodsLoading(false);
     }
   };
 
@@ -357,6 +367,10 @@ export const App: React.FC = () => {
           onStartPickOnMap={setPickingField}
           onCancelPickOnMap={() => setPickingField(null)}
           onRefreshFloods={loadFloods}
+          isRefreshingFloods={isFloodsLoading}
+          floodEventCount={floodEvents.length}
+          reportCount={reports.length}
+          maxFloodDepthCm={maxFloodDepthCm}
           onToggleCollapse={() => setIsPanelCollapsed(true)}
         />
       )}
