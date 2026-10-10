@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   MapPin,
   Navigation,
@@ -6,9 +6,12 @@ import {
   Search,
   X,
   Crosshair,
+  History,
   Map,
   Target,
   Loader2,
+  CalendarClock,
+  Waves,
   PanelLeftClose,
   AlertTriangle,
   AlertOctagon,
@@ -21,6 +24,7 @@ import {
   navigateRoute,
   searchLocation,
   reverseGeocode,
+  HCMC_PRESETS,
 } from '../../services/api';
 import { NavigateResponse } from '../../types';
 
@@ -29,6 +33,122 @@ export interface LocationItem {
   lat: number;
   lng: number;
 }
+
+interface LocationHistoryItem extends LocationItem {
+  usedAt: number;
+  count: number;
+}
+
+const LOCATION_HISTORY_KEY = 'saferoute_location_history';
+const MAX_LOCATION_HISTORY = 12;
+
+const getDistanceMeters = (a: LocationItem, b: LocationItem): number => {
+  if (!a.lat || !a.lng || !b.lat || !b.lng) return Number.POSITIVE_INFINITY;
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const radius = 6371000;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const lat1 = toRad(a.lat);
+  const lat2 = toRad(b.lat);
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return 2 * radius * Math.asin(Math.sqrt(h));
+};
+
+const readLocationHistory = (): LocationHistoryItem[] => {
+  try {
+    const raw = localStorage.getItem(LOCATION_HISTORY_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((item) => item?.label && Number.isFinite(item.lat) && Number.isFinite(item.lng))
+      .map((item) => ({
+        label: String(item.label),
+        lat: Number(item.lat),
+        lng: Number(item.lng),
+        usedAt: Number(item.usedAt) || 0,
+        count: Number(item.count) || 1,
+      }));
+  } catch {
+    return [];
+  }
+};
+
+const saveLocationHistory = (loc: LocationItem) => {
+  if (!loc.label.trim() || !loc.lat || !loc.lng) return;
+
+  try {
+    const now = Date.now();
+    const current = readLocationHistory();
+    const existingIndex = current.findIndex((item) => {
+      const sameLabel = item.label.trim().toLowerCase() === loc.label.trim().toLowerCase();
+      const veryClose = getDistanceMeters(item, loc) < 35;
+      return sameLabel || veryClose;
+    });
+
+    const nextItem: LocationHistoryItem = {
+      label: loc.label.trim(),
+      lat: loc.lat,
+      lng: loc.lng,
+      usedAt: now,
+      count: existingIndex >= 0 ? current[existingIndex].count + 1 : 1,
+    };
+
+    const next = [
+      nextItem,
+      ...current.filter((_, idx) => idx !== existingIndex),
+    ]
+      .sort((a, b) => b.count - a.count || b.usedAt - a.usedAt)
+      .slice(0, MAX_LOCATION_HISTORY);
+
+    localStorage.setItem(LOCATION_HISTORY_KEY, JSON.stringify(next));
+  } catch (err) {
+    console.warn('Failed to save location history', err);
+  }
+};
+
+const getLocationHistorySuggestions = (
+  field: 'origin' | 'dest',
+  origin: LocationItem,
+  destination: LocationItem
+): { items: LocationItem[]; source: 'history' | 'preset' } => {
+  const anchor = field === 'origin' ? destination : origin;
+  const hasAnchor = Boolean(anchor.lat && anchor.lng);
+  const history = readLocationHistory();
+
+  const sortedHistory = history
+    .filter((item) => item.label.trim())
+    .sort((a, b) => {
+      if (hasAnchor) {
+        const distA = getDistanceMeters(a, anchor);
+        const distB = getDistanceMeters(b, anchor);
+        if (Number.isFinite(distA) && Number.isFinite(distB)) {
+          return distA - distB || b.usedAt - a.usedAt;
+        }
+      }
+      return b.count - a.count || b.usedAt - a.usedAt;
+    })
+    .map(({ label, lat, lng }) => ({ label, lat, lng }));
+
+  if (sortedHistory.length >= 5) {
+    return { items: sortedHistory.slice(0, 5), source: 'history' };
+  }
+
+  // Supplement with HCMC_PRESETS if history is short or empty
+  const presets = [...HCMC_PRESETS]
+    .filter((p) => !sortedHistory.some((h) => h.label === p.label || getDistanceMeters(h, p) < 50))
+    .sort((a, b) => {
+      if (hasAnchor) {
+        return getDistanceMeters(a, anchor) - getDistanceMeters(b, anchor);
+      }
+      return 0;
+    });
+
+  const combined = [...sortedHistory, ...presets].slice(0, 5);
+  return { items: combined, source: sortedHistory.length > 0 ? 'history' : 'preset' };
+};
 
 interface RoutePlannerPanelProps {
   origin: LocationItem;
@@ -42,6 +162,10 @@ interface RoutePlannerPanelProps {
   onStartPickOnMap: (field: 'origin' | 'dest') => void;
   onCancelPickOnMap: () => void;
   onRefreshFloods?: (targetTime?: string) => void;
+  isRefreshingFloods?: boolean;
+  floodEventCount?: number;
+  reportCount?: number;
+  maxFloodDepthCm?: number;
   onToggleCollapse?: () => void;
 }
 
@@ -57,8 +181,13 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
   onStartPickOnMap,
   onCancelPickOnMap,
   onRefreshFloods,
+  isRefreshingFloods = false,
+  floodEventCount = 0,
+  reportCount = 0,
+  maxFloodDepthCm = 0,
   onToggleCollapse,
 }) => {
+  const [activeMode, setActiveMode] = useState<'forecast' | 'route'>('forecast');
   const [vehicle, setVehicle] = useState<'motorbike' | 'car'>('motorbike');
   const [targetTime, setTargetTime] = useState<string>(() => new Date().toISOString());
   const [loading, setLoading] = useState(false);
@@ -70,15 +199,50 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
   const [activeField, setActiveField] = useState<'origin' | 'dest' | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [suggestions, setSuggestions] = useState<LocationItem[]>([]);
+  const [suggestionSource, setSuggestionSource] = useState<'history' | 'preset' | 'search'>('search');
   const [searching, setSearching] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // GPS geolocation state
   const [gpsLoading, setGpsLoading] = useState(false);
 
+  const routeTimeLabel = useMemo(() => {
+    const date = new Date(targetTime);
+    if (Number.isNaN(date.getTime())) return 'Khung giờ đã chọn';
+
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const startOfSelected = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+    const dayDiff = Math.round((startOfSelected - startOfToday) / 86400000);
+
+    let dayLabel = date.toLocaleDateString('vi-VN', {
+      weekday: 'short',
+      day: '2-digit',
+      month: '2-digit',
+    });
+    if (dayDiff === 0) dayLabel = 'Hôm nay';
+    if (dayDiff === 1) dayLabel = 'Ngày mai';
+
+    const timeLabel = date.toLocaleTimeString('vi-VN', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+    return `${timeLabel} - ${dayLabel}`;
+  }, [targetTime]);
+
   useEffect(() => {
     if (activeField) {
       if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+      if (!searchQuery.trim()) {
+        const { items, source } = getLocationHistorySuggestions(activeField, origin, destination);
+        setSuggestionSource(source);
+        setSuggestions(items);
+        setSearching(false);
+        return;
+      }
+
+      setSuggestionSource('search');
       setSearching(true);
       searchTimeoutRef.current = setTimeout(async () => {
         const results = await searchLocation(searchQuery);
@@ -89,10 +253,11 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
     return () => {
       if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     };
-  }, [searchQuery, activeField]);
+  }, [searchQuery, activeField, origin, destination]);
 
   const handleSelectLocation = (loc: LocationItem) => {
     setErrorMsg(null);
+    saveLocationHistory(loc);
     if (activeField === 'origin') {
       onChangeOrigin(loc);
     } else if (activeField === 'dest') {
@@ -179,6 +344,8 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
         target_time: targetTime,
         vehicle_type: vehicle,
       });
+      saveLocationHistory(finalOrigin);
+      saveLocationHistory(finalDest);
       setRouteData(data);
       onRoutesCalculated(data);
     } catch (err: any) {
@@ -268,6 +435,121 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
             </div>
           )}
 
+          <div className="grid grid-cols-2 gap-1.5 rounded-2xl bg-slate-100/90 p-1 border border-slate-200/80">
+            <button
+              type="button"
+              onClick={() => setActiveMode('forecast')}
+              aria-pressed={activeMode === 'forecast'}
+              className={`min-h-[44px] rounded-xl px-3 py-2 text-xs font-bold flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer ${
+                activeMode === 'forecast'
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white'
+              }`}
+            >
+              <Waves className="w-4 h-4" />
+              <span>Dự báo ngập</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveMode('route')}
+              aria-pressed={activeMode === 'route'}
+              className={`min-h-[44px] rounded-xl px-3 py-2 text-xs font-bold flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer ${
+                activeMode === 'route'
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white'
+              }`}
+            >
+              <Navigation className="w-4 h-4" />
+              <span>Tìm đường</span>
+            </button>
+          </div>
+
+          {activeMode === 'forecast' && (
+            <div className="space-y-3">
+              <TimeSelector
+                selectedTime={targetTime}
+                disabled={loading}
+                onChange={(t) => {
+                  setTargetTime(t);
+                  if (onRefreshFloods) onRefreshFloods(t);
+                }}
+              />
+
+              <div
+                className="rounded-2xl border border-blue-200/80 bg-blue-50/75 p-3 shadow-xs space-y-3"
+                aria-live="polite"
+                aria-busy={isRefreshingFloods}
+              >
+                <div className="flex items-start gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-white border border-blue-200 text-blue-700 flex items-center justify-center shrink-0 shadow-xs">
+                    {isRefreshingFloods ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Waves className="w-4 h-4" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                      Bản đồ dự báo ngập
+                    </div>
+                    <p className="mt-0.5 text-xs text-slate-600 leading-relaxed">
+                      Chọn khung giờ để xem các điểm và vùng ngập dự kiến trên bản đồ.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="rounded-xl bg-white border border-slate-200/80 p-2">
+                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                      Vùng ngập
+                    </div>
+                    <div className="mt-1 text-base font-extrabold text-slate-900">
+                      {floodEventCount}
+                    </div>
+                  </div>
+                  <div className="rounded-xl bg-white border border-slate-200/80 p-2">
+                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                      Báo cáo
+                    </div>
+                    <div className="mt-1 text-base font-extrabold text-slate-900">
+                      {reportCount}
+                    </div>
+                  </div>
+                  <div className="rounded-xl bg-white border border-slate-200/80 p-2">
+                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                      Cao nhất
+                    </div>
+                    <div className="mt-1 text-base font-extrabold text-red-700">
+                      {maxFloodDepthCm > 0 ? `${maxFloodDepthCm}cm` : '--'}
+                    </div>
+                  </div>
+                </div>
+
+                {isRefreshingFloods ? (
+                  <div className="flex items-center gap-2 rounded-xl bg-white border border-blue-200 px-3 py-2 text-xs font-bold text-blue-700">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Đang tải dự báo ngập cho khung giờ mới...</span>
+                  </div>
+                ) : floodEventCount + reportCount === 0 ? (
+                  <div className="rounded-xl bg-white border border-slate-200/80 px-3 py-2 text-xs font-semibold text-slate-600">
+                    Khung giờ này chưa ghi nhận điểm ngập đáng kể.
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setActiveMode('route')}
+                    className="w-full min-h-[44px] rounded-xl bg-white hover:bg-blue-50 border border-blue-200 px-3 py-2 text-xs font-bold text-blue-700 transition active:scale-95 cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <Navigation className="w-4 h-4" />
+                    <span>Tìm lộ trình theo khung giờ này</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeMode === 'route' && (
+            <>
           {/* Origin & Destination Inputs Card */}
           <div className="space-y-2.5">
             {/* Origin Field */}
@@ -359,8 +641,18 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                 <div className="absolute top-full left-0 right-0 z-50 bg-white border border-slate-200 rounded-2xl shadow-2xl mt-1.5 max-h-56 overflow-y-auto divide-y divide-slate-100 animate-in fade-in">
                   <div className="p-2.5 bg-slate-50/95 backdrop-blur-sm text-xs font-bold text-slate-600 uppercase tracking-wider flex items-center justify-between sticky top-0 z-10">
                     <span className="flex items-center gap-1.5">
-                      <Search className="w-3.5 h-3.5 text-emerald-600" />
-                      Gợi ý địa chỉ xuất phát
+                      {suggestionSource === 'history' ? (
+                        <History className="w-3.5 h-3.5 text-emerald-600" />
+                      ) : suggestionSource === 'preset' ? (
+                        <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+                      ) : (
+                        <Search className="w-3.5 h-3.5 text-emerald-600" />
+                      )}
+                      {suggestionSource === 'history'
+                        ? destination.lat ? 'Lịch sử gợi ý gần điểm đến' : 'Lịch sử địa chỉ đã dùng'
+                        : suggestionSource === 'preset'
+                        ? destination.lat ? 'Địa điểm phổ biến gần điểm đến' : 'Địa điểm phổ biến TP.HCM'
+                        : 'Kết quả tìm kiếm'}
                     </span>
                   </div>
 
@@ -504,8 +796,18 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                 <div className="absolute top-full left-0 right-0 z-50 bg-white border border-slate-200 rounded-2xl shadow-2xl mt-1.5 max-h-56 overflow-y-auto divide-y divide-slate-100 animate-in fade-in">
                   <div className="p-2.5 bg-slate-50/95 backdrop-blur-sm text-xs font-bold text-slate-600 uppercase tracking-wider flex items-center justify-between sticky top-0 z-10">
                     <span className="flex items-center gap-1.5">
-                      <Search className="w-3.5 h-3.5 text-rose-600" />
-                      Gợi ý địa chỉ điểm đến
+                      {suggestionSource === 'history' ? (
+                        <History className="w-3.5 h-3.5 text-rose-600" />
+                      ) : suggestionSource === 'preset' ? (
+                        <MapPin className="w-3.5 h-3.5 text-rose-600" />
+                      ) : (
+                        <Search className="w-3.5 h-3.5 text-rose-600" />
+                      )}
+                      {suggestionSource === 'history'
+                        ? origin.lat ? 'Lịch sử gợi ý gần điểm đi' : 'Lịch sử địa chỉ đã dùng'
+                        : suggestionSource === 'preset'
+                        ? origin.lat ? 'Địa điểm phổ biến gần điểm đi' : 'Địa điểm phổ biến TP.HCM'
+                        : 'Kết quả tìm kiếm'}
                     </span>
                   </div>
 
@@ -550,14 +852,39 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
           </div>
 
           <VehicleSelector vehicle={vehicle} onChange={setVehicle} disabled={loading} />
-          <TimeSelector
-            selectedTime={targetTime}
-            disabled={loading}
-            onChange={(t) => {
-              setTargetTime(t);
-              if (onRefreshFloods) onRefreshFloods(t);
-            }}
-          />
+
+          <div
+            className="rounded-2xl border border-blue-200/80 bg-blue-50/70 p-3 flex items-start gap-2.5 shadow-xs"
+            aria-live="polite"
+            aria-busy={isRefreshingFloods}
+          >
+            <div className="w-8 h-8 rounded-xl bg-white border border-blue-200 text-blue-700 flex items-center justify-center shrink-0 shadow-xs">
+              {isRefreshingFloods ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <CalendarClock className="w-4 h-4" />
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                Khung giờ tính lộ trình
+              </div>
+              <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                <span className="text-sm font-extrabold text-blue-800">
+                  {routeTimeLabel}
+                </span>
+                {isRefreshingFloods && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-[11px] font-bold text-blue-700 border border-blue-200">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    Đang tải dự báo
+                  </span>
+                )}
+              </div>
+              <p className="mt-1 text-xs text-slate-600 leading-relaxed">
+                Lộ trình an toàn sẽ dùng cùng khung giờ với bản đồ dự báo ngập.
+              </p>
+            </div>
+          </div>
 
           {/* Primary CTA button with locking and loading state */}
           <button
@@ -659,6 +986,8 @@ export const RoutePlannerPanel: React.FC<RoutePlannerPanelProps> = ({
                 onSelect={() => onSelectRouteType('fastest')}
               />
             </div>
+          )}
+            </>
           )}
     </div>
   );
