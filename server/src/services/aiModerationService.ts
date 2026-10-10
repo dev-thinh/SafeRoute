@@ -1,5 +1,5 @@
 import { UserReport } from '../types';
-import { getAllQuadrantsRollingPrecipitation } from './weatherService';
+import { getAllQuadrantsRollingPrecipitation, scaleGridPrecipitationToUrbanLocal } from './weatherService';
 import { getSaigonTideStatus } from './tideService';
 import { HCMC_VULNERABLE_CORRIDORS } from './vulnerableRoads';
 
@@ -184,12 +184,13 @@ export async function evaluateReportCredibility(
     const rollingRain = await getAllQuadrantsRollingPrecipitation(reportTime);
     const tide = getSaigonTideStatus(reportTime);
 
-    const maxRain = Math.max(
+    const rawMaxRain = Math.max(
       rollingRain.center.currentMm,
       rollingRain.south.currentMm,
       rollingRain.east.currentMm,
       rollingRain.northwest.currentMm
     );
+    const maxRain = scaleGridPrecipitationToUrbanLocal(rawMaxRain);
 
     if (maxRain >= 20 || tide.peakTideHeightM >= 1.50) {
       weatherPillar = 1.0;

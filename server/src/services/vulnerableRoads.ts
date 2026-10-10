@@ -1,5 +1,5 @@
 import { FloodEvent } from '../types';
-import { HcmcQuadrant, RollingPrecipitation } from './weatherService';
+import { HcmcQuadrant, RollingPrecipitation, scaleGridPrecipitationToUrbanLocal } from './weatherService';
 import { calculateAstronomicalTideDepth, getSaigonTideStatus } from './tideService';
 import { evaluateCompoundFloodRisk } from './predictionEngine';
 
@@ -1054,12 +1054,15 @@ export function evaluateMultiSourceHotspots(
       quadData = c >= e ? rainByQuadrant.center : rainByQuadrant.east;
     }
 
-    const rainAccumMm = quadData?.effectiveAccumulationMm || 0;
-    const rainProb = quadData?.rainProbability || 0;
+    const rawRainAccum = quadData?.effectiveAccumulationMm || 0;
+    const rainAccumMm = scaleGridPrecipitationToUrbanLocal(rawRainAccum);
+    const rainProb = rawRainAccum >= 15
+      ? (quadData?.rainProbability || 0)
+      : Math.round((1 / (1 + Math.exp(-0.15 * (rainAccumMm - 20.0)))) * 100) / 100;
 
     // Calculate rain depth based on rolling accumulation vs threshold
     let rainDepthCm = 0;
-    if (rainAccumMm >= corridor.rainThresholdMm * 0.7) {
+    if (rainAccumMm >= corridor.rainThresholdMm * 0.6) {
       const ratio = rainAccumMm / corridor.rainThresholdMm;
       rainDepthCm = Math.round(corridor.baseDepthCm * Math.sqrt(Math.max(0.2, ratio)));
     }

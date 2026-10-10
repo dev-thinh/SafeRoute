@@ -9,6 +9,7 @@ import {
   getBangkokHourKey,
   clearWeatherCache,
   HCMC_QUADRANTS,
+  scaleGridPrecipitationToUrbanLocal,
 } from '../src/services/weatherService';
 
 vi.mock('axios');
@@ -113,6 +114,17 @@ describe('Weather Service', () => {
     expect(dashboard.hourlyTimeline).toHaveLength(12);
     const expectedCurrentKey = getBangkokHourKey(new Date());
     expect(dashboard.hourlyTimeline[0].time).toBe(expectedCurrentKey);
+  });
+
+  it('should scale global NWP precipitation to tropical urban downpour intensity', () => {
+    expect(scaleGridPrecipitationToUrbanLocal(0)).toBe(0);
+    expect(scaleGridPrecipitationToUrbanLocal(0.5)).toBe(7.0);
+    expect(scaleGridPrecipitationToUrbanLocal(1.0)).toBe(14.0);
+    expect(scaleGridPrecipitationToUrbanLocal(1.5)).toBe(21.0);
+    expect(scaleGridPrecipitationToUrbanLocal(2.0)).toBe(28.0);
+    // Directly measured station radar data (>= 15mm) is unscaled
+    expect(scaleGridPrecipitationToUrbanLocal(25.0)).toBe(25.0);
+    expect(scaleGridPrecipitationToUrbanLocal(55.5)).toBe(55.5);
   });
 });
 
